@@ -1,0 +1,8 @@
+[gd_resource type="SpineSkeletonDataResource" format=3 uid="uid://dd6j5204ec2km"]
+
+[ext_resource type="SpineAtlasResource" uid="uid://ddcqyui17pmpk" path="res://assets/effect/texture/ui_hand/ui_guide_hand01.atlas" id="1"]
+[ext_resource type="SpineSkeletonFileResource" uid="uid://bwetfowmb0w78" path="res://assets/effect/texture/ui_hand/ui_guide_hand01.skel" id="2"]
+
+[resource]
+atlas_res = ExtResource("1")
+skeleton_file_res = ExtResource("2")

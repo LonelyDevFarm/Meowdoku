@@ -1,0 +1,1027 @@
+fileFormatVersion: 2
+guid: 87b3b0d36fe9b184cb2baa3564b9dcbf
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4194842251477396968
+    second: LikeHand_7_0
+  - first:
+      213: -5443000177261457776
+    second: LikeHand_7_1
+  - first:
+      213: -4491528558217739919
+    second: LikeHand_7_2
+  - first:
+      213: -4980420277205829398
+    second: LikeHand_7_3
+  - first:
+      213: -7182816753013623773
+    second: LikeHand_7_4
+  - first:
+      213: 8865731114755102535
+    second: LikeHand_7_5
+  - first:
+      213: 5000948700033665927
+    second: LikeHand_7_6
+  - first:
+      213: 2692372251908244229
+    second: LikeHand_7_7
+  - first:
+      213: 9155393296207451415
+    second: LikeHand_7_8
+  - first:
+      213: -6803211698810788158
+    second: LikeHand_7_9
+  - first:
+      213: -7851210898304471333
+    second: LikeHand_7_10
+  - first:
+      213: -1990113411526186472
+    second: LikeHand_7_11
+  - first:
+      213: -3018690898071193095
+    second: LikeHand_7_12
+  - first:
+      213: -8232120421574461328
+    second: LikeHand_7_13
+  - first:
+      213: 7143095432102028682
+    second: LikeHand_7_14
+  - first:
+      213: -5656153100174451064
+    second: LikeHand_7_15
+  - first:
+      213: 3223460241679164602
+    second: LikeHand_7_16
+  - first:
+      213: 8497127276053599087
+    second: LikeHand_7_17
+  - first:
+      213: -760478131202756990
+    second: LikeHand_7_18
+  - first:
+      213: -6292993175840676477
+    second: LikeHand_7_19
+  - first:
+      213: -1043663836982310319
+    second: LikeHand_7_20
+  - first:
+      213: -759090122580058714
+    second: LikeHand_7_21
+  - first:
+      213: 1662530395848764978
+    second: LikeHand_7_22
+  - first:
+      213: 2670585340881834490
+    second: LikeHand_7_23
+  - first:
+      213: 4314741017662639876
+    second: LikeHand_7_24
+  - first:
+      213: -2416628395612165452
+    second: LikeHand_7_25
+  - first:
+      213: -3181040639801505267
+    second: LikeHand_7_26
+  - first:
+      213: 5554392584205803360
+    second: LikeHand_7_27
+  - first:
+      213: 857798546784464001
+    second: LikeHand_7_28
+  - first:
+      213: 4829690048770628880
+    second: LikeHand_7_29
+  - first:
+      213: 710838813376114710
+    second: LikeHand_7_30
+  - first:
+      213: 4904889959509153423
+    second: LikeHand_7_31
+  - first:
+      213: -5702967429691467377
+    second: LikeHand_7_32
+  - first:
+      213: 2624286861321186558
+    second: LikeHand_7_33
+  - first:
+      213: 7775069472176081075
+    second: LikeHand_7_34
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: LikeHand_7_0
+      rect:
+        serializedVersion: 2
+        x: 2
+        y: 330
+        width: 88
+        height: 68
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ed2c107dc2173a30800000000000000
+      internalID: 4194842251477396968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_1
+      rect:
+        serializedVersion: 2
+        x: 92
+        y: 330
+        width: 79
+        height: 68
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 09e41f15d249674b0800000000000000
+      internalID: -5443000177261457776
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_2
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 330
+        width: 63
+        height: 68
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 171c8ecc292eaa1c0800000000000000
+      internalID: -4491528558217739919
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_3
+      rect:
+        serializedVersion: 2
+        x: 238
+        y: 350
+        width: 95
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ae87ef0352ef1eab0800000000000000
+      internalID: -4980420277205829398
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_4
+      rect:
+        serializedVersion: 2
+        x: 249
+        y: 330
+        width: 86
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 324f5e52832815c90800000000000000
+      internalID: -7182816753013623773
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_5
+      rect:
+        serializedVersion: 2
+        x: 337
+        y: 342
+        width: 92
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7471b19e977690b70800000000000000
+      internalID: 8865731114755102535
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_6
+      rect:
+        serializedVersion: 2
+        x: 337
+        y: 330
+        width: 83
+        height: 41
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 78b4575b850f66540800000000000000
+      internalID: 5000948700033665927
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_7
+      rect:
+        serializedVersion: 2
+        x: 431
+        y: 330
+        width: 81
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5030c1e5c4a3d5520800000000000000
+      internalID: 2692372251908244229
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_8
+      rect:
+        serializedVersion: 2
+        x: 514
+        y: 314
+        width: 112
+        height: 84
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 715107f02bd7e0f70800000000000000
+      internalID: 9155393296207451415
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_9
+      rect:
+        serializedVersion: 2
+        x: 628
+        y: 314
+        width: 88
+        height: 84
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c6e99041032691a0800000000000000
+      internalID: -6803211698810788158
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_10
+      rect:
+        serializedVersion: 2
+        x: 718
+        y: 309
+        width: 53
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bdee2e51945ea0390800000000000000
+      internalID: -7851210898304471333
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_11
+      rect:
+        serializedVersion: 2
+        x: 773
+        y: 361
+        width: 48
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 81aad337562b164e0800000000000000
+      internalID: -1990113411526186472
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_12
+      rect:
+        serializedVersion: 2
+        x: 823
+        y: 361
+        width: 20
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9f9f2c53f947b16d0800000000000000
+      internalID: -3018690898071193095
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_13
+      rect:
+        serializedVersion: 2
+        x: 845
+        y: 347
+        width: 56
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 078b0db9712a1cd80800000000000000
+      internalID: -8232120421574461328
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_14
+      rect:
+        serializedVersion: 2
+        x: 903
+        y: 350
+        width: 46
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a852823237f512360800000000000000
+      internalID: 7143095432102028682
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_15
+      rect:
+        serializedVersion: 2
+        x: 951
+        y: 350
+        width: 29
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 88e90e419be4181b0800000000000000
+      internalID: -5656153100174451064
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_16
+      rect:
+        serializedVersion: 2
+        x: 982
+        y: 351
+        width: 44
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ab4a1ecd2080cbc20800000000000000
+      internalID: 3223460241679164602
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_17
+      rect:
+        serializedVersion: 2
+        x: 1028
+        y: 351
+        width: 41
+        height: 43
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f631574ec3cdbe570800000000000000
+      internalID: 8497127276053599087
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_18
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 1
+        width: 512
+        height: 328
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28ee43a3b2d3275f0800000000000000
+      internalID: -760478131202756990
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_19
+      rect:
+        serializedVersion: 2
+        x: 514
+        y: 208
+        width: 159
+        height: 104
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3852f0c5c0ccaa8a0800000000000000
+      internalID: -6292993175840676477
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_20
+      rect:
+        serializedVersion: 2
+        x: 675
+        y: 208
+        width: 80
+        height: 99
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 15a8fb315492481f0800000000000000
+      internalID: -1043663836982310319
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_21
+      rect:
+        serializedVersion: 2
+        x: 773
+        y: 287
+        width: 70
+        height: 72
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ad9b1b2e8b2775f0800000000000000
+      internalID: -759090122580058714
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_22
+      rect:
+        serializedVersion: 2
+        x: 846
+        y: 283
+        width: 76
+        height: 62
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23eead8269e721710800000000000000
+      internalID: 1662530395848764978
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_23
+      rect:
+        serializedVersion: 2
+        x: 924
+        y: 287
+        width: 62
+        height: 61
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: af190a9d733df0520800000000000000
+      internalID: 2670585340881834490
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_24
+      rect:
+        serializedVersion: 2
+        x: 988
+        y: 287
+        width: 62
+        height: 62
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 40fc697581a01eb30800000000000000
+      internalID: 4314741017662639876
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_25
+      rect:
+        serializedVersion: 2
+        x: 1052
+        y: 286
+        width: 43
+        height: 43
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4ba2a6d2749667ed0800000000000000
+      internalID: -2416628395612165452
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_26
+      rect:
+        serializedVersion: 2
+        x: 757
+        y: 211
+        width: 87
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d0acc88546caad3d0800000000000000
+      internalID: -3181040639801505267
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_27
+      rect:
+        serializedVersion: 2
+        x: 846
+        y: 211
+        width: 82
+        height: 70
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 06f96ac70aa251d40800000000000000
+      internalID: 5554392584205803360
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_28
+      rect:
+        serializedVersion: 2
+        x: 930
+        y: 211
+        width: 65
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 18c2fe5cb3387eb00800000000000000
+      internalID: 857798546784464001
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_29
+      rect:
+        serializedVersion: 2
+        x: 997
+        y: 210
+        width: 65
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 01d5634b281860340800000000000000
+      internalID: 4829690048770628880
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_30
+      rect:
+        serializedVersion: 2
+        x: 514
+        y: 2
+        width: 249
+        height: 204
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 610f7d372286dd900800000000000000
+      internalID: 710838813376114710
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_31
+      rect:
+        serializedVersion: 2
+        x: 765
+        y: 2
+        width: 208
+        height: 207
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f865ce25e6ba11440800000000000000
+      internalID: 4904889959509153423
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_32
+      rect:
+        serializedVersion: 2
+        x: 975
+        y: 128
+        width: 101
+        height: 80
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f891e9b965dfad0b0800000000000000
+      internalID: -5702967429691467377
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_33
+      rect:
+        serializedVersion: 2
+        x: 975
+        y: 2
+        width: 104
+        height: 124
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efc26cd0ff65b6420800000000000000
+      internalID: 2624286861321186558
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LikeHand_7_34
+      rect:
+        serializedVersion: 2
+        x: 1081
+        y: 2
+        width: 19
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b80a09ad7896eb60800000000000000
+      internalID: 7775069472176081075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      LikeHand_7_0: 4194842251477396968
+      LikeHand_7_1: -5443000177261457776
+      LikeHand_7_10: -7851210898304471333
+      LikeHand_7_11: -1990113411526186472
+      LikeHand_7_12: -3018690898071193095
+      LikeHand_7_13: -8232120421574461328
+      LikeHand_7_14: 7143095432102028682
+      LikeHand_7_15: -5656153100174451064
+      LikeHand_7_16: 3223460241679164602
+      LikeHand_7_17: 8497127276053599087
+      LikeHand_7_18: -760478131202756990
+      LikeHand_7_19: -6292993175840676477
+      LikeHand_7_2: -4491528558217739919
+      LikeHand_7_20: -1043663836982310319
+      LikeHand_7_21: -759090122580058714
+      LikeHand_7_22: 1662530395848764978
+      LikeHand_7_23: 2670585340881834490
+      LikeHand_7_24: 4314741017662639876
+      LikeHand_7_25: -2416628395612165452
+      LikeHand_7_26: -3181040639801505267
+      LikeHand_7_27: 5554392584205803360
+      LikeHand_7_28: 857798546784464001
+      LikeHand_7_29: 4829690048770628880
+      LikeHand_7_3: -4980420277205829398
+      LikeHand_7_30: 710838813376114710
+      LikeHand_7_31: 4904889959509153423
+      LikeHand_7_32: -5702967429691467377
+      LikeHand_7_33: 2624286861321186558
+      LikeHand_7_34: 7775069472176081075
+      LikeHand_7_4: -7182816753013623773
+      LikeHand_7_5: 8865731114755102535
+      LikeHand_7_6: 5000948700033665927
+      LikeHand_7_7: 2692372251908244229
+      LikeHand_7_8: 9155393296207451415
+      LikeHand_7_9: -6803211698810788158
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

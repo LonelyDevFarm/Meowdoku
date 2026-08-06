@@ -1,0 +1,2301 @@
+fileFormatVersion: 2
+guid: 2f08e95a64650d04aab23165bea5554f
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -1609820438779749826
+    second: et_rank_interface_flow_0
+  - first:
+      213: -6954413112564036661
+    second: et_rank_interface_flow_1
+  - first:
+      213: -5693452644491398029
+    second: et_rank_interface_flow_2
+  - first:
+      213: 7873131319761683090
+    second: et_rank_interface_flow_3
+  - first:
+      213: -3742399947761158367
+    second: et_rank_interface_flow_4
+  - first:
+      213: 7543376548701666343
+    second: et_rank_interface_flow_5
+  - first:
+      213: -3577782517948964170
+    second: et_rank_interface_flow_6
+  - first:
+      213: 1042986042813965839
+    second: et_rank_interface_flow_7
+  - first:
+      213: -459755838053506549
+    second: et_rank_interface_flow_8
+  - first:
+      213: 7046785644327605922
+    second: et_rank_interface_flow_9
+  - first:
+      213: -3177994413350236029
+    second: et_rank_interface_flow_10
+  - first:
+      213: -3129633021390364747
+    second: et_rank_interface_flow_11
+  - first:
+      213: -6961708051318919275
+    second: et_rank_interface_flow_12
+  - first:
+      213: 3425199044488744311
+    second: et_rank_interface_flow_13
+  - first:
+      213: 6473549648487356157
+    second: et_rank_interface_flow_14
+  - first:
+      213: 6054821457050810458
+    second: et_rank_interface_flow_15
+  - first:
+      213: 6401088657180149602
+    second: et_rank_interface_flow_16
+  - first:
+      213: 5079025776540310083
+    second: et_rank_interface_flow_17
+  - first:
+      213: -2356752276575247570
+    second: et_rank_interface_flow_18
+  - first:
+      213: -427600118910600210
+    second: et_rank_interface_flow_19
+  - first:
+      213: -1520337342715465771
+    second: et_rank_interface_flow_20
+  - first:
+      213: -7869649351775086547
+    second: et_rank_interface_flow_21
+  - first:
+      213: -6368901962374388119
+    second: et_rank_interface_flow_22
+  - first:
+      213: 8479171182226312112
+    second: et_rank_interface_flow_23
+  - first:
+      213: 9012602463637736069
+    second: et_rank_interface_flow_24
+  - first:
+      213: -2402855846427003814
+    second: et_rank_interface_flow_25
+  - first:
+      213: -7178313189272945591
+    second: et_rank_interface_flow_26
+  - first:
+      213: -6092294721014173256
+    second: et_rank_interface_flow_27
+  - first:
+      213: 3935057820060362520
+    second: et_rank_interface_flow_28
+  - first:
+      213: 1725862336109530990
+    second: et_rank_interface_flow_29
+  - first:
+      213: 7841897013452910799
+    second: et_rank_interface_flow_30
+  - first:
+      213: 5668003959985962940
+    second: et_rank_interface_flow_31
+  - first:
+      213: -5525552480251159989
+    second: et_rank_interface_flow_32
+  - first:
+      213: -3350503414523121465
+    second: et_rank_interface_flow_33
+  - first:
+      213: 8047308904867334309
+    second: et_rank_interface_flow_34
+  - first:
+      213: 4634153183491952862
+    second: et_rank_interface_flow_35
+  - first:
+      213: -6281256377676048679
+    second: et_rank_interface_flow_36
+  - first:
+      213: -1918234678519202185
+    second: et_rank_interface_flow_37
+  - first:
+      213: -7039462902948723618
+    second: et_rank_interface_flow_38
+  - first:
+      213: 1083426332718373065
+    second: et_rank_interface_flow_39
+  - first:
+      213: 3673621012667050274
+    second: et_rank_interface_flow_40
+  - first:
+      213: 3143379655882829605
+    second: et_rank_interface_flow_41
+  - first:
+      213: 8190516820157229940
+    second: et_rank_interface_flow_42
+  - first:
+      213: 492385641911535563
+    second: et_rank_interface_flow_43
+  - first:
+      213: 6488648629559591567
+    second: et_rank_interface_flow_44
+  - first:
+      213: 1841969636293651730
+    second: et_rank_interface_flow_45
+  - first:
+      213: -273412733752110717
+    second: et_rank_interface_flow_46
+  - first:
+      213: -6269671421549634746
+    second: et_rank_interface_flow_47
+  - first:
+      213: -7529596974652198716
+    second: et_rank_interface_flow_48
+  - first:
+      213: -6068175859832579442
+    second: et_rank_interface_flow_49
+  - first:
+      213: -2042128825008187979
+    second: et_rank_interface_flow_50
+  - first:
+      213: 6236272315655437313
+    second: et_rank_interface_flow_51
+  - first:
+      213: -7737126789303607066
+    second: et_rank_interface_flow_52
+  - first:
+      213: -2457833056194214959
+    second: et_rank_interface_flow_53
+  - first:
+      213: 452762813510537969
+    second: et_rank_interface_flow_54
+  - first:
+      213: 4719395671345645705
+    second: et_rank_interface_flow_55
+  - first:
+      213: -236011068333044602
+    second: et_rank_interface_flow_56
+  - first:
+      213: 8390417700811916516
+    second: et_rank_interface_flow_57
+  - first:
+      213: -1281467068140996773
+    second: et_rank_interface_flow_58
+  - first:
+      213: -3861293765589951093
+    second: et_rank_interface_flow_59
+  - first:
+      213: 4600888330029061115
+    second: et_rank_interface_flow_60
+  - first:
+      213: -2007506783238493849
+    second: et_rank_interface_flow_61
+  - first:
+      213: -308958035310019309
+    second: et_rank_interface_flow_62
+  - first:
+      213: 6839216430246243769
+    second: et_rank_interface_flow_63
+  - first:
+      213: -8659953507261821969
+    second: et_rank_interface_flow_64
+  - first:
+      213: 6188239445790819101
+    second: et_rank_interface_flow_65
+  - first:
+      213: -8866237009515738731
+    second: et_rank_interface_flow_66
+  - first:
+      213: -1170494060725850436
+    second: et_rank_interface_flow_67
+  - first:
+      213: 590024096184132467
+    second: et_rank_interface_flow_68
+  - first:
+      213: 4302762901288811522
+    second: et_rank_interface_flow_69
+  - first:
+      213: 2119671223406425953
+    second: et_rank_interface_flow_70
+  - first:
+      213: -1278612555705078884
+    second: et_rank_interface_flow_71
+  - first:
+      213: -2162523882556168583
+    second: et_rank_interface_flow_72
+  - first:
+      213: -7808529700198648705
+    second: et_rank_interface_flow_73
+  - first:
+      213: -5490591261783799374
+    second: et_rank_interface_flow_74
+  - first:
+      213: -1717758949834457820
+    second: et_rank_interface_flow_75
+  - first:
+      213: 2148207318526330328
+    second: et_rank_interface_flow_76
+  - first:
+      213: -3019704480563845336
+    second: et_rank_interface_flow_77
+  - first:
+      213: 8862580915937421569
+    second: et_rank_interface_flow_78
+  - first:
+      213: 7788582159184401753
+    second: et_rank_interface_flow_79
+  - first:
+      213: -1182669130153986762
+    second: et_rank_interface_flow_80
+  - first:
+      213: -3254833469147976960
+    second: et_rank_interface_flow_81
+  - first:
+      213: 3863871892231848370
+    second: et_rank_interface_flow_82
+  - first:
+      213: -450669130813924916
+    second: et_rank_interface_flow_83
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: et_rank_interface_flow_0
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 2222
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3a9e5217d4c8a9e0800000000000000
+      internalID: -1609820438779749826
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_1
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 2222
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bcb4d44ce16fc7f90800000000000000
+      internalID: -6954413112564036661
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_2
+      rect:
+        serializedVersion: 2
+        x: 423
+        y: 2222
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 374f49b2cfaccf0b0800000000000000
+      internalID: -5693452644491398029
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_3
+      rect:
+        serializedVersion: 2
+        x: 632
+        y: 2222
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 292c560c83bf24d60800000000000000
+      internalID: 7873131319761683090
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_4
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 2222
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 127714a5313501cc0800000000000000
+      internalID: -3742399947761158367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_5
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 2222
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 72cff5821057fa860800000000000000
+      internalID: 7543376548701666343
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_6
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 2082
+        width: 10
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b2ac0e71c9295ec0800000000000000
+      internalID: -3577782517948964170
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_7
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 2040
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f06ed9ba74e697e00800000000000000
+      internalID: 1042986042813965839
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_8
+      rect:
+        serializedVersion: 2
+        x: 318
+        y: 2040
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b02a86d408e9e99f0800000000000000
+      internalID: -459755838053506549
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_9
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 2040
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2a6187245363bc160800000000000000
+      internalID: 7046785644327605922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_10
+      rect:
+        serializedVersion: 2
+        x: 736
+        y: 2040
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 38055163bee75e3d0800000000000000
+      internalID: -3177994413350236029
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_11
+      rect:
+        serializedVersion: 2
+        x: 946
+        y: 2040
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5bfd1ba395f4194d0800000000000000
+      internalID: -3129633021390364747
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_12
+      rect:
+        serializedVersion: 2
+        x: 1154
+        y: 2040
+        width: 104
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 59fa82b796b036f90800000000000000
+      internalID: -6961708051318919275
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_13
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 1857
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 77d42cb2260c88f20800000000000000
+      internalID: 3425199044488744311
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_14
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 1857
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: df691f16b1ba6d950800000000000000
+      internalID: 6473549648487356157
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_15
+      rect:
+        serializedVersion: 2
+        x: 423
+        y: 1857
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a583ded090c070450800000000000000
+      internalID: 6054821457050810458
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_16
+      rect:
+        serializedVersion: 2
+        x: 632
+        y: 1857
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2674103283c35d850800000000000000
+      internalID: 6401088657180149602
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_17
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 1857
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 34adcbfa8035c7640800000000000000
+      internalID: 5079025776540310083
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_18
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 1857
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e23a3238a422b4fd0800000000000000
+      internalID: -2356752276575247570
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_19
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1717
+        width: 10
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eeb3b6615fbd01af0800000000000000
+      internalID: -427600118910600210
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_20
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 1674
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5dfeeaced3da6eae0800000000000000
+      internalID: -1520337342715465771
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_21
+      rect:
+        serializedVersion: 2
+        x: 318
+        y: 1674
+        width: 112
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d2810981c9369c290800000000000000
+      internalID: -7869649351775086547
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_22
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1674
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 966e26bb86d1d97a0800000000000000
+      internalID: -6368901962374388119
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_23
+      rect:
+        serializedVersion: 2
+        x: 736
+        y: 1674
+        width: 112
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0bb045204411ca570800000000000000
+      internalID: 8479171182226312112
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_24
+      rect:
+        serializedVersion: 2
+        x: 946
+        y: 1674
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 58a00fa9032331d70800000000000000
+      internalID: 9012602463637736069
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_25
+      rect:
+        serializedVersion: 2
+        x: 1154
+        y: 1674
+        width: 104
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a547f3ba65757aed0800000000000000
+      internalID: -2402855846427003814
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_26
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 1492
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94c72eacf22816c90800000000000000
+      internalID: -7178313189272945591
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_27
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 1492
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8b176f6ca32d37ba0800000000000000
+      internalID: -6092294721014173256
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_28
+      rect:
+        serializedVersion: 2
+        x: 423
+        y: 1492
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 817225f0d322c9630800000000000000
+      internalID: 3935057820060362520
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_29
+      rect:
+        serializedVersion: 2
+        x: 632
+        y: 1492
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6fc80396ae73f710800000000000000
+      internalID: 1725862336109530990
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_30
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 1492
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fc0be0c19c304dc60800000000000000
+      internalID: 7841897013452910799
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_31
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 1492
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cbf787c329bc8ae40800000000000000
+      internalID: 5668003959985962940
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_32
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1352
+        width: 10
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b4ad9da7b4b4153b0800000000000000
+      internalID: -5525552480251159989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_33
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 1309
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c0bd9e65ee9081d0800000000000000
+      internalID: -3350503414523121465
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_34
+      rect:
+        serializedVersion: 2
+        x: 318
+        y: 1309
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5a8847000d8cdaf60800000000000000
+      internalID: 8047308904867334309
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_35
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1309
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ed098c084c1df4040800000000000000
+      internalID: 4634153183491952862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_36
+      rect:
+        serializedVersion: 2
+        x: 736
+        y: 1309
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9d65671aa9e74d8a0800000000000000
+      internalID: -6281256377676048679
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_37
+      rect:
+        serializedVersion: 2
+        x: 946
+        y: 1309
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 77ef60f19bf0165e0800000000000000
+      internalID: -1918234678519202185
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_38
+      rect:
+        serializedVersion: 2
+        x: 1154
+        y: 1309
+        width: 104
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e54833459cdce4e90800000000000000
+      internalID: -7039462902948723618
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_39
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 1126
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9c89bf5628a190f00800000000000000
+      internalID: 1083426332718373065
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_40
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 1126
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2292e6be8d25bf230800000000000000
+      internalID: 3673621012667050274
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_41
+      rect:
+        serializedVersion: 2
+        x: 423
+        y: 1126
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 52fe51784278f9b20800000000000000
+      internalID: 3143379655882829605
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_42
+      rect:
+        serializedVersion: 2
+        x: 632
+        y: 1126
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 47b655817af8aa170800000000000000
+      internalID: 8190516820157229940
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_43
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 1126
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bc7c3aee12e45d600800000000000000
+      internalID: 492385641911535563
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_44
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 1126
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f82893ddc8f4c0a50800000000000000
+      internalID: 6488648629559591567
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_45
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 986
+        width: 10
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 21da65200adff8910800000000000000
+      internalID: 1841969636293651730
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_46
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 944
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 38113a73194a43cf0800000000000000
+      internalID: -273412733752110717
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_47
+      rect:
+        serializedVersion: 2
+        x: 318
+        y: 944
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 64b9d1c6f07adf8a0800000000000000
+      internalID: -6269671421549634746
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_48
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 944
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4c0ffffe17f718790800000000000000
+      internalID: -7529596974652198716
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_49
+      rect:
+        serializedVersion: 2
+        x: 736
+        y: 944
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e8a1410c43289cba0800000000000000
+      internalID: -6068175859832579442
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_50
+      rect:
+        serializedVersion: 2
+        x: 946
+        y: 944
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5b51dcf37a6e8a3e0800000000000000
+      internalID: -2042128825008187979
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_51
+      rect:
+        serializedVersion: 2
+        x: 1154
+        y: 944
+        width: 104
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 10cbe3141a0bb8650800000000000000
+      internalID: 6236272315655437313
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_52
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 761
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6e0666d9d2430a490800000000000000
+      internalID: -7737126789303607066
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_53
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 761
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1d3c4588bd504edd0800000000000000
+      internalID: -2457833056194214959
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_54
+      rect:
+        serializedVersion: 2
+        x: 423
+        y: 761
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1f25dca4169884600800000000000000
+      internalID: 452762813510537969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_55
+      rect:
+        serializedVersion: 2
+        x: 632
+        y: 761
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 988c211db59ae7140800000000000000
+      internalID: 4719395671345645705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_56
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 761
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 68cc2fc0f2589bcf0800000000000000
+      internalID: -236011068333044602
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_57
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 761
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e44b0ec170c07470800000000000000
+      internalID: 8390417700811916516
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_58
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 621
+        width: 10
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b573814bd70573ee0800000000000000
+      internalID: -1281467068140996773
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_59
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 578
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b8d949837cde96ac0800000000000000
+      internalID: -3861293765589951093
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_60
+      rect:
+        serializedVersion: 2
+        x: 318
+        y: 578
+        width: 112
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bf35f924f83a9df30800000000000000
+      internalID: 4600888330029061115
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_61
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 578
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 769e1e48737e324e0800000000000000
+      internalID: -2007506783238493849
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_62
+      rect:
+        serializedVersion: 2
+        x: 736
+        y: 578
+        width: 112
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 31df7d6cd4c56bbf0800000000000000
+      internalID: -308958035310019309
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_63
+      rect:
+        serializedVersion: 2
+        x: 946
+        y: 578
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9bda7da8b17c9ee50800000000000000
+      internalID: 6839216430246243769
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_64
+      rect:
+        serializedVersion: 2
+        x: 1154
+        y: 578
+        width: 104
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: febc244ea2aa1d780800000000000000
+      internalID: -8659953507261821969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_65
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 396
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d130c6f3dfa01e550800000000000000
+      internalID: 6188239445790819101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_66
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 396
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 59984694a6cc4f480800000000000000
+      internalID: -8866237009515738731
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_67
+      rect:
+        serializedVersion: 2
+        x: 423
+        y: 396
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cbe2bb27ad191cfe0800000000000000
+      internalID: -1170494060725850436
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_68
+      rect:
+        serializedVersion: 2
+        x: 632
+        y: 396
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 373e9f51acf203800800000000000000
+      internalID: 590024096184132467
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_69
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 396
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 20c7c0ccf0c76bb30800000000000000
+      internalID: 4302762901288811522
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_70
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 396
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 167f1c74fb59a6d10800000000000000
+      internalID: 2119671223406425953
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_71
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 256
+        width: 10
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c9b28dba7a4714ee0800000000000000
+      internalID: -1278612555705078884
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_72
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 213
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 976e0f18cfb2df1e0800000000000000
+      internalID: -2162523882556168583
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_73
+      rect:
+        serializedVersion: 2
+        x: 318
+        y: 213
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f747299eb9782a390800000000000000
+      internalID: -7808529700198648705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_74
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 213
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2b9438a76508dc3b0800000000000000
+      internalID: -5490591261783799374
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_75
+      rect:
+        serializedVersion: 2
+        x: 736
+        y: 213
+        width: 112
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42d7e51165b4928e0800000000000000
+      internalID: -1717758949834457820
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_76
+      rect:
+        serializedVersion: 2
+        x: 946
+        y: 213
+        width: 111
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8d508acac27ffcd10800000000000000
+      internalID: 2148207318526330328
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_77
+      rect:
+        serializedVersion: 2
+        x: 1154
+        y: 213
+        width: 104
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 827265526cad716d0800000000000000
+      internalID: -3019704480563845336
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_78
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 30
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1092b9713663efa70800000000000000
+      internalID: 8862580915937421569
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_79
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 30
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9559126453a961c60800000000000000
+      internalID: 7788582159184401753
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_80
+      rect:
+        serializedVersion: 2
+        x: 423
+        y: 30
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 635f95231b0569fe0800000000000000
+      internalID: -1182669130153986762
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_81
+      rect:
+        serializedVersion: 2
+        x: 632
+        y: 30
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 00be164643284d2d0800000000000000
+      internalID: -3254833469147976960
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_82
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 30
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2b1881aa30b3f9530800000000000000
+      internalID: 3863871892231848370
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: et_rank_interface_flow_83
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 30
+        width: 111
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cc91a9230d6eeb9f0800000000000000
+      internalID: -450669130813924916
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      et_rank_interface_flow_0: -1609820438779749826
+      et_rank_interface_flow_1: -6954413112564036661
+      et_rank_interface_flow_10: -3177994413350236029
+      et_rank_interface_flow_11: -3129633021390364747
+      et_rank_interface_flow_12: -6961708051318919275
+      et_rank_interface_flow_13: 3425199044488744311
+      et_rank_interface_flow_14: 6473549648487356157
+      et_rank_interface_flow_15: 6054821457050810458
+      et_rank_interface_flow_16: 6401088657180149602
+      et_rank_interface_flow_17: 5079025776540310083
+      et_rank_interface_flow_18: -2356752276575247570
+      et_rank_interface_flow_19: -427600118910600210
+      et_rank_interface_flow_2: -5693452644491398029
+      et_rank_interface_flow_20: -1520337342715465771
+      et_rank_interface_flow_21: -7869649351775086547
+      et_rank_interface_flow_22: -6368901962374388119
+      et_rank_interface_flow_23: 8479171182226312112
+      et_rank_interface_flow_24: 9012602463637736069
+      et_rank_interface_flow_25: -2402855846427003814
+      et_rank_interface_flow_26: -7178313189272945591
+      et_rank_interface_flow_27: -6092294721014173256
+      et_rank_interface_flow_28: 3935057820060362520
+      et_rank_interface_flow_29: 1725862336109530990
+      et_rank_interface_flow_3: 7873131319761683090
+      et_rank_interface_flow_30: 7841897013452910799
+      et_rank_interface_flow_31: 5668003959985962940
+      et_rank_interface_flow_32: -5525552480251159989
+      et_rank_interface_flow_33: -3350503414523121465
+      et_rank_interface_flow_34: 8047308904867334309
+      et_rank_interface_flow_35: 4634153183491952862
+      et_rank_interface_flow_36: -6281256377676048679
+      et_rank_interface_flow_37: -1918234678519202185
+      et_rank_interface_flow_38: -7039462902948723618
+      et_rank_interface_flow_39: 1083426332718373065
+      et_rank_interface_flow_4: -3742399947761158367
+      et_rank_interface_flow_40: 3673621012667050274
+      et_rank_interface_flow_41: 3143379655882829605
+      et_rank_interface_flow_42: 8190516820157229940
+      et_rank_interface_flow_43: 492385641911535563
+      et_rank_interface_flow_44: 6488648629559591567
+      et_rank_interface_flow_45: 1841969636293651730
+      et_rank_interface_flow_46: -273412733752110717
+      et_rank_interface_flow_47: -6269671421549634746
+      et_rank_interface_flow_48: -7529596974652198716
+      et_rank_interface_flow_49: -6068175859832579442
+      et_rank_interface_flow_5: 7543376548701666343
+      et_rank_interface_flow_50: -2042128825008187979
+      et_rank_interface_flow_51: 6236272315655437313
+      et_rank_interface_flow_52: -7737126789303607066
+      et_rank_interface_flow_53: -2457833056194214959
+      et_rank_interface_flow_54: 452762813510537969
+      et_rank_interface_flow_55: 4719395671345645705
+      et_rank_interface_flow_56: -236011068333044602
+      et_rank_interface_flow_57: 8390417700811916516
+      et_rank_interface_flow_58: -1281467068140996773
+      et_rank_interface_flow_59: -3861293765589951093
+      et_rank_interface_flow_6: -3577782517948964170
+      et_rank_interface_flow_60: 4600888330029061115
+      et_rank_interface_flow_61: -2007506783238493849
+      et_rank_interface_flow_62: -308958035310019309
+      et_rank_interface_flow_63: 6839216430246243769
+      et_rank_interface_flow_64: -8659953507261821969
+      et_rank_interface_flow_65: 6188239445790819101
+      et_rank_interface_flow_66: -8866237009515738731
+      et_rank_interface_flow_67: -1170494060725850436
+      et_rank_interface_flow_68: 590024096184132467
+      et_rank_interface_flow_69: 4302762901288811522
+      et_rank_interface_flow_7: 1042986042813965839
+      et_rank_interface_flow_70: 2119671223406425953
+      et_rank_interface_flow_71: -1278612555705078884
+      et_rank_interface_flow_72: -2162523882556168583
+      et_rank_interface_flow_73: -7808529700198648705
+      et_rank_interface_flow_74: -5490591261783799374
+      et_rank_interface_flow_75: -1717758949834457820
+      et_rank_interface_flow_76: 2148207318526330328
+      et_rank_interface_flow_77: -3019704480563845336
+      et_rank_interface_flow_78: 8862580915937421569
+      et_rank_interface_flow_79: 7788582159184401753
+      et_rank_interface_flow_8: -459755838053506549
+      et_rank_interface_flow_80: -1182669130153986762
+      et_rank_interface_flow_81: -3254833469147976960
+      et_rank_interface_flow_82: 3863871892231848370
+      et_rank_interface_flow_83: -450669130813924916
+      et_rank_interface_flow_9: 7046785644327605922
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

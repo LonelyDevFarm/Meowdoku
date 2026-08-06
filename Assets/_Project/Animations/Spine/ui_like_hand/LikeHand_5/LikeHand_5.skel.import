@@ -1,0 +1,14 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+uid="uid://dau874dkiviki"
+path="res://.godot/imported/LikeHand_5.skel-f7e3691d29dc50784c1ee9be6c20626b.spskel"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_like_hand/LikeHand_5/LikeHand_5.skel"
+dest_files=["res://.godot/imported/LikeHand_5.skel-f7e3691d29dc50784c1ee9be6c20626b.spskel"]
+
+[params]
+

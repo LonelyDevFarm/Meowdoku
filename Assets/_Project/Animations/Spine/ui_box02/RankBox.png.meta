@@ -1,0 +1,1105 @@
+fileFormatVersion: 2
+guid: bca18cefd5a67c946b2cce63c0ee4b52
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4900131531533325824
+    second: RankBox_0
+  - first:
+      213: -4842818318464380529
+    second: RankBox_1
+  - first:
+      213: -4292086626391805926
+    second: RankBox_2
+  - first:
+      213: -3149295113146689541
+    second: RankBox_3
+  - first:
+      213: 2253589270664848685
+    second: RankBox_4
+  - first:
+      213: -376894292790844261
+    second: RankBox_5
+  - first:
+      213: -2949442629470671673
+    second: RankBox_6
+  - first:
+      213: 7625255562150231229
+    second: RankBox_7
+  - first:
+      213: 6929659743985124982
+    second: RankBox_8
+  - first:
+      213: 2256593708111568364
+    second: RankBox_9
+  - first:
+      213: -7817877631646818722
+    second: RankBox_10
+  - first:
+      213: -7026371055692027526
+    second: RankBox_11
+  - first:
+      213: -2552779979023811288
+    second: RankBox_12
+  - first:
+      213: 1419758340675315027
+    second: RankBox_13
+  - first:
+      213: 1602443371841808235
+    second: RankBox_14
+  - first:
+      213: -7716223070396055100
+    second: RankBox_15
+  - first:
+      213: -6581160155415872124
+    second: RankBox_16
+  - first:
+      213: 1291662234277393098
+    second: RankBox_17
+  - first:
+      213: -5600990728743093684
+    second: RankBox_18
+  - first:
+      213: 6931931750899061939
+    second: RankBox_19
+  - first:
+      213: -1189752978776325965
+    second: RankBox_20
+  - first:
+      213: 7127247867515721226
+    second: RankBox_21
+  - first:
+      213: -5838729825437609246
+    second: RankBox_22
+  - first:
+      213: 8713003420835587168
+    second: RankBox_23
+  - first:
+      213: -1822322316793568574
+    second: RankBox_24
+  - first:
+      213: -3866075818478294175
+    second: RankBox_25
+  - first:
+      213: -5013711156293494786
+    second: RankBox_26
+  - first:
+      213: 7195453170499294452
+    second: RankBox_27
+  - first:
+      213: 8993140191508609918
+    second: RankBox_28
+  - first:
+      213: 6460693282567884575
+    second: RankBox_29
+  - first:
+      213: 6340376941298050156
+    second: RankBox_30
+  - first:
+      213: -7918001294799022827
+    second: RankBox_31
+  - first:
+      213: -5535874754151053248
+    second: RankBox_32
+  - first:
+      213: 4780578859136530881
+    second: RankBox_33
+  - first:
+      213: 3542198410587023129
+    second: RankBox_34
+  - first:
+      213: 401561983255420034
+    second: RankBox_35
+  - first:
+      213: 7132444190221184438
+    second: RankBox_36
+  - first:
+      213: 61799095012401768
+    second: RankBox_37
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: RankBox_0
+      rect:
+        serializedVersion: 2
+        x: 2
+        y: 1889
+        width: 151
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0061cb97aa3c00440800000000000000
+      internalID: 4900131531533325824
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_1
+      rect:
+        serializedVersion: 2
+        x: 155
+        y: 1888
+        width: 152
+        height: 159
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f811d20d56adaccb0800000000000000
+      internalID: -4842818318464380529
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_2
+      rect:
+        serializedVersion: 2
+        x: 308
+        y: 1889
+        width: 161
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1036b824f17f64c0800000000000000
+      internalID: -4292086626391805926
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_3
+      rect:
+        serializedVersion: 2
+        x: 471
+        y: 1888
+        width: 111
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bf79400c7c47b44d0800000000000000
+      internalID: -3149295113146689541
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_4
+      rect:
+        serializedVersion: 2
+        x: 582
+        y: 1908
+        width: 164
+        height: 119
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d252c9b608b564f10800000000000000
+      internalID: 2253589270664848685
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_5
+      rect:
+        serializedVersion: 2
+        x: 588
+        y: 1723
+        width: 249
+        height: 185
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b94645833a005caf0800000000000000
+      internalID: -376894292790844261
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_6
+      rect:
+        serializedVersion: 2
+        x: 879
+        y: 1716
+        width: 161
+        height: 202
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7cca1092e897117d0800000000000000
+      internalID: -2949442629470671673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_7
+      rect:
+        serializedVersion: 2
+        x: 1040
+        y: 1838
+        width: 188
+        height: 167
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dbc398f888952d960800000000000000
+      internalID: 7625255562150231229
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_8
+      rect:
+        serializedVersion: 2
+        x: 1228
+        y: 1822
+        width: 205
+        height: 187
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 676ce8e72d81b2060800000000000000
+      internalID: 6929659743985124982
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_9
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 1583
+        width: 587
+        height: 305
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ced1f568508015f10800000000000000
+      internalID: 2256593708111568364
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_10
+      rect:
+        serializedVersion: 2
+        x: 592
+        y: 1437
+        width: 287
+        height: 286
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e5e183407b1518390800000000000000
+      internalID: -7817877631646818722
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_11
+      rect:
+        serializedVersion: 2
+        x: 879
+        y: 1438
+        width: 160
+        height: 278
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a79e36d80c05d7e90800000000000000
+      internalID: -7026371055692027526
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_12
+      rect:
+        serializedVersion: 2
+        x: 1040
+        y: 1668
+        width: 172
+        height: 170
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 82d7e806224b29cd0800000000000000
+      internalID: -2552779979023811288
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_13
+      rect:
+        serializedVersion: 2
+        x: 1040
+        y: 1437
+        width: 172
+        height: 231
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 355a9da40bef3b310800000000000000
+      internalID: 1419758340675315027
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_14
+      rect:
+        serializedVersion: 2
+        x: 1212
+        y: 1634
+        width: 209
+        height: 188
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b676f4fa1c50d3610800000000000000
+      internalID: 1602443371841808235
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_15
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 948
+        width: 337
+        height: 635
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4c18e51fff77ae490800000000000000
+      internalID: -7716223070396055100
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_16
+      rect:
+        serializedVersion: 2
+        x: 338
+        y: 948
+        width: 254
+        height: 600
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 48d7b7605b50ba4a0800000000000000
+      internalID: -6581160155415872124
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_17
+      rect:
+        serializedVersion: 2
+        x: 1212
+        y: 1419
+        width: 219
+        height: 215
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac234e365f7ece110800000000000000
+      internalID: 1291662234277393098
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_18
+      rect:
+        serializedVersion: 2
+        x: 1432
+        y: 1444
+        width: 221
+        height: 180
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c4af2078b984542b0800000000000000
+      internalID: -5600990728743093684
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_19
+      rect:
+        serializedVersion: 2
+        x: 1654
+        y: 1477
+        width: 154
+        height: 127
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b41793533b233060800000000000000
+      internalID: 6931931750899061939
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_20
+      rect:
+        serializedVersion: 2
+        x: 592
+        y: 1179
+        width: 504
+        height: 258
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b0039928f52d7fe0800000000000000
+      internalID: -1189752978776325965
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_21
+      rect:
+        serializedVersion: 2
+        x: 1096
+        y: 1213
+        width: 363
+        height: 206
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a065f697c2219e260800000000000000
+      internalID: 7127247867515721226
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_22
+      rect:
+        serializedVersion: 2
+        x: 1459
+        y: 1213
+        width: 206
+        height: 231
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e2105f982aa8fea0800000000000000
+      internalID: -5838729825437609246
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_23
+      rect:
+        serializedVersion: 2
+        x: 1666
+        y: 1358
+        width: 144
+        height: 118
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0642ba1a27ecae870800000000000000
+      internalID: 8713003420835587168
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_24
+      rect:
+        serializedVersion: 2
+        x: 1136
+        y: 1039
+        width: 511
+        height: 174
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c2a049028fc5b6e0800000000000000
+      internalID: -1822322316793568574
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_25
+      rect:
+        serializedVersion: 2
+        x: 1647
+        y: 1039
+        width: 162
+        height: 169
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16bafd4c680f85ac0800000000000000
+      internalID: -3866075818478294175
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_26
+      rect:
+        serializedVersion: 2
+        x: 1666
+        y: 1208
+        width: 142
+        height: 149
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef796b26448bb6ab0800000000000000
+      internalID: -5013711156293494786
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_27
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 478
+        width: 592
+        height: 470
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f4919119826bd360800000000000000
+      internalID: 7195453170499294452
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_28
+      rect:
+        serializedVersion: 2
+        x: 593
+        y: 902
+        width: 543
+        height: 277
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e7bb8224b5d0ecc70800000000000000
+      internalID: 8993140191508609918
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_29
+      rect:
+        serializedVersion: 2
+        x: 593
+        y: 633
+        width: 570
+        height: 269
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f1f063e6f4ef8a950800000000000000
+      internalID: 6460693282567884575
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_30
+      rect:
+        serializedVersion: 2
+        x: 1163
+        y: 854
+        width: 546
+        height: 185
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c64e5204c3b8df750800000000000000
+      internalID: 6340376941298050156
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_31
+      rect:
+        serializedVersion: 2
+        x: 598
+        y: 441
+        width: 553
+        height: 192
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 515db6416cb9d1290800000000000000
+      internalID: -7918001294799022827
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_32
+      rect:
+        serializedVersion: 2
+        x: 1153
+        y: 323
+        width: 596
+        height: 276
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 04806cdcd3f9c23b0800000000000000
+      internalID: -5535874754151053248
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_33
+      rect:
+        serializedVersion: 2
+        x: 1163
+        y: 599
+        width: 572
+        height: 255
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c9339fc427085240800000000000000
+      internalID: 4780578859136530881
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_34
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 1
+        width: 597
+        height: 477
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9172ef2efaa682130800000000000000
+      internalID: 3542198410587023129
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_35
+      rect:
+        serializedVersion: 2
+        x: 598
+        y: 1
+        width: 555
+        height: 440
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28c9d370f72a29500800000000000000
+      internalID: 401561983255420034
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_36
+      rect:
+        serializedVersion: 2
+        x: 1153
+        y: 1
+        width: 629
+        height: 322
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6bdae62a3388bf260800000000000000
+      internalID: 7132444190221184438
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RankBox_37
+      rect:
+        serializedVersion: 2
+        x: 1783
+        y: 2
+        width: 171
+        height: 310
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 862a7a113fd8bd000800000000000000
+      internalID: 61799095012401768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      RankBox_0: 4900131531533325824
+      RankBox_1: -4842818318464380529
+      RankBox_10: -7817877631646818722
+      RankBox_11: -7026371055692027526
+      RankBox_12: -2552779979023811288
+      RankBox_13: 1419758340675315027
+      RankBox_14: 1602443371841808235
+      RankBox_15: -7716223070396055100
+      RankBox_16: -6581160155415872124
+      RankBox_17: 1291662234277393098
+      RankBox_18: -5600990728743093684
+      RankBox_19: 6931931750899061939
+      RankBox_2: -4292086626391805926
+      RankBox_20: -1189752978776325965
+      RankBox_21: 7127247867515721226
+      RankBox_22: -5838729825437609246
+      RankBox_23: 8713003420835587168
+      RankBox_24: -1822322316793568574
+      RankBox_25: -3866075818478294175
+      RankBox_26: -5013711156293494786
+      RankBox_27: 7195453170499294452
+      RankBox_28: 8993140191508609918
+      RankBox_29: 6460693282567884575
+      RankBox_3: -3149295113146689541
+      RankBox_30: 6340376941298050156
+      RankBox_31: -7918001294799022827
+      RankBox_32: -5535874754151053248
+      RankBox_33: 4780578859136530881
+      RankBox_34: 3542198410587023129
+      RankBox_35: 401561983255420034
+      RankBox_36: 7132444190221184438
+      RankBox_37: 61799095012401768
+      RankBox_4: 2253589270664848685
+      RankBox_5: -376894292790844261
+      RankBox_6: -2949442629470671673
+      RankBox_7: 7625255562150231229
+      RankBox_8: 6929659743985124982
+      RankBox_9: 2256593708111568364
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

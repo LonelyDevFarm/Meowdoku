@@ -1,0 +1,18 @@
+[
+  {
+    "Trigger": "trigger=abtest_switch,key=daily_streak,bf={3},af={1,2,4}",
+    "Param": "title=DAILY_STREAK_MAJOR_UPDATE,body=DAILY_STREAK_SWITCH3_DESC,btn_text=DAILY_STREAK_GET_IT,feedback=1"
+  },
+  {
+    "Trigger": "trigger=abtest_switch,key=game_auto_mark,bf={1,2,4,5},af={0}",
+    "Param": "title=DAILY_STREAK_MAJOR_UPDATE,body=GAME_AUTO_MARK_SWITCH_ENDED_DESC,btn_text=AD_REWARD_RESTORED_COLLECT,feedback=1"
+  },
+  {
+    "Trigger": "trigger=abtest_switch,key=leaderboard_func,bf={1,2,3},af={1,2}",
+    "Param": "title=DAILY_STREAK_MAJOR_UPDATE,body=LEADERBOARD_SWITCH_DESC,feedback=1"
+  },
+  {
+    "Trigger": "trigger=abtest_switch,key=leaderboard_func,bf={1,2},af={3}",
+    "Param": "title=DAILY_STREAK_MAJOR_UPDATE,body=LEADERBOARD_SWITCH2_DESC,feedback=1"
+  }
+]

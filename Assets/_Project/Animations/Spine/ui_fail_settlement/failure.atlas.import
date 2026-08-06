@@ -1,0 +1,16 @@
+[remap]
+
+importer="spine.atlas"
+type="SpineAtlasResource"
+uid="uid://cfvqb3l2yf62a"
+path="res://.godot/imported/failure.atlas-33c231b6a539d59d6c8d7b7159a27f46.spatlas"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_fail_settlement/failure.atlas"
+dest_files=["res://.godot/imported/failure.atlas-33c231b6a539d59d6c8d7b7159a27f46.spatlas"]
+
+[params]
+
+normal_map_prefix="n"
+specular_map_prefix="s"

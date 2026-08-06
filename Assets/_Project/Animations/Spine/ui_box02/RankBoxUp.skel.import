@@ -1,0 +1,14 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+uid="uid://bx580ewsss6ip"
+path="res://.godot/imported/RankBoxUp.skel-95b908139eaf909321424ce2b710bf45.spskel"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_box02/RankBoxUp.skel"
+dest_files=["res://.godot/imported/RankBoxUp.skel-95b908139eaf909321424ce2b710bf45.spskel"]
+
+[params]
+

@@ -1,0 +1,1053 @@
+fileFormatVersion: 2
+guid: ea104f2642ee40644bd31c08041c223d
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -1634502236304155235
+    second: game_win_result_0
+  - first:
+      213: 706856837762284996
+    second: game_win_result_1
+  - first:
+      213: 6533025645882939110
+    second: game_win_result_2
+  - first:
+      213: -8174787952220133658
+    second: game_win_result_3
+  - first:
+      213: -7679207244635410028
+    second: game_win_result_4
+  - first:
+      213: 4883773458996246861
+    second: game_win_result_5
+  - first:
+      213: 6062733838135715599
+    second: game_win_result_6
+  - first:
+      213: -9213292619414166903
+    second: game_win_result_7
+  - first:
+      213: -76383295708410319
+    second: game_win_result_8
+  - first:
+      213: -2322193394329485175
+    second: game_win_result_9
+  - first:
+      213: 1728391883157724234
+    second: game_win_result_10
+  - first:
+      213: -1668968498361168767
+    second: game_win_result_11
+  - first:
+      213: -6705462737674737335
+    second: game_win_result_12
+  - first:
+      213: -4568916248728703792
+    second: game_win_result_13
+  - first:
+      213: -3018348396521563878
+    second: game_win_result_14
+  - first:
+      213: -1104310432753943044
+    second: game_win_result_15
+  - first:
+      213: -8614494187798104700
+    second: game_win_result_16
+  - first:
+      213: 5646719460511536951
+    second: game_win_result_17
+  - first:
+      213: -8293307888635158244
+    second: game_win_result_18
+  - first:
+      213: 566973138915599728
+    second: game_win_result_19
+  - first:
+      213: -8861132895543328329
+    second: game_win_result_20
+  - first:
+      213: 8445161571357949478
+    second: game_win_result_21
+  - first:
+      213: 8617333513714799793
+    second: game_win_result_22
+  - first:
+      213: 7630448208078681549
+    second: game_win_result_23
+  - first:
+      213: 3907151252296896151
+    second: game_win_result_24
+  - first:
+      213: 3732676581668996384
+    second: game_win_result_25
+  - first:
+      213: -2648455480841579641
+    second: game_win_result_26
+  - first:
+      213: -7803724501840096000
+    second: game_win_result_27
+  - first:
+      213: -2070668072259556995
+    second: game_win_result_28
+  - first:
+      213: 8582625568342924650
+    second: game_win_result_29
+  - first:
+      213: -6914742373716406350
+    second: game_win_result_30
+  - first:
+      213: 2608994308870867250
+    second: game_win_result_31
+  - first:
+      213: 8873905010626351416
+    second: game_win_result_32
+  - first:
+      213: 2833942086112367964
+    second: game_win_result_33
+  - first:
+      213: -2956167412721412830
+    second: game_win_result_34
+  - first:
+      213: -7036621602648457865
+    second: game_win_result_35
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: game_win_result_0
+      rect:
+        serializedVersion: 2
+        x: 2
+        y: 352
+        width: 210
+        height: 146
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d9d528440e41159e0800000000000000
+      internalID: -1634502236304155235
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_1
+      rect:
+        serializedVersion: 2
+        x: 214
+        y: 385
+        width: 131
+        height: 119
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4cd70e18c824fc900800000000000000
+      internalID: 706856837762284996
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_2
+      rect:
+        serializedVersion: 2
+        x: 346
+        y: 488
+        width: 21
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6e69e532638f9aa50800000000000000
+      internalID: 6533025645882939110
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_3
+      rect:
+        serializedVersion: 2
+        x: 444
+        y: 444
+        width: 63
+        height: 66
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6e6a6c95ba15d8e80800000000000000
+      internalID: -8174787952220133658
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_4
+      rect:
+        serializedVersion: 2
+        x: 508
+        y: 442
+        width: 66
+        height: 66
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 49176ea72b9fd6590800000000000000
+      internalID: -7679207244635410028
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_5
+      rect:
+        serializedVersion: 2
+        x: 347
+        y: 385
+        width: 94
+        height: 102
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d49b3fae516a6c340800000000000000
+      internalID: 4883773458996246861
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_6
+      rect:
+        serializedVersion: 2
+        x: 442
+        y: 385
+        width: 116
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f07e1d5dd48232450800000000000000
+      internalID: 6062733838135715599
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_7
+      rect:
+        serializedVersion: 2
+        x: 758
+        y: 279
+        width: 134
+        height: 111
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 98227104d2fc32080800000000000000
+      internalID: -9213292619414166903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_8
+      rect:
+        serializedVersion: 2
+        x: 213
+        y: 351
+        width: 50
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 13ec6881cc1a0fef0800000000000000
+      internalID: -76383295708410319
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_9
+      rect:
+        serializedVersion: 2
+        x: 283
+        y: 277
+        width: 161
+        height: 106
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9808b3f4969e5cfd0800000000000000
+      internalID: -2322193394329485175
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_10
+      rect:
+        serializedVersion: 2
+        x: 446
+        y: 277
+        width: 147
+        height: 107
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a4cd844a24b7cf710800000000000000
+      internalID: 1728391883157724234
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_11
+      rect:
+        serializedVersion: 2
+        x: 2
+        y: 2
+        width: 280
+        height: 348
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 18c8dd94ef1a6d8e0800000000000000
+      internalID: -1668968498361168767
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_12
+      rect:
+        serializedVersion: 2
+        x: 595
+        y: 279
+        width: 159
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 949674aca2961f2a0800000000000000
+      internalID: -6705462737674737335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_13
+      rect:
+        serializedVersion: 2
+        x: 929
+        y: 243
+        width: 117
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0dce30201e2f790c0800000000000000
+      internalID: -4568916248728703792
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_14
+      rect:
+        serializedVersion: 2
+        x: 1046
+        y: 243
+        width: 56
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1956f0102cac16d0800000000000000
+      internalID: -3018348396521563878
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_15
+      rect:
+        serializedVersion: 2
+        x: 1102
+        y: 243
+        width: 56
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cfd71f52383bca0f0800000000000000
+      internalID: -1104310432753943044
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_16
+      rect:
+        serializedVersion: 2
+        x: 1158
+        y: 243
+        width: 56
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 48570a08d2b237880800000000000000
+      internalID: -8614494187798104700
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_17
+      rect:
+        serializedVersion: 2
+        x: 1214
+        y: 243
+        width: 49
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 73753168e6d2d5e40800000000000000
+      internalID: 5646719460511536951
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_18
+      rect:
+        serializedVersion: 2
+        x: 282
+        y: 1
+        width: 325
+        height: 275
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c11e4f44a6048ec80800000000000000
+      internalID: -8293307888635158244
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_19
+      rect:
+        serializedVersion: 2
+        x: 608
+        y: 1
+        width: 320
+        height: 276
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 075a04ed01b4ed700800000000000000
+      internalID: 566973138915599728
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_20
+      rect:
+        serializedVersion: 2
+        x: 930
+        y: 2
+        width: 311
+        height: 240
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7b18c9d649ee60580800000000000000
+      internalID: -8861132895543328329
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_21
+      rect:
+        serializedVersion: 2
+        x: 1263
+        y: 225
+        width: 41
+        height: 47
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 62ef19b64bd333570800000000000000
+      internalID: 8445161571357949478
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_22
+      rect:
+        serializedVersion: 2
+        x: 1436
+        y: 167
+        width: 160
+        height: 69
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1b41a049c2be69770800000000000000
+      internalID: 8617333513714799793
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_23
+      rect:
+        serializedVersion: 2
+        x: 1466
+        y: 166
+        width: 132
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dc5bb87a73cc4e960800000000000000
+      internalID: 7630448208078681549
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_24
+      rect:
+        serializedVersion: 2
+        x: 1468
+        y: 128
+        width: 134
+        height: 99
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 79e01ecec5df83630800000000000000
+      internalID: 3907151252296896151
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_25
+      rect:
+        serializedVersion: 2
+        x: 1619
+        y: 129
+        width: 32
+        height: 97
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 025cccf03912dc330800000000000000
+      internalID: 3732676581668996384
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_26
+      rect:
+        serializedVersion: 2
+        x: 1627
+        y: 130
+        width: 28
+        height: 95
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7835005b5cbce3bd0800000000000000
+      internalID: -2648455480841579641
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_27
+      rect:
+        serializedVersion: 2
+        x: 1761
+        y: 157
+        width: 89
+        height: 77
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0051fc659e993b390800000000000000
+      internalID: -7803724501840096000
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_28
+      rect:
+        serializedVersion: 2
+        x: 1853
+        y: 149
+        width: 89
+        height: 77
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d79e931fb528343e0800000000000000
+      internalID: -2070668072259556995
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_29
+      rect:
+        serializedVersion: 2
+        x: 1943
+        y: 149
+        width: 90
+        height: 80
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a6dd3415b7c9b1770800000000000000
+      internalID: 8582625568342924650
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_30
+      rect:
+        serializedVersion: 2
+        x: 1243
+        y: 2
+        width: 191
+        height: 222
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2bfca4d6276e900a0800000000000000
+      internalID: -6914742373716406350
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_31
+      rect:
+        serializedVersion: 2
+        x: 1604
+        y: 129
+        width: 40
+        height: 75
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23983493082053420800000000000000
+      internalID: 2608994308870867250
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_32
+      rect:
+        serializedVersion: 2
+        x: 1657
+        y: 157
+        width: 102
+        height: 66
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 83151f85791762b70800000000000000
+      internalID: 8873905010626351416
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_33
+      rect:
+        serializedVersion: 2
+        x: 1436
+        y: 2
+        width: 227
+        height: 124
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c55d1ccff4f245720800000000000000
+      internalID: 2833942086112367964
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_34
+      rect:
+        serializedVersion: 2
+        x: 1665
+        y: 2
+        width: 177
+        height: 153
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 225972c866599f6d0800000000000000
+      internalID: -2956167412721412830
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: game_win_result_35
+      rect:
+        serializedVersion: 2
+        x: 1843
+        y: 1
+        width: 177
+        height: 147
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 77d7c4b1fe5e85e90800000000000000
+      internalID: -7036621602648457865
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      game_win_result_0: -1634502236304155235
+      game_win_result_1: 706856837762284996
+      game_win_result_10: 1728391883157724234
+      game_win_result_11: -1668968498361168767
+      game_win_result_12: -6705462737674737335
+      game_win_result_13: -4568916248728703792
+      game_win_result_14: -3018348396521563878
+      game_win_result_15: -1104310432753943044
+      game_win_result_16: -8614494187798104700
+      game_win_result_17: 5646719460511536951
+      game_win_result_18: -8293307888635158244
+      game_win_result_19: 566973138915599728
+      game_win_result_2: 6533025645882939110
+      game_win_result_20: -8861132895543328329
+      game_win_result_21: 8445161571357949478
+      game_win_result_22: 8617333513714799793
+      game_win_result_23: 7630448208078681549
+      game_win_result_24: 3907151252296896151
+      game_win_result_25: 3732676581668996384
+      game_win_result_26: -2648455480841579641
+      game_win_result_27: -7803724501840096000
+      game_win_result_28: -2070668072259556995
+      game_win_result_29: 8582625568342924650
+      game_win_result_3: -8174787952220133658
+      game_win_result_30: -6914742373716406350
+      game_win_result_31: 2608994308870867250
+      game_win_result_32: 8873905010626351416
+      game_win_result_33: 2833942086112367964
+      game_win_result_34: -2956167412721412830
+      game_win_result_35: -7036621602648457865
+      game_win_result_4: -7679207244635410028
+      game_win_result_5: 4883773458996246861
+      game_win_result_6: 6062733838135715599
+      game_win_result_7: -9213292619414166903
+      game_win_result_8: -76383295708410319
+      game_win_result_9: -2322193394329485175
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

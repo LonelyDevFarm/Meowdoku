@@ -1,0 +1,9 @@
+ui_guide_hand.png
+	size: 512, 256
+	filter: Linear, Linear
+	pma: true
+	scale: 0.6
+circle
+	bounds: 166, 70, 97, 97
+hand
+	bounds: 1, 1, 163, 166

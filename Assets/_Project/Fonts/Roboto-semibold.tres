@@ -1,0 +1,13 @@
+[gd_resource type="FontVariation" format=3 uid="uid://d16e7a02l2fly"]
+
+[ext_resource type="FontFile" uid="uid://bvxeo4fq0ps17" path="res://assets/fonts/Roboto.ttf" id="1"]
+[ext_resource type="FontFile" uid="uid://c1htnb4bgwlu5" path="res://assets/fonts/NotoSourceHan-subset.ttf" id="2"]
+
+[resource]
+fallbacks = [ExtResource("2")]
+base_font = ExtResource("1")
+variation_opentype = {
+2003072104: 100,
+2003265652: 700
+}
+variation_embolden = 0.2

@@ -1,0 +1,14 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+uid="uid://bnpq4x1vfejk0"
+path="res://.godot/imported/game_win_result.skel-d6fe3c484a00dcdf449f78f605ef055a.spskel"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_win_settlement/game_win_result.skel"
+dest_files=["res://.godot/imported/game_win_result.skel-d6fe3c484a00dcdf449f78f605ef055a.spskel"]
+
+[params]
+

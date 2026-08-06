@@ -1,0 +1,10 @@
+[gd_resource type="FontVariation" format=3 uid="uid://c4kdt3xx2mofx"]
+
+[ext_resource type="FontFile" uid="uid://c1htnb4bgwlu5" path="res://assets/fonts/NotoSourceHan-subset.ttf" id="1"]
+
+[resource]
+fallbacks = [ExtResource("1")]
+variation_opentype = {
+2003072104: 100,
+2003265652: 700
+}

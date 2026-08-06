@@ -1,0 +1,8 @@
+[gd_resource type="SpineSkeletonDataResource" format=3 uid="uid://cp4aqncd64ma2"]
+
+[ext_resource type="SpineAtlasResource" uid="uid://cdb6fktjj0aif" path="res://assets/effect/spine/ui_box02/RankBox.atlas" id="1"]
+[ext_resource type="SpineSkeletonFileResource" uid="uid://b4igv8yqji8k5" path="res://assets/effect/spine/ui_box02/RankBox2Down.skel" id="2"]
+
+[resource]
+atlas_res = ExtResource("1")
+skeleton_file_res = ExtResource("2")

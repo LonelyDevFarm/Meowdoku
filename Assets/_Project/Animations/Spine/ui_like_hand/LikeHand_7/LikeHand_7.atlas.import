@@ -1,0 +1,16 @@
+[remap]
+
+importer="spine.atlas"
+type="SpineAtlasResource"
+uid="uid://dj63qfhpd4i7j"
+path="res://.godot/imported/LikeHand_7.atlas-f2aff077de7ff339e394390046d7ea9d.spatlas"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_like_hand/LikeHand_7/LikeHand_7.atlas"
+dest_files=["res://.godot/imported/LikeHand_7.atlas-f2aff077de7ff339e394390046d7ea9d.spatlas"]
+
+[params]
+
+normal_map_prefix="n"
+specular_map_prefix="s"

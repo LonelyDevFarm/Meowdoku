@@ -1,0 +1,26 @@
+[
+  {
+    "OpenScene": "home",
+    "Priority": 10012,
+    "Key": "rank_reward_and_tryopen_popup",
+    "CanExceedLimit": 1
+  },
+  {
+    "OpenScene": "home",
+    "Priority": 10011,
+    "Key": "ab_switch_popup",
+    "CanExceedLimit": 0
+  },
+  {
+    "OpenScene": "home",
+    "Priority": 10010,
+    "Key": "ad_reward_restored",
+    "CanExceedLimit": 1
+  },
+  {
+    "OpenScene": "home",
+    "Priority": 10009,
+    "Key": "rank_open_popup",
+    "CanExceedLimit": 1
+  }
+]

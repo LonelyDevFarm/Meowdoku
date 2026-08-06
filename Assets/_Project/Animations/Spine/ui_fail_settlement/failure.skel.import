@@ -1,0 +1,14 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+uid="uid://buorfcaglxlus"
+path="res://.godot/imported/failure.skel-7e36a57ad223ddbe5d891ca43b6e3dc9.spskel"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_fail_settlement/failure.skel"
+dest_files=["res://.godot/imported/failure.skel-7e36a57ad223ddbe5d891ca43b6e3dc9.spskel"]
+
+[params]
+

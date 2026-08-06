@@ -1,0 +1,14 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+uid="uid://b7uc2qp27alj0"
+path="res://.godot/imported/Box_Up.skel-ecbd0f38cc59e8f9999401f217320e8a.spskel"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_box01/Box_Up.skel"
+dest_files=["res://.godot/imported/Box_Up.skel-ecbd0f38cc59e8f9999401f217320e8a.spskel"]
+
+[params]
+

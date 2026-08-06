@@ -1,0 +1,14 @@
+[remap]
+
+importer="spine.skel"
+type="SpineSkeletonFileResource"
+uid="uid://eeujlse48oq3"
+path="res://.godot/imported/ui_guide_hand.skel-96b84444448ef3ffb95feff8742c4e55.spskel"
+
+[deps]
+
+source_file="res://assets/effect/texture/ui_guide/ui_guide_hand.skel"
+dest_files=["res://.godot/imported/ui_guide_hand.skel-96b84444448ef3ffb95feff8742c4e55.spskel"]
+
+[params]
+

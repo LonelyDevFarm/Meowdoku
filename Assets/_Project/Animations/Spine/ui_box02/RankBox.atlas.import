@@ -1,0 +1,16 @@
+[remap]
+
+importer="spine.atlas"
+type="SpineAtlasResource"
+uid="uid://cdb6fktjj0aif"
+path="res://.godot/imported/RankBox.atlas-8768df83a7faae870d8da5518c95a795.spatlas"
+
+[deps]
+
+source_file="res://assets/effect/spine/ui_box02/RankBox.atlas"
+dest_files=["res://.godot/imported/RankBox.atlas-8768df83a7faae870d8da5518c95a795.spatlas"]
+
+[params]
+
+normal_map_prefix="n"
+specular_map_prefix="s"

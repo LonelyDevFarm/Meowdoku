@@ -1,0 +1,20 @@
+{
+    "name": "Meowdoku.Editor",
+    "rootNamespace": "Meowdoku.Editor",
+    "references": [
+        "Meowdoku.Gameplay",
+        "Meowdoku.Services",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

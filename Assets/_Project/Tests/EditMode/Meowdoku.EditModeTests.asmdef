@@ -1,0 +1,23 @@
+{
+    "name": "Meowdoku.EditModeTests",
+    "rootNamespace": "Meowdoku.Tests.EditMode",
+    "references": [
+        "Meowdoku.Core",
+        "Meowdoku.Gameplay",
+        "Meowdoku.Services"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

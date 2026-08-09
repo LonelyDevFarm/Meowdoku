@@ -1,0 +1,148 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 496194d68be44a40b6aed34f5a2e2207, type: 3}
+  m_Name: SoundCatalog
+  m_EditorClassIdentifier: Meowdoku.Services::Meowdoku.Services.SoundCatalog
+  fixedClips:
+  - kind: 0
+    clip: {fileID: 8300000, guid: 5e8b5e47a9c5b8142a1eb0b7e27c116c, type: 3}
+  - kind: 1
+    clip: {fileID: 8300000, guid: df3be58d667d9ca448828821372b9ad0, type: 3}
+  - kind: 2
+    clip: {fileID: 8300000, guid: 0c2c693d416867b40b9fbe74443b4e00, type: 3}
+  - kind: 3
+    clip: {fileID: 8300000, guid: 8037856635773ee40a3497405c9aae38, type: 3}
+  - kind: 4
+    clip: {fileID: 8300000, guid: 2bdab9cee86752148939f779e494764a, type: 3}
+  - kind: 5
+    clip: {fileID: 8300000, guid: 87b27122129e84e4ba78888227f554b0, type: 3}
+  - kind: 6
+    clip: {fileID: 8300000, guid: ccb4c717774c84d499de7fb844a0010d, type: 3}
+  - kind: 7
+    clip: {fileID: 8300000, guid: a4e0ade951417e64e9ac697b2a723d6a, type: 3}
+  - kind: 8
+    clip: {fileID: 8300000, guid: fdc32aa798c4009478325d1b23b0c73a, type: 3}
+  - kind: 9
+    clip: {fileID: 8300000, guid: 1affb56541001334db5a0fe22e847e53, type: 3}
+  - kind: 10
+    clip: {fileID: 8300000, guid: 03cf2c5c82ae10e4496831b929323c5b, type: 3}
+  - kind: 11
+    clip: {fileID: 8300000, guid: 35156d03e919dfe498c57b18aa124312, type: 3}
+  - kind: 12
+    clip: {fileID: 8300000, guid: 87a0dba69ed30ec4fb731582bb0d2dd4, type: 3}
+  - kind: 13
+    clip: {fileID: 8300000, guid: 0ecf6547942833746b7b13da5c674282, type: 3}
+  - kind: 14
+    clip: {fileID: 8300000, guid: dd09bd9b86ff4254b9cd29f2dddd443a, type: 3}
+  - kind: 17
+    clip: {fileID: 8300000, guid: fe2b2d119980a084ea76a107b43b0c5b, type: 3}
+  - kind: 18
+    clip: {fileID: 8300000, guid: 53defef835a05b64d80e515580379b00, type: 3}
+  - kind: 19
+    clip: {fileID: 8300000, guid: b935d5675b0d0274ab7565f1ef97143a, type: 3}
+  - kind: 20
+    clip: {fileID: 8300000, guid: 84b14ba92a3d10546a6959d463ef5076, type: 3}
+  - kind: 21
+    clip: {fileID: 8300000, guid: 473297f300f65b241957813db70e7a4e, type: 3}
+  - kind: 22
+    clip: {fileID: 8300000, guid: ac91c2ba06b995249960cadc6959ba39, type: 3}
+  - kind: 23
+    clip: {fileID: 8300000, guid: 40222f4515552ff4c8b3c77456eb0b81, type: 3}
+  - kind: 24
+    clip: {fileID: 8300000, guid: e0dcb2dd077280d4abbfe4908cd9ebd6, type: 3}
+  - kind: 25
+    clip: {fileID: 8300000, guid: 3d2cf189381f00341b84ac2d7fa41b76, type: 3}
+  - kind: 26
+    clip: {fileID: 8300000, guid: 72f43a4bb6ef22c4d9c0111d13fd7904, type: 3}
+  - kind: 27
+    clip: {fileID: 8300000, guid: 6d16a1756173d284991c694a93544eab, type: 3}
+  - kind: 28
+    clip: {fileID: 8300000, guid: c13b964e84af05344bfce28cfaa185fa, type: 3}
+  pathClips:
+  - sourcePath: res://assets/audio/sfx/combo_nice_s6.ogg
+    clip: {fileID: 8300000, guid: 68d2fb9878836964d8d5817fda85a292, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_great_s6.ogg
+    clip: {fileID: 8300000, guid: b0cf76f3ecdc8634b84018ed96ed7b37, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_perfect_s6.ogg
+    clip: {fileID: 8300000, guid: 69c7d275ac96f954facbc412b3627f53, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_excellent_s6.ogg
+    clip: {fileID: 8300000, guid: b786c7e030e94dd4aabfb51af13bc9c7, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_amazing_s6.ogg
+    clip: {fileID: 8300000, guid: 477edf0ac928a7d4c9c62b316f0fd356, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_unbelievable_s6.ogg
+    clip: {fileID: 8300000, guid: 69528dba7348fb54b8371e7459dd621a, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_incredible_s9.ogg
+    clip: {fileID: 8300000, guid: 8490e9efd9d3ae2489494bb59c8ec43b, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_phenomenal_s9.ogg
+    clip: {fileID: 8300000, guid: 224498b4325877c448c83d38831ba48e, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_spectacular_s9.ogg
+    clip: {fileID: 8300000, guid: f9fd24d6505bc164bbb0ae3b84b8dc0a, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_legendary_s9.ogg
+    clip: {fileID: 8300000, guid: be3af66f37becc245b0dac8c7839307f, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_unreal_s10.ogg
+    clip: {fileID: 8300000, guid: a29e1ba044b96bc4fb236b21bf49d1f9, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_insane_s10.ogg
+    clip: {fileID: 8300000, guid: adc2b5f14defcea43aa85440fb681daf, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_epic_s10.ogg
+    clip: {fileID: 8300000, guid: 779924981e52f134ab6d54fc2eca3c79, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_breathtaking_s10.ogg
+    clip: {fileID: 8300000, guid: 97fedb99a9792ca48a4a185d9dfd282d, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_nice_meow_s11.ogg
+    clip: {fileID: 8300000, guid: ec7e71d789b03784fa99a451115169c5, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_great_kitty_s11.ogg
+    clip: {fileID: 8300000, guid: 55e07e3528dbdba438493d337ca2689f, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_purr_fect_s11.ogg
+    clip: {fileID: 8300000, guid: 056dee88a5081f0408f4391b4a2bb5c9, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_excellent_kitten_s11.ogg
+    clip: {fileID: 8300000, guid: 535a9b32017280e4fbbe4713478e58f3, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_amazing_mew_s11.ogg
+    clip: {fileID: 8300000, guid: 8d6a4fcda6b440f45b42bf54af026a6d, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_paw_some_s11.ogg
+    clip: {fileID: 8300000, guid: 2eef83801774d4b448921d52c2077985, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_incredible_whiskers_s11.ogg
+    clip: {fileID: 8300000, guid: 4c81565bc1051464ba876946028c70fd, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_catnip_level_s11.ogg
+    clip: {fileID: 8300000, guid: c1d66fdf8b5e0c94fa4a9424be083ef8, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_epic_pounce_s11.ogg
+    clip: {fileID: 8300000, guid: bd6f349e4caa9bf43b76b37db436b248, type: 3}
+  - sourcePath: res://assets/audio/sfx/combo_legendary_furball_s11.ogg
+    clip: {fileID: 8300000, guid: 20207aa7340740941adfb178e165e6e2, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_single.ogg
+    clip: {fileID: 8300000, guid: f03aa6a029a61f640a396c600f6edf0d, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_cresc_1.ogg
+    clip: {fileID: 8300000, guid: 5fa48171a415c4f4ab4584c756dd3ace, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_cresc_2.ogg
+    clip: {fileID: 8300000, guid: 71d79418094bcbe4980038252d948858, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_cresc_3.ogg
+    clip: {fileID: 8300000, guid: 53f88b924299116409100734e3479713, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_cresc_4.ogg
+    clip: {fileID: 8300000, guid: d852051d4ce940c45bbed28fa42b3a08, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_cresc_5.ogg
+    clip: {fileID: 8300000, guid: 363a9c8016ff7954f929c38b06beb97b, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_cresc_6.ogg
+    clip: {fileID: 8300000, guid: 9e3c85376d6278d4e8d0a3a9d483e560, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_cresc_7.ogg
+    clip: {fileID: 8300000, guid: 4ca65ad431f0a9045bf8425809cb2606, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_rand_1.ogg
+    clip: {fileID: 8300000, guid: cb2446532bf593a41b5e567d7becf737, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_rand_2.ogg
+    clip: {fileID: 8300000, guid: 3eef7d3774bd6d64fbb748c6a9ad14a2, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_rand_3.ogg
+    clip: {fileID: 8300000, guid: 7be346cb0a2871846b916e18cd3ac0cd, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_rand_4.ogg
+    clip: {fileID: 8300000, guid: 2ac07d7352746794185990e43e304008, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_rand_5.ogg
+    clip: {fileID: 8300000, guid: ad095cebb2b317c48bf20364e842ddd3, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_rand_6.ogg
+    clip: {fileID: 8300000, guid: 29be2e027fda91940b73caef1dd6d5e6, type: 3}
+  - sourcePath: res://assets/audio/sfx/meow_rand_7.ogg
+    clip: {fileID: 8300000, guid: 6f1de8c6aec55af44887491696126d82, type: 3}

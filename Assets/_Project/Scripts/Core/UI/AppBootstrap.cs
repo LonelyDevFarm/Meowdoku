@@ -1,0 +1,224 @@
+using System.Collections;
+using UnityEngine;
+
+namespace Meowdoku.Core.UI
+{
+    public enum AppStartupPhase
+    {
+        Idle = 0,
+        RuntimeSetup = 1,
+        Splash = 2,
+        PlatformBoundary = 3,
+        Prewarming = 4,
+        DataSyncBoundary = 5,
+        SplashCompletion = 6,
+        Routing = 7,
+        Complete = 8,
+        Failed = 9
+    }
+
+    public interface IAppStartupExternalServices
+    {
+        void ApplySystemLocale(GameStateService gameState);
+        void HideNativeSplash(int milliseconds);
+        IEnumerator AwaitPrivacyAndPush();
+        IEnumerator AwaitConsentAndTracking(float maximumSeconds);
+        IEnumerator AwaitRemoteDefaults(float maximumSeconds);
+        void SetupScreen();
+        bool IsDataSyncAvailable { get; }
+        IEnumerator AwaitDataSync(float maximumSeconds);
+        bool TryHandleShortcut();
+    }
+
+    public interface IStartupSplashWindow
+    {
+        IEnumerator ForceCompleteAndWait();
+    }
+
+    public interface IStartupGamePrewarm
+    {
+        IEnumerator PrewarmBoard(int boardSize);
+    }
+
+    public sealed class OfflineStartupExternalServices : IAppStartupExternalServices
+    {
+        public static readonly OfflineStartupExternalServices Instance = new();
+        private OfflineStartupExternalServices() { }
+
+        public bool IsDataSyncAvailable => false;
+        public void ApplySystemLocale(GameStateService gameState) { }
+        public void HideNativeSplash(int milliseconds) { }
+        public IEnumerator AwaitPrivacyAndPush() { yield break; }
+        public IEnumerator AwaitConsentAndTracking(float maximumSeconds) { yield break; }
+        public IEnumerator AwaitRemoteDefaults(float maximumSeconds) { yield break; }
+        public void SetupScreen() { }
+        public IEnumerator AwaitDataSync(float maximumSeconds) { yield break; }
+        public bool TryHandleShortcut() => false;
+    }
+
+    /// <summary>
+    /// Unity equivalent of launcher.gd. It owns the startup sequence through
+    /// serialized composition and keeps SDK/online work behind a no-op-able
+    /// boundary so offline startup cannot be blocked by absent services.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class AppBootstrap : MonoBehaviour
+    {
+        [SerializeField] private UIManager uiManager;
+        [SerializeField] private MonoBehaviour externalServicesAdapter;
+        [SerializeField] private bool runOnStart = true;
+
+        private Coroutine _gamePrewarm;
+        private bool _running;
+        private bool _runtimeInitialized;
+        private IAppStartupExternalServices _externalServices;
+
+        public AppStartupPhase Phase { get; private set; } = AppStartupPhase.Idle;
+        public bool IsComplete => Phase == AppStartupPhase.Complete;
+        public string FailureReason { get; private set; } = string.Empty;
+
+        private IEnumerator Start()
+        {
+            if (runOnStart) yield return RunStartup();
+        }
+
+        public IEnumerator RunStartup()
+        {
+            if (_running || IsComplete) yield break;
+            _running = true;
+            FailureReason = string.Empty;
+            float startupTime = Time.realtimeSinceStartup;
+
+            if (uiManager == null)
+            {
+                Fail("UIManager reference is missing.");
+                yield break;
+            }
+
+            IAppStartupExternalServices external =
+                externalServicesAdapter as IAppStartupExternalServices ??
+                OfflineStartupExternalServices.Instance;
+            _externalServices = external;
+
+            Phase = AppStartupPhase.RuntimeSetup;
+            Application.targetFrameRate = 60;
+            Screen.sleepTimeout = SleepTimeout.NeverSleep;
+            GameStateService gameState = GameStateRuntime.Current;
+            if (!_runtimeInitialized)
+            {
+                gameState.OnSessionStarted();
+                external.ApplySystemLocale(gameState);
+                gameState.ConsumeFirstSessionPersist();
+                _runtimeInitialized = true;
+            }
+
+            // Source delays one second only on Android before showing its UI
+            // splash, while the startup timer is already running.
+            if (Application.platform == RuntimePlatform.Android)
+                yield return new WaitForSecondsRealtime(1f);
+
+            Phase = AppStartupPhase.Splash;
+            UIFrameWindow splash = uiManager.Show(UiName.Splash);
+            if (splash == null)
+            {
+                Fail("Splash is not registered.");
+                yield break;
+            }
+            external.HideNativeSplash(500);
+
+            Phase = AppStartupPhase.PlatformBoundary;
+            yield return RunOptional(external.AwaitPrivacyAndPush());
+            yield return null;
+            yield return RunOptional(external.AwaitConsentAndTracking(
+                AppStartupContract.ExternalWaitMaximumSeconds));
+            yield return RunOptional(external.AwaitRemoteDefaults(
+                AppStartupContract.ExternalWaitMaximumSeconds));
+            external.SetupScreen();
+
+            Phase = AppStartupPhase.Prewarming;
+            _gamePrewarm = StartCoroutine(PrewarmGame(gameState));
+
+            Phase = AppStartupPhase.DataSyncBoundary;
+            if (external.IsDataSyncAvailable)
+                yield return RunOptional(external.AwaitDataSync(
+                    AppStartupContract.ExternalWaitMaximumSeconds));
+
+            Phase = AppStartupPhase.SplashCompletion;
+            float elapsed = Time.realtimeSinceStartup - startupTime;
+            yield return new WaitForSecondsRealtime(
+                AppStartupContract.SplashWaitRemaining(elapsed));
+            if (splash is IStartupSplashWindow splashWindow)
+                yield return RunOptional(splashWindow.ForceCompleteAndWait());
+
+            while (uiManager.IsAnyLoading) yield return null;
+
+            Phase = AppStartupPhase.Routing;
+            bool handledShortcut = external.TryHandleShortcut();
+            if (!handledShortcut)
+            {
+                UiName route = AppStartupContract.InitialRoute(gameState.TutorialDone);
+                if (uiManager.Show(route) == null)
+                {
+                    Fail($"Initial route {route} is not registered.");
+                    yield break;
+                }
+            }
+
+            uiManager.Hide(UiName.Splash);
+            Phase = AppStartupPhase.Complete;
+            _running = false;
+        }
+
+        internal void ConfigureForTests(
+            UIManager manager,
+            MonoBehaviour externalAdapter = null,
+            bool autoRun = false)
+        {
+            uiManager = manager;
+            externalServicesAdapter = externalAdapter;
+            runOnStart = autoRun;
+        }
+
+        private IEnumerator PrewarmGame(GameStateService gameState)
+        {
+            yield return uiManager.WarmPoolAsync(UiName.Game);
+            int size = LevelData.GetSize(gameState.CurrentLevel);
+            UIFrameWindow game = uiManager.Get(UiName.Game);
+            if (game is IStartupGamePrewarm gamePrewarm && size > 0)
+                yield return RunOptional(gamePrewarm.PrewarmBoard(size));
+            if (size > 0)
+            {
+                BankData.GetRanks(size);
+                BankData.GetLkStyleRanks(size);
+                BankData.GetGcRanks(size);
+            }
+            _gamePrewarm = null;
+        }
+
+        private static IEnumerator RunOptional(IEnumerator routine)
+        {
+            if (routine != null) yield return routine;
+        }
+
+        private void Fail(string reason)
+        {
+            if (_gamePrewarm != null) StopCoroutine(_gamePrewarm);
+            _gamePrewarm = null;
+            FailureReason = reason;
+            Phase = AppStartupPhase.Failed;
+            _running = false;
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus && IsComplete)
+                _externalServices?.TryHandleShortcut();
+        }
+
+        private void OnDestroy()
+        {
+            if (_gamePrewarm != null) StopCoroutine(_gamePrewarm);
+            _gamePrewarm = null;
+        }
+    }
+}

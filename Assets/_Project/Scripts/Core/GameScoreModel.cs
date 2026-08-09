@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Meowdoku.Core.Config;
 
 namespace Meowdoku.Core
 {
@@ -59,9 +60,81 @@ namespace Meowdoku.Core
         // Tải dữ liệu từ Save game.
         public void Restore(Dictionary<string, int> d)
         {
-            if (d.TryGetValue("score", out int savedScore)) Score = savedScore;
-            if (d.TryGetValue("combo", out int savedCombo)) Combo = savedCombo;
-            if (d.TryGetValue("max_combo", out int savedMax)) MaxCombo = savedMax;
+            Score = d != null && d.TryGetValue("score", out int savedScore) ? savedScore : 0;
+            Combo = d != null && d.TryGetValue("combo", out int savedCombo) ? savedCombo : 0;
+            MaxCombo = d != null && d.TryGetValue("max_combo", out int savedMax)
+                ? savedMax
+                : Combo;
+        }
+    }
+
+    public sealed class ScoreGainResult
+    {
+        public int BaseGain { get; internal set; }
+        public float Multiplier { get; internal set; }
+        public int SkillBonus { get; internal set; }
+        public int TotalGain { get; internal set; }
+    }
+
+    /// <summary>Pure scoring sequence extracted from BaseGamePage signal handlers.</summary>
+    public static class GameScoringRules
+    {
+        public static ScoreGainResult ApplyCorrectCat(
+            GameScoreModel model,
+            ScoreEncourageConfig config,
+            ref int successfulCatCount,
+            int cellRank = 1,
+            bool isToolSource = false)
+        {
+            model.AddCombo();
+            successfulCatCount++;
+
+            int baseGain = config.CalculateGain(
+                config.IsEnabled() ? successfulCatCount : model.Combo);
+            float multiplier = config.IsEnabled()
+                ? config.CalculateMultiplier(successfulCatCount)
+                : 1f;
+            int skillBonus = config.HasSkillScore() && !isToolSource
+                ? config.CalculateSkillBonus(cellRank)
+                : 0;
+            int total = (int)(baseGain * multiplier) + skillBonus;
+            model.AddScore(total);
+            return new ScoreGainResult
+            {
+                BaseGain = baseGain,
+                Multiplier = multiplier,
+                SkillBonus = skillBonus,
+                TotalGain = total
+            };
+        }
+
+        public static int ApplyWrongGuess(
+            GameScoreModel model,
+            ScoreEncourageConfig config,
+            ref int successfulCatCount)
+        {
+            model.ResetCombo();
+            successfulCatCount = 0;
+            if (!config.HasDeduction()) return 0;
+            int deduction = config.DeductionPerMistake();
+            model.ApplyDeduction(deduction);
+            return deduction;
+        }
+
+        public static int ApplyLifeBonus(
+            GameScoreModel model,
+            ScoreEncourageConfig config,
+            int lives)
+        {
+            if (!config.HasLifeBonus()) return 0;
+            IReadOnlyList<int> sequence = config.CalculateLifeBonusSequence(lives);
+            int total = 0;
+            for (int i = 0; i < sequence.Count; i++)
+            {
+                model.AddScore(sequence[i]);
+                total += sequence[i];
+            }
+            return total;
         }
     }
 }

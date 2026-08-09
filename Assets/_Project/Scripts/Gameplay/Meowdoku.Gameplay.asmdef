@@ -1,0 +1,19 @@
+{
+    "name": "Meowdoku.Gameplay",
+    "rootNamespace": "Meowdoku.Gameplay",
+    "references": [
+        "Meowdoku.Core",
+        "Meowdoku.Services",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

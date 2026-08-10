@@ -80,6 +80,9 @@ namespace Meowdoku.Core
         public bool SoundOn => Data.SoundOn;
         public bool VibrationOn => Data.VibrationOn;
         public bool PeopleOn => Data.PeopleOn;
+        public bool PatternModeOn => Data.PatternModeOn;
+        public bool PatternEntryDotDismissed => Data.PatternEntryDotDismissed;
+        public bool PatternSwitchDotDismissed => Data.PatternSwitchDotDismissed;
         public bool HasUsedTool => Data.HasUsedTool;
         public bool HasPropHighlightShown => Data.PropHighlightShown;
         public bool IsCurrentLevelDirty => _currentLevelDirty;
@@ -219,6 +222,26 @@ namespace Meowdoku.Core
         public void SetPeopleOn(bool value)
         {
             Data.PeopleOn = value;
+            SavePlayer();
+        }
+
+        public void SetPatternModeOn(bool value)
+        {
+            Data.PatternModeOn = value;
+            SavePlayer();
+        }
+
+        public void MarkPatternEntryDotDismissed()
+        {
+            if (Data.PatternEntryDotDismissed) return;
+            Data.PatternEntryDotDismissed = true;
+            SavePlayer();
+        }
+
+        public void MarkPatternSwitchDotDismissed()
+        {
+            if (Data.PatternSwitchDotDismissed) return;
+            Data.PatternSwitchDotDismissed = true;
             SavePlayer();
         }
 

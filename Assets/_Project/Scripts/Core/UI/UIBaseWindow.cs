@@ -11,6 +11,7 @@ namespace Meowdoku.Core.UI
         private readonly List<Action> _managedCleanup = new();
         private readonly List<Coroutine> _managedCoroutines = new();
         private bool _destroyLifecycleRan;
+        private UIManager _buttonGuardManager;
 
         public UiWindowState WindowState { get; private set; } =
             UiWindowState.Invalid;
@@ -22,8 +23,9 @@ namespace Meowdoku.Core.UI
         {
             if (WindowState != UiWindowState.Invalid) return;
             WindowState = UiWindowState.Creating;
+            _buttonGuardManager = manager;
             gameObject.SetActive(true);
-            BindButtonGuards(manager);
+            BindButtonGuards(transform, manager);
             OnCreate();
             WindowState = UiWindowState.Hidden;
             gameObject.SetActive(false);
@@ -68,6 +70,7 @@ namespace Meowdoku.Core.UI
             WindowState = UiWindowState.Destroyed;
             OnDestroyWindow();
             ClearManagedLifetime();
+            _buttonGuardManager = null;
         }
 
         protected virtual void OnCreate() { }
@@ -95,9 +98,21 @@ namespace Meowdoku.Core.UI
             return coroutine;
         }
 
-        private void BindButtonGuards(UIManager manager)
+        /// <summary>
+        /// Binds the release-frame guard to controls materialized after the
+        /// window's initial Create lifecycle, such as pooled bank rows.
+        /// </summary>
+        protected void BindDynamicButtonGuards(Transform root)
         {
-            Button[] buttons = GetComponentsInChildren<Button>(true);
+            if (root != null && _buttonGuardManager != null)
+                BindButtonGuards(root, _buttonGuardManager);
+        }
+
+        private static void BindButtonGuards(
+            Transform root,
+            UIManager manager)
+        {
+            Button[] buttons = root.GetComponentsInChildren<Button>(true);
             foreach (Button button in buttons)
             {
                 UIButtonPressGuard guard =

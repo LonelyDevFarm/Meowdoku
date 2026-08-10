@@ -348,5 +348,12 @@ namespace Meowdoku.Core.Config
             : base("rule_text", ValueText, AbConfigTiming.GameStart) { }
 
         public bool UsesDefaultTextBar() => Value == ValueText;
+        public bool IsThirdImage() => Value == ValueThirdImage;
+        public bool IsAllImage() => Value == ValueAllImage;
+        public bool IsIconText() => Value == ValueIconText;
+        public bool IsCollapse10() => Value == ValueCollapse10;
+        public bool IsInfoPopup() => Value == ValueInfoPopup;
+        public bool IsSettingEntry() => Value == ValueSettingEntry;
+        public bool IsSingleSwipe() => Value == ValueSingleSwipe;
     }
 }

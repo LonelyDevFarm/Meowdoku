@@ -47,21 +47,55 @@ namespace Meowdoku.Gameplay
         {
             if (context?.Entry == null) throw new ArgumentNullException(nameof(context));
             LevelEntry entry = context.Entry;
-            return new Dictionary<string, object>
+            bool identitySeed = entry.BankLk || entry.BankSp;
+            var result = new Dictionary<string, object>
             {
                 { "bank_mode", true },
                 { "bank_size", entry.Size },
-                { "bank_rank", entry.Rank },
+                { "bank_rank", entry.BankLk ? entry.MaxRank : entry.Rank },
                 { "bank_index", context.BankIndex },
                 { "prebuilt_regions", ToRows(entry.RegionMap) },
                 { "prebuilt_solution", ToValues(entry.Solution) },
-                { "level_seed", entry.Seed },
+                { "level_seed", identitySeed ? entry.Id : entry.Seed },
                 { "prefill_positions", RetryPrefills(context) },
                 { "custom_color_map", ToValues(entry.ColorMap) },
                 { "retry_level", context.Level },
                 { "bank_source_main", entry.BankSourceMain ?? string.Empty },
                 { "bank_tier", entry.BankTier ?? string.Empty }
             };
+
+            if (!entry.FromBankBrowser) return result;
+            result["from_bank_browser"] = true;
+            result["bank_total"] = entry.BankTotal;
+            if (entry.BankLk)
+            {
+                result["bank_lk"] = true;
+                result["bank_lk_modified"] = entry.BankLkModified;
+                return result;
+            }
+
+            AddStrategySteps(result, entry);
+            result["bank_lk_style"] = entry.BankLkStyle;
+            if (entry.BankSp)
+            {
+                result["bank_sp"] = true;
+                return result;
+            }
+
+            result["bank_gc"] = entry.BankGc;
+            result["bank_tier_h"] = entry.BankTierH;
+            return result;
+        }
+
+        private static void AddStrategySteps(
+            IDictionary<string, object> result,
+            LevelEntry entry)
+        {
+            result["r1_steps"] = entry.R1Steps;
+            result["r2_steps"] = entry.R2Steps;
+            result["r3_steps"] = entry.R3Steps;
+            result["r4_steps"] = entry.R4Steps;
+            result["r5_steps"] = entry.R5Steps;
         }
 
         private static List<object> RetryPrefills(GameSessionSnapshotContext context)

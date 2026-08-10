@@ -118,9 +118,9 @@ Nhóm config P0 phải port trước: `region_color`, `size_cycle`, `rule_highli
 | Feature | Godot nguồn chính | Unity đích | Trạng thái |
 |---|---|---|---|
 | Splash | `splash/view/splash_page.gd`, scene tương ứng | `SplashPage` | Chưa có |
-| Tutorial | `tutorial/view/tutorial_page.gd`, `tutorial_page.tscn` | `TutorialPuzzle`, `TutorialStateMachine`, `TutorialPage` | Domain/config bảy bước đã port và compile; presenter/visual chưa có |
-| Home | `home/view/home_page.gd`, `home_page.tscn` | `HomePage` | Scene khung |
-| Settings | `setting/view/setting_page.gd` | `SettingPage` | Chưa có |
+| Tutorial | `tutorial/view/tutorial_page.gd`, `tutorial_page.tscn` | `TutorialPuzzle`, `TutorialStateMachine`, `TutorialPagePresenter`, `Prefabs/UI/TutorialPage.prefab` | Domain/presenter/installer đã port và compile; chờ Refresh sinh prefab, PlayMode parity; Spine hand/IQ particle còn adapter |
+| Home | `home/view/home_page.gd`, `home_page.tscn`; `daily_streak_config.gd`, `leaderboard_func_config.gd`, `hard_button_config.gd`; `fx_uv_scroll.gdshader` | `HomePageContract`, `HomeConfigs`, `HomePagePresenter`, `UIHomeFlow.shader`, `HomePagePrefabInstaller` | Contract/presenter/installer compile sạch; chờ Refresh sinh prefab/material, entry modules và PlayMode |
+| Settings | `setting/view/setting_page.gd`, `setting_page.tscn`; `settings_language_config.gd`, `blind_mod_config.gd` | `SettingsPageContract`, `SettingsConfigs`, pattern fields trong `GameStateData/Service`; presenter còn chờ | Core state/config/layout contract đã port và compile |
 | Language | `language_manager.gd`, language page/option | Localization pages | Chưa có |
 | How to play | Hai script/scene page | HowToPlay pages | Chưa có |
 | Win | `result/view/game_win_page.gd`, hai scene variant | GameWin pages | Chưa có |

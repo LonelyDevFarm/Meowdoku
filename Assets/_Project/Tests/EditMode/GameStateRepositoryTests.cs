@@ -42,6 +42,9 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(data.SoundOn, Is.True);
             Assert.That(data.VibrationOn, Is.True);
             Assert.That(data.PeopleOn, Is.True);
+            Assert.That(data.PatternModeOn, Is.False);
+            Assert.That(data.PatternEntryDotDismissed, Is.False);
+            Assert.That(data.PatternSwitchDotDismissed, Is.False);
             Assert.That(data.PreCatLockPosition, Is.EqualTo(new Vector2Int(-1, -1)));
             Assert.That(data.SavedGameAutoMark, Is.EqualTo(-1));
         }
@@ -77,6 +80,9 @@ namespace Meowdoku.Tests.EditMode
                 SoundOn = false,
                 VibrationOn = false,
                 PeopleOn = false,
+                PatternModeOn = true,
+                PatternEntryDotDismissed = true,
+                PatternSwitchDotDismissed = true,
                 RetryPuzzleLevel = 41,
                 PreCatLockLevel = 42,
                 PreCatLockType = "2",
@@ -114,6 +120,9 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(restored.SoundOn, Is.False);
             Assert.That(restored.VibrationOn, Is.False);
             Assert.That(restored.PeopleOn, Is.False);
+            Assert.That(restored.PatternModeOn, Is.True);
+            Assert.That(restored.PatternEntryDotDismissed, Is.True);
+            Assert.That(restored.PatternSwitchDotDismissed, Is.True);
             Assert.That(restored.RetryPuzzleLevel, Is.EqualTo(41));
             Assert.That(restored.PreCatLockLevel, Is.EqualTo(42));
             Assert.That(restored.PreCatLockType, Is.EqualTo("2"));

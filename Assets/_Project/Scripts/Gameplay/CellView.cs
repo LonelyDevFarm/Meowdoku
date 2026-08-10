@@ -102,6 +102,84 @@ namespace Meowdoku.Gameplay
             UpdateVisuals(playAnim);
         }
 
+        /// <summary>
+        /// Source-backed adapter for cell_view.gd demo_cat(). It intentionally
+        /// bypasses idle/cry behavior and is only used by How-to-play boards.
+        /// </summary>
+        public void PlayDemoCat(bool animate)
+        {
+            ResetToEmpty();
+            ChangeState(CellStateType.CAT, animate);
+            if (!animate || catIcon == null) return;
+
+            _visualSequence?.Kill(false);
+            catIcon.rectTransform.localScale = Vector3.one * 0.7f;
+            _visualSequence = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject);
+            _visualSequence.Append(
+                catIcon.rectTransform.DOScale(1.08f, 0.17f)
+                    .SetEase(Ease.OutQuad));
+            _visualSequence.Append(
+                catIcon.rectTransform.DOScale(1f, 0.08f)
+                    .SetEase(Ease.InOutQuad));
+            _visualSequence.OnComplete(() => _visualSequence = null);
+        }
+
+        /// <summary>
+        /// Unity rendering adapter for CrossOutAppear_2 (0.35 seconds).
+        /// </summary>
+        public void PlayDemoMark(bool instant = false)
+        {
+            ResetToEmpty();
+            ChangeState(CellStateType.MARK, false);
+            if (instant || crossIcon == null) return;
+
+            crossIcon.rectTransform.localScale = Vector3.one * 0.4f;
+            _visualSequence = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject);
+            _visualSequence.AppendInterval(0.018f);
+            _visualSequence.Append(
+                crossIcon.rectTransform.DOScale(1f, 0.198f)
+                    .SetEase(Ease.OutBack));
+            _visualSequence.AppendInterval(0.134f);
+            _visualSequence.OnComplete(() => _visualSequence = null);
+        }
+
+        /// <summary>
+        /// Unity rendering adapter for ErrorAppear_2 (1.1 seconds).
+        /// </summary>
+        public void PlayDemoError(bool instant = false)
+        {
+            ResetToEmpty();
+            ChangeState(CellStateType.ERROR, !instant);
+        }
+
+        /// <summary>
+        /// Unity rendering adapter for DemoDisappear (0.1 seconds).
+        /// </summary>
+        public void PlayDemoDisappear()
+        {
+            _visualSequence?.Kill(false);
+            _visualSequence = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject);
+            JoinFadeIfVisible(_visualSequence, catIcon, 0f, 0.1f);
+            JoinFadeIfVisible(_visualSequence, crossIcon, 0f, 0.1f);
+            JoinFadeIfVisible(_visualSequence, errorIcon, 0f, 0.1f);
+            _visualSequence.OnComplete(() =>
+            {
+                _visualSequence = null;
+                ResetToEmpty();
+            });
+        }
+
+        public void ClearDemo()
+        {
+            ResetToEmpty();
+        }
+
         // Lấy trạng thái hiện tại
         public CellStateType GetState()
         {
@@ -276,6 +354,17 @@ namespace Meowdoku.Gameplay
             Color color = image.color;
             color.a = 1f;
             image.color = color;
+        }
+
+        private static void JoinFadeIfVisible(
+            Sequence sequence,
+            Image image,
+            float alpha,
+            float duration)
+        {
+            if (sequence == null || image == null || !image.gameObject.activeSelf)
+                return;
+            sequence.Join(image.DOFade(alpha, duration).SetEase(Ease.Linear));
         }
 
         private void OnDisable()

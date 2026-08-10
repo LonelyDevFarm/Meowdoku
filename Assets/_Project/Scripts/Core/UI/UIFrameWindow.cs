@@ -24,6 +24,8 @@ namespace Meowdoku.Core.UI
         private UIManager _owner;
         private bool _occluded;
 
+        protected UIManager Owner => _owner;
+
         public UiName UiName { get; private set; }
         public UiLayer Layer => uiLayer;
         public bool IsFullscreen => isFullscreen;

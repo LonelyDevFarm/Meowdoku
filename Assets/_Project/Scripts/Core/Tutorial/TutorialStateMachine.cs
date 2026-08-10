@@ -79,6 +79,7 @@ namespace Meowdoku.Core.Tutorial
         public event Action<TutorialPhase> PhaseChanged;
         public event Action<IReadOnlyList<BoardStateChange>> BoardChanged;
         public event Action<TutorialFeedbackKind, int, int> FeedbackRequested;
+        public event Action PresentationChanged;
 
         public TutorialPhase Phase { get; private set; }
         public int HintPhase { get; private set; }
@@ -257,6 +258,8 @@ namespace Meowdoku.Core.Tutorial
                 HintPhase = 0;
                 ConfigureFreePlayBasePresentation();
                 CheckFreePlayComplete();
+                if (Phase == TutorialPhase.FreePlay)
+                    PresentationChanged?.Invoke();
                 return true;
             }
 
@@ -265,6 +268,7 @@ namespace Meowdoku.Core.Tutorial
             {
                 HintPhase = 1;
                 ConfigureHintPhase(blueEmpty, ThirdCat);
+                PresentationChanged?.Invoke();
                 return true;
             }
             List<Vector2Int> pinkEmpty = BlankCellsInCatRow(SecondCat);
@@ -272,6 +276,7 @@ namespace Meowdoku.Core.Tutorial
             {
                 HintPhase = 2;
                 ConfigureHintPhase(pinkEmpty, SecondCat);
+                PresentationChanged?.Invoke();
                 return true;
             }
 
@@ -279,6 +284,7 @@ namespace Meowdoku.Core.Tutorial
             SetCells(_allowedCells, LastCat);
             SetCells(_maskHintCells, LastCat);
             _mirrorCells.Clear();
+            PresentationChanged?.Invoke();
             return true;
         }
 
@@ -469,6 +475,7 @@ namespace Meowdoku.Core.Tutorial
             }
             HintPhase = 0;
             ConfigureFreePlayBasePresentation();
+            PresentationChanged?.Invoke();
         }
 
         private List<Vector2Int> BlankCellsInCatRow(Vector2Int cat)

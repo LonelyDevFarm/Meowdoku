@@ -41,6 +41,7 @@ namespace Meowdoku.Gameplay
         private BoardSizeBigConfig _boardSizeBigConfig;
         private BoardGridOverlayGraphic _gridOverlay;
         private float _visibleBoardPixels = SourceBoardLayout.FixedBoardWidth;
+        private float _visibleBoardPixelsOverride;
         private int[][] _solutionCols;
         private int? _activePointerId;
         private readonly PointerPressPositionLatch _pressPositionLatch =
@@ -100,13 +101,15 @@ namespace Meowdoku.Gameplay
             IReadOnlyList<int> patternRegions = null,
             RegionColorConfig regionColorConfig = null,
             GameGridUiConfig gridUiConfig = null,
-            BoardSizeBigConfig boardSizeBigConfig = null)
+            BoardSizeBigConfig boardSizeBigConfig = null,
+            float visibleBoardPixelsOverride = 0f)
         {
             ClearBoard();
             _puzzleSize = puzzleSize;
             _regions = regions;
             _gridUiConfig = gridUiConfig ?? new GameGridUiConfig();
             _boardSizeBigConfig = boardSizeBigConfig ?? new BoardSizeBigConfig();
+            _visibleBoardPixelsOverride = Mathf.Max(0f, visibleBoardPixelsOverride);
             _cells = new CellView[puzzleSize, puzzleSize];
             RegionColorResult colorResult = RegionColorPipeline.Resolve(
                 puzzleSize,
@@ -179,8 +182,10 @@ namespace Meowdoku.Gameplay
                 SourceBoardLayout.CellPixels, SourceBoardLayout.CellPixels);
 
             int intrinsicSize = layout.IntrinsicSizeFor(puzzleSize);
-            _visibleBoardPixels = SourceBoardLayout.TargetVisibleWidthFor(
-                puzzleSize, _boardSizeBigConfig);
+            _visibleBoardPixels = _visibleBoardPixelsOverride > 0f
+                ? _visibleBoardPixelsOverride
+                : SourceBoardLayout.TargetVisibleWidthFor(
+                    puzzleSize, _boardSizeBigConfig);
             float boardScale = layout.ScaleFor(puzzleSize, _visibleBoardPixels);
             boardRect.sizeDelta = new Vector2(intrinsicSize, intrinsicSize);
             boardRect.localScale = new Vector3(boardScale, boardScale, 1f);

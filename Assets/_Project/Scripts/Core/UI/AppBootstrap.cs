@@ -1,4 +1,6 @@
 using System.Collections;
+using Meowdoku.Core.Config;
+using Meowdoku.Core.Localization;
 using UnityEngine;
 
 namespace Meowdoku.Core.UI
@@ -65,6 +67,7 @@ namespace Meowdoku.Core.UI
     public sealed class AppBootstrap : MonoBehaviour
     {
         [SerializeField] private UIManager uiManager;
+        [SerializeField] private LocalizationCatalog localizationCatalog;
         [SerializeField] private MonoBehaviour externalServicesAdapter;
         [SerializeField] private bool runOnStart = true;
 
@@ -107,7 +110,17 @@ namespace Meowdoku.Core.UI
             if (!_runtimeInitialized)
             {
                 gameState.OnSessionStarted();
-                external.ApplySystemLocale(gameState);
+                if (localizationCatalog != null)
+                {
+                    var languageConfig = new SettingsLanguageConfig();
+                    localizationCatalog.ApplySystemLocale(
+                        gameState,
+                        languageConfig.IsLanguageSwitchEnabledPeek());
+                }
+                else
+                {
+                    external.ApplySystemLocale(gameState);
+                }
                 gameState.ConsumeFirstSessionPersist();
                 _runtimeInitialized = true;
             }
@@ -172,11 +185,13 @@ namespace Meowdoku.Core.UI
         internal void ConfigureForTests(
             UIManager manager,
             MonoBehaviour externalAdapter = null,
-            bool autoRun = false)
+            bool autoRun = false,
+            LocalizationCatalog localization = null)
         {
             uiManager = manager;
             externalServicesAdapter = externalAdapter;
             runOnStart = autoRun;
+            localizationCatalog = localization;
         }
 
         private IEnumerator PrewarmGame(GameStateService gameState)

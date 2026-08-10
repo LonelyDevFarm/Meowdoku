@@ -108,6 +108,24 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void PatternSettings_PersistAndDismissDotsIdempotently()
+        {
+            var store = new CountingStore();
+            var service = new GameStateService(new GameStateData(), store);
+
+            service.SetPatternModeOn(true);
+            service.MarkPatternEntryDotDismissed();
+            service.MarkPatternEntryDotDismissed();
+            service.MarkPatternSwitchDotDismissed();
+            service.MarkPatternSwitchDotDismissed();
+
+            Assert.That(service.PatternModeOn, Is.True);
+            Assert.That(service.PatternEntryDotDismissed, Is.True);
+            Assert.That(service.PatternSwitchDotDismissed, Is.True);
+            Assert.That(store.SaveCount, Is.EqualTo(3));
+        }
+
+        [Test]
         public void FirstSession_PersistsFalseButRemainsTrueForCurrentRuntime()
         {
             var store = new CountingStore();

@@ -49,6 +49,9 @@ namespace Meowdoku.Core
         public bool SoundOn { get; set; } = true;
         public bool VibrationOn { get; set; } = true;
         public bool PeopleOn { get; set; } = true;
+        public bool PatternModeOn { get; set; }
+        public bool PatternEntryDotDismissed { get; set; }
+        public bool PatternSwitchDotDismissed { get; set; }
 
         public int RetryPuzzleLevel { get; set; }
         public Dictionary<string, object> RetryPuzzleParameters { get; set; } =
@@ -119,6 +122,9 @@ namespace Meowdoku.Core
                 { "sound_on", SoundOn },
                 { "vibration_on", VibrationOn },
                 { "people_on", PeopleOn },
+                { "pattern_mode_on", PatternModeOn },
+                { "pattern_entry_dot_dismissed", PatternEntryDotDismissed },
+                { "pattern_switch_dot_dismissed", PatternSwitchDotDismissed },
                 { "retry_puzzle_level", RetryPuzzleLevel },
                 { "retry_puzzle_params", RetryPuzzleParameters },
                 { "pre_cat_fail_lv", PreCatFailLevel },
@@ -230,6 +236,15 @@ namespace Meowdoku.Core
                 data.SoundOn = Bool(progress, "sound_on", true);
                 data.VibrationOn = Bool(progress, "vibration_on", true);
                 data.PeopleOn = Bool(progress, "people_on", true);
+                data.PatternModeOn = Bool(progress, "pattern_mode_on", false);
+                data.PatternEntryDotDismissed = Bool(
+                    progress,
+                    "pattern_entry_dot_dismissed",
+                    false);
+                data.PatternSwitchDotDismissed = Bool(
+                    progress,
+                    "pattern_switch_dot_dismissed",
+                    false);
                 data.RetryPuzzleLevel = Int(progress, "retry_puzzle_level", 0);
                 data.RetryPuzzleParameters = Dictionary(progress, "retry_puzzle_params");
                 data.PreCatFailLevel = Int(progress, "pre_cat_fail_lv", 0);

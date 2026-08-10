@@ -125,33 +125,41 @@ namespace Meowdoku.Tests.EditMode
         public void HintFlow_RevealsThenAppliesTwoRowsAndLastCatInSixPresses()
         {
             TutorialStateMachine machine = AdvanceDefaultToFreePlay(out _);
+            int presentationChanges = 0;
+            machine.PresentationChanged += () => presentationChanges++;
 
             Assert.That(machine.PressHint(), Is.True);
             Assert.That(machine.HintPhase, Is.EqualTo(1));
+            Assert.That(presentationChanges, Is.EqualTo(1));
             AssertCells(machine.AllowedCells, new Vector2Int(1, 1), new Vector2Int(1, 3));
             AssertCells(machine.MirrorCells, new Vector2Int(1, 0));
 
             Assert.That(machine.PressHint(), Is.True);
             Assert.That(machine.HintPhase, Is.Zero);
+            Assert.That(presentationChanges, Is.EqualTo(2));
             Assert.That(machine.GetCellState(1, 1), Is.EqualTo(CellStateType.MARK));
             Assert.That(machine.GetCellState(1, 3), Is.EqualTo(CellStateType.MARK));
 
             Assert.That(machine.PressHint(), Is.True);
             Assert.That(machine.HintPhase, Is.EqualTo(2));
+            Assert.That(presentationChanges, Is.EqualTo(3));
             AssertCells(machine.AllowedCells, new Vector2Int(3, 3));
             AssertCells(machine.MirrorCells, new Vector2Int(3, 1));
 
             Assert.That(machine.PressHint(), Is.True);
             Assert.That(machine.HintPhase, Is.Zero);
+            Assert.That(presentationChanges, Is.EqualTo(4));
             Assert.That(machine.GetCellState(3, 3), Is.EqualTo(CellStateType.MARK));
 
             Assert.That(machine.PressHint(), Is.True);
             Assert.That(machine.HintPhase, Is.EqualTo(3));
+            Assert.That(presentationChanges, Is.EqualTo(5));
             AssertCells(machine.AllowedCells, new Vector2Int(2, 3));
 
             Assert.That(machine.PressHint(), Is.True);
             Assert.That(machine.GetCellState(2, 3), Is.EqualTo(CellStateType.CAT));
             Assert.That(machine.Phase, Is.EqualTo(TutorialPhase.FinishConfirm));
+            Assert.That(presentationChanges, Is.EqualTo(5));
         }
 
         [Test]

@@ -121,8 +121,43 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
 - `[~]` `P-TUT-006`: Step 5 chỉ nhận đúng ba neighbor; diagonal variant chỉ đổi presentation contract. Fixture flow/config đã compile.
 - `[~]` `P-TUT-007`: Step 6 place third cat đúng bằng double-tap. Cùng fixture flow đã compile.
 - `[~]` `P-TUT-008`: Step 7 free play và ba pha reveal/apply hint hoàn tất đúng. Fixture `HintFlow_RevealsThenAppliesTwoRowsAndLastCatInSixPresses` đã compile.
-- `[ ]` `P-TUT-009`: Hand/mask/message không cho input xuyên.
-- `[~]` `P-TUT-010`: Completion committer lưu `tutorial_done` đúng một lần; presenter route Game level 1 và đóng Tutorial còn thiếu. Fixture `CompletionCommitter_SavesTutorialDoneExactlyOnce` đã compile.
+- `[~]` `P-TUT-009`: Presenter đã khóa board khi chuyển bước, mask/message không bắt raycast và clone cell tắt toàn bộ graphic raycast; chờ prefab được sinh sau Refresh và PlayMode xác nhận không lọt input.
+- `[~]` `P-TUT-010`: Completion committer lưu `tutorial_done` đúng một lần; presenter đã gọi Game level 1 rồi đóng Tutorial. Registry/startup pages và PlayMode route còn chờ. Fixture `CompletionCommitter_SavesTutorialDoneExactlyOnce` đã compile.
+
+## P-HOME — Home và điều hướng ngoại vi
+
+- `[~]` `P-HOME-001`: Offline defaults hiển thị Daily Streak, ẩn Profile và dùng hard-button variant 0 đúng source. Fixture `HomePageContractTests.DefaultPresentation_MatchesOfflineSourceConfiguration` và `AbConfigTests.HomeConfigs_UseOfflineSourceDefaults` đã compile, chờ Unity Test Runner.
+- `[~]` `P-HOME-002`: Presenter đọc current level/hard state mỗi lần `OnShow`, level text dùng catalog động và prefab đã có serialized binding; chờ PlayMode locale/level refresh xác nhận.
+- `[~]` `P-HOME-003`: Start đã khóa input, giữ Home+Game, mở Game ở Entry marker và ẩn Home cuối animation theo fixture timing; chờ registry/PlayMode.
+- `[~]` `P-HOME-004`: Home/Settings presenter, prefab và registry entry đã có; Settings tự refresh state/text ở `OnShow`, chờ scene composition và PlayMode mở/đóng xác nhận.
+- `[~]` `P-HOME-005`: Bốn slot nguồn đã có trong installer nhưng chưa gắn entry khi module chưa port; không có nút giả. Home đã vào registry, Daily/Rank/Profile còn chờ page thật.
+- `[~]` `P-HOME-006`: `OnHide` đã kill transition, clear popup queue và reset exit/page state; chờ vòng reopen PlayMode.
+- `[ ]` `P-HOME-007`: Layout/animation Home khớp reference ở 1080×1920 và 1080×2400.
+
+## P-SETTINGS — Settings, Language và How-to-play
+
+- `[~]` `P-SET-001`: Music/Sound/Vibration/People defaults, persistence và presenter binding đã có; thay đổi được lưu ngay, chờ Unity Test Runner/PlayMode.
+- `[~]` `P-SET-002`: Offline outgame layout đã resolve Music ẩn, ba toggle còn lại hiện, Language/Pattern/Restart/HTP ẩn, Feedback/Terms/Version hiện; presenter/prefab áp dụng contract, chờ PlayMode.
+- `[~]` `P-SET-003`: Game-mode layout đã resolve Restart hiện, Terms/Version ẩn và Pattern/HTP theo config; presenter/prefab áp dụng contract, chờ PlayMode.
+- `[~]` `P-SET-004`: Pattern mode và hai dismissed-dot field lưu đúng key nguồn; service setter/dismiss idempotent và presenter dot state đã có fixture/binding.
+- `[~]` `P-SET-005`: Toggle cập nhật sprite/panel/toast ngay, Sound bật phát preview và Vibration bật gọi platform boundary; chờ PlayMode nghe/cảm nhận trên thiết bị.
+- `[~]` `P-SET-006`: `GenericPopupAnimator` giữ source marker/timing, presenter có skip-close khi mở HTP và callback one-shot; HTP page thật cùng PlayMode route còn chờ.
+- `[~]` `P-SET-007`: CSV/catalog, locale persistence, Language popup/dropdown và refresh text Home/Settings đã port; chờ Unity Test Runner, PlayMode restart và device-font.
+- `[~]` `P-SET-008`: Settings prefab đã sinh theo nhánh chức năng, không missing script và có serialized localization/language bindings; pixel parity outgame/game-mode còn chờ.
+- `[~]` `P-SET-009`: Full How-to-play giữ ba board 3×5, matrix/state/frame schedule, tap-anywhere close và demo loop đúng source; prefab thật đã được Unity sinh/đăng ký, chờ PlayMode.
+- `[~]` `P-SET-010`: Paged How-to-play giữ ba page, board scale, Previous/Next/Got it, slide 16 frame, caption/localization highlight và demo loop đúng source; prefab thật đã được Unity sinh/đăng ký, chờ PlayMode.
+- `[~]` `P-SET-011`: Hai page bật sound silence khi show và cleanup coroutine/tween/cell/silence khi hide/destroy/reopen; code path đã có, chờ PlayMode vòng lặp xác nhận.
+
+## P-BANK — Bank browser
+
+- `[~]` `P-BANK-001`: `LevelEntry` giữ đủ union schema thật của 25 bank asset (`id/date/label/r1…r5/transform/seq` cùng board/pattern/color fields); fixture parse/clone compile sạch, chờ Test Runner.
+- `[~]` `P-BANK-002`: Root browser có đúng sáu nhánh Regular/LK/LK Modified/LK Style/GC/SP và chỉ hiện pool có dữ liệu; presenter/installer compile sạch, chờ prefab/PlayMode.
+- `[~]` `P-BANK-003`: Size/rank và hard-tier keys `7:4, 8:4/5, 9:4/5, 10:4/5, 11:4/5, 12:4` được tách N/H đúng source; fixture compile sạch.
+- `[~]` `P-BANK-004`: Launch Regular/LK Style/GC giữ seed + r1…r5 + tier flags; LK/LK Modified giữ id/maxR; SP giữ id/r1…r5/colorMap. Exact-key fixtures compile sạch, chờ Game page consumer.
+- `[~]` `P-BANK-005`: Initial route priority `go_lk_style → go_lk → go_regular`, panel back stack, selector clamp và LK/SP row launch đã port; chờ PlayMode.
+- `[~]` `P-BANK-006`: Dynamic size/tier/LK/SP rows được tái sử dụng theo pool và bind release-frame guard khi materialize; cần profiler/PlayMode xác nhận vòng reopen không tăng object vô hạn.
+- `[ ]` `P-BANK-007`: `BankPage.prefab` được Auto Refresh sinh, registry có `UiName.Bank`, không missing script và cây `Root/RegularSize/Tier/List/LK/VariantSize` hợp lệ.
+- `[ ]` `P-BANK-008`: Game mở từ Bank, Prev/Next giữ đúng pool/params và Return Bank quay lại đúng page sau khi Game UI composition hoàn tất.
 
 ## P-RESULT — Win, fail và progression
 
@@ -161,3 +196,10 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
 | 2026-08-08 | Unity 6000.3.19f1 | Pure EditMode suite | 67 passed, 0 failed | `Reports/Codex/R1_EditMode_Test_Report_2026-08-08.md` |
 | 2026-08-09 | Unity 6000.3.19f1 | R8 tool resource + idle policy regression | 216 passed, 0 failed | `Reports/Codex/R8_Tool_Resource_Idle_Hint_Test_Report_2026-08-09.md` |
 | 2026-08-10 | Unity 6000.3.19f1 | R11 tutorial domain/config fixtures | 14 case mới compile sạch; chưa chạy Test Runner | `Reports/Codex/R11_Tutorial_StateMachine_Report_2026-08-10.md` |
+| 2026-08-10 | Unity 6000.3.19f1 | R11 tutorial presenter/prefab installer | Core/Gameplay/Editor + fixture compile sạch bằng Unity Roslyn; Refresh/PlayMode còn chờ | `Reports/Codex/R11_Tutorial_Presenter_Report_2026-08-10.md` |
+| 2026-08-10 | Unity 6000.3.19f1 | R12 Home config/presentation contract | Core + fixture compile sạch bằng Unity Roslyn; Test Runner/PlayMode còn chờ | `Reports/Codex/R12_Home_Core_Contract_Report_2026-08-10.md` |
+| 2026-08-10 | Unity 6000.3.19f1 | R12 Home presenter/prefab installer | Core/Gameplay/Editor/EditMode compile sạch; Unity Refresh sinh prefab/material và PlayMode còn chờ | `Reports/Codex/R12_Home_Presenter_Report_2026-08-10.md` |
+| 2026-08-10 | Unity 6000.3.19f1 | R12 Settings core state/config | Core + fixture compile sạch; Unity Test Runner và presenter còn chờ | `Reports/Codex/R12_Settings_Core_State_Report_2026-08-10.md` |
+| 2026-08-10 | Unity 6000.3.19f1 | R12 Settings, localization và Language UI | Core/Gameplay/Editor/EditMode compile sạch; parser CSV thật và prefab/registry structure đã kiểm chứng; Test Runner/PlayMode còn chờ | `Reports/Codex/R12_Settings_Localization_Language_Report_2026-08-10.md` |
+| 2026-08-10 | Unity 6000.3.19f1 | R12 hai How-to-play page | Matrix/frame/layout contract và bốn assembly compile sạch; prefab installer/Test fixture đã có, Auto Refresh/Test Runner/PlayMode còn chờ | `Reports/Codex/R12_How_To_Play_Report_2026-08-10.md` |
+| 2026-08-10 | Unity 6000.3.19f1 | R12 Bank model/browser/launch contract | Core/Gameplay/Editor/EditMode compile sạch bằng Unity Roslyn; Auto Refresh prefab/registry, Test Runner và Game route còn chờ | `Reports/Codex/R12_Bank_Browser_Report_2026-08-10.md` |

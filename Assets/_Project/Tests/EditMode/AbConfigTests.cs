@@ -7,11 +7,11 @@ namespace Meowdoku.Tests.EditMode
     public sealed class AbConfigTests
     {
         [Test]
-        public void DefaultProfile_ContainsAllConfigsFromP0SourceScan()
+        public void DefaultProfile_ContainsAllPortedSourceConfigs()
         {
-            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(32));
+            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(37));
             Assert.That(DefaultConfigProfile.All.Select(item => item.Key), Is.Unique);
-            Assert.That(DefaultConfigProfile.All.Count(item => item.RegisteredBySource), Is.EqualTo(28));
+            Assert.That(DefaultConfigProfile.All.Count(item => item.RegisteredBySource), Is.EqualTo(33));
         }
 
         [TestCase("region_color", 2, AbConfigTiming.AppStart, true)]
@@ -31,6 +31,11 @@ namespace Meowdoku.Tests.EditMode
         [TestCase("rule_text", 0, AbConfigTiming.GameStart, true)]
         [TestCase("meow_feedback", 0, AbConfigTiming.AppStart, true)]
         [TestCase("thumb_up", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("daily_streak", 1, AbConfigTiming.AppStart, true)]
+        [TestCase("leaderboard_func", 0, AbConfigTiming.AppStart, true)]
+        [TestCase("hard_button", 0, AbConfigTiming.AppStart, true)]
+        [TestCase("settings_language", 0, AbConfigTiming.OpenSetting, true)]
+        [TestCase("blind_mod", 0, AbConfigTiming.GameStart, true)]
         public void DefaultProfile_MatchesSource(
             string key,
             int expectedDefault,
@@ -136,6 +141,68 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(diagonal.IsDiagonalCopy(), Is.True);
             Assert.That(feedback.IsCheckGuide(), Is.False);
             Assert.That(feedback.IsIqGuide(), Is.True);
+        }
+
+        [Test]
+        public void HomeConfigs_UseOfflineSourceDefaults()
+        {
+            var daily = new DailyStreakConfig();
+            var leaderboard = new LeaderboardFuncConfig();
+            var hardButton = new HardButtonConfig();
+
+            Assert.That(daily.Value, Is.EqualTo(DailyStreakConfig.ValueBasic));
+            Assert.That(daily.IsEnabled(), Is.True);
+            Assert.That(daily.IsChallengeOnly(), Is.False);
+            Assert.That(daily.HasReward(), Is.True);
+            Assert.That(daily.IsSkipLit(), Is.False);
+            Assert.That(daily.HasPlayEntry(), Is.False);
+            Assert.That(daily.IsSettleReorder(), Is.False);
+            Assert.That(leaderboard.IsEnabled(), Is.False);
+            Assert.That(leaderboard.GetGroup(), Is.EqualTo(LeaderboardFuncConfig.ValueControl));
+            Assert.That(hardButton.EffectVariant(), Is.EqualTo(HardButtonConfig.ValueDefault));
+        }
+
+        [Test]
+        public void DailyStreak_VariantsMatchCurrentSourcePolicies()
+        {
+            var daily = new DailyStreakConfig();
+
+            daily.SetDebugOverride(DailyStreakConfig.ValueControl);
+            Assert.That(daily.IsEnabled(), Is.False);
+            Assert.That(daily.HasReward(), Is.False);
+
+            daily.SetDebugOverride(DailyStreakConfig.ValueNoReward);
+            Assert.That(daily.IsEnabled(), Is.True);
+            Assert.That(daily.HasReward(), Is.True);
+
+            daily.SetDebugOverride(DailyStreakConfig.ValueEntryReorder);
+            Assert.That(daily.HasPlayEntry(), Is.True);
+            Assert.That(daily.IsSettleReorder(), Is.True);
+        }
+
+        [Test]
+        public void SettingsConfigs_UseOfflineSourceDefaultsAndVariants()
+        {
+            var language = new SettingsLanguageConfig();
+            var blindMode = new BlindModConfig();
+            var ruleText = new RuleTextConfig();
+
+            Assert.That(language.IsLanguageSwitchEnabled(), Is.False);
+            Assert.That(language.IsPopupMode(), Is.False);
+            Assert.That(language.IsDropdownMode(), Is.False);
+            Assert.That(blindMode.IsEnabled(), Is.False);
+            Assert.That(blindMode.IsKeepOnFilled(), Is.False);
+            Assert.That(ruleText.IsSettingEntry(), Is.False);
+
+            language.SetDebugOverride(SettingsLanguageConfig.ValueDropdown);
+            blindMode.SetDebugOverride(BlindModConfig.ValueKeepOnFilled);
+            ruleText.SetDebugOverride(RuleTextConfig.ValueSettingEntry);
+
+            Assert.That(language.IsLanguageSwitchEnabled(), Is.True);
+            Assert.That(language.IsDropdownMode(), Is.True);
+            Assert.That(blindMode.IsEnabled(), Is.True);
+            Assert.That(blindMode.IsKeepOnFilled(), Is.True);
+            Assert.That(ruleText.IsSettingEntry(), Is.True);
         }
 
         [TestCase(SingleRegionNumConfig.ValueDefault, 200, 5, -1)]

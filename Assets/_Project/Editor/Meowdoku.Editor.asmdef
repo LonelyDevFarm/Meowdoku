@@ -2,6 +2,7 @@
     "name": "Meowdoku.Editor",
     "rootNamespace": "Meowdoku.Editor",
     "references": [
+        "Meowdoku.Core",
         "Meowdoku.Gameplay",
         "Meowdoku.Services",
         "UnityEngine.UI"

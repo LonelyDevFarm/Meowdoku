@@ -6,6 +6,7 @@ namespace Meowdoku.Core.Config
     public static class AbConfigTiming
     {
         public const string AppStart = "app_start";
+        public const string OpenSetting = "open_setting";
         public const string GameStart = "game_start";
         public const string GameStartNormal = "game_start_normal";
         public const string GameStartNormal11 = "game_start_normal_11";
@@ -61,6 +62,11 @@ namespace Meowdoku.Core.Config
             new AbConfigDefinition("combo_voice", 6, AbConfigTiming.GameStart),
             new AbConfigDefinition("meow_feedback", 0, AbConfigTiming.AppStart),
             new AbConfigDefinition("thumb_up", 0, AbConfigTiming.GameStart),
+            new AbConfigDefinition("daily_streak", 1, AbConfigTiming.AppStart),
+            new AbConfigDefinition("leaderboard_func", 0, AbConfigTiming.AppStart),
+            new AbConfigDefinition("hard_button", 0, AbConfigTiming.AppStart),
+            new AbConfigDefinition("settings_language", 0, AbConfigTiming.OpenSetting),
+            new AbConfigDefinition("blind_mod", 0, AbConfigTiming.GameStart),
             new AbConfigDefinition("undo_btn", 0, AbConfigTiming.GameStart, false),
             new AbConfigDefinition("game_auto_mark", 0, AbConfigTiming.GameStart, false),
             new AbConfigDefinition("game_life_rule", 0, AbConfigTiming.AppStart, false),

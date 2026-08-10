@@ -5,7 +5,8 @@
         "Meowdoku.Core",
         "Meowdoku.Services",
         "UnityEngine.UI",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "DOTween.Modules"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

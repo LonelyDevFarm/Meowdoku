@@ -265,6 +265,13 @@ namespace Meowdoku.Gameplay
             CopyIfPresent(cached, normalized, "bank_rank", "r");
             CopyIfPresent(cached, normalized, "bank_index", "id");
             CopyIfPresent(cached, normalized, "level_seed", "seed");
+            if (ReadBool(cached, "bank_lk") || ReadBool(cached, "bank_sp"))
+                CopyIfPresent(cached, normalized, "level_seed", "id");
+            CopyIfPresent(cached, normalized, "r1_steps", "r1");
+            CopyIfPresent(cached, normalized, "r2_steps", "r2");
+            CopyIfPresent(cached, normalized, "r3_steps", "r3");
+            CopyIfPresent(cached, normalized, "r4_steps", "r4");
+            CopyIfPresent(cached, normalized, "r5_steps", "r5");
             CopyIfPresent(cached, normalized, "prebuilt_regions", "regionMap");
             CopyIfPresent(cached, normalized, "prebuilt_solution", "solution");
             LevelEntry entry = LevelEntry.FromDictionary(normalized);

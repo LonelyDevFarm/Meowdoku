@@ -64,9 +64,14 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(shown, Is.EqualTo(1));
 
             setup.Manager.Hide(UiName.Home);
-            yield return null;
-            yield return null;
-            yield return null;
+            Assert.That(first.WindowState, Is.EqualTo(UiWindowState.Closing));
+
+            UIFrameWindow reopened = setup.Manager.Show(UiName.Home);
+            Assert.That(reopened, Is.SameAs(first));
+            Assert.That(first.WindowState, Is.EqualTo(UiWindowState.Showing));
+            Assert.That(shown, Is.EqualTo(1));
+
+            yield return setup.Manager.HideForTests(UiName.Home);
 
             Assert.That(first.WindowState, Is.EqualTo(UiWindowState.Hidden));
             Assert.That(setup.Manager.GetWindowCount(UiLayer.Default), Is.Zero);

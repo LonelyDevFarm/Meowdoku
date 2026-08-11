@@ -37,6 +37,16 @@ namespace Meowdoku.Editor
             "Assets/_Project/Sprites/common/icon_back.png";
         private const string DifficultyBannerPath =
             "Assets/_Project/Sprites/home/difficulty_banner.png";
+        private const string DailyNormalPath =
+            "Assets/_Project/Sprites/daily/state_normal.png";
+        private const string DailyLockedPath =
+            "Assets/_Project/Sprites/daily/state_locked.png";
+        private const string DailyTimerPath =
+            "Assets/_Project/Sprites/game/icon_timer.png";
+        private const string DailyLockPath =
+            "Assets/_Project/Sprites/home/lock.png";
+        private const string DailyRecordPath =
+            "Assets/_Project/Sprites/home/daily_record.png";
 
         private static readonly Color SourceBackground =
             new(0.969f, 0.949f, 0.933f, 1f);
@@ -228,6 +238,11 @@ namespace Meowdoku.Editor
             RectTransform dcSlot = CreateRect("DcEntrySlot", daily);
             SetCenteredRect(dcSlot, new Vector2(-230f, 495f),
                 new Vector2(460f, 590f));
+            DailyChallengeEntryPresenter dailyEntry = CreateDailyEntry(
+                dcSlot,
+                font,
+                localization,
+                roundedShader);
             RectTransform streakSlot = CreateRect("StreakEntrySlot", daily);
             SetCenteredRect(streakSlot, new Vector2(230f, 495f),
                 new Vector2(460f, 590f));
@@ -298,6 +313,7 @@ namespace Meowdoku.Editor
             SetReference(data, "profileEntry", profile.gameObject);
             SetReference(data, "profileButton", avatarButton);
             SetReference(data, "dailyStreakLayout", daily.gameObject);
+            SetReference(data, "dailyEntry", dailyEntry);
             SetReference(data, "localization", localization);
             data.ApplyModifiedPropertiesWithoutUndo();
 
@@ -357,6 +373,33 @@ namespace Meowdoku.Editor
                     }
                 }
 
+                Transform slot = root.transform.Find(
+                    "Root/DailyStreakLayout/DcEntrySlot");
+                DailyChallengeEntryPresenter dailyEntry = slot != null
+                    ? slot.GetComponentInChildren<DailyChallengeEntryPresenter>(true)
+                    : null;
+                if (dailyEntry == null && slot is RectTransform rect)
+                {
+                    Shader rounded = AssetDatabase.LoadAssetAtPath<Shader>(
+                        RoundedShaderPath);
+                    if (rounded != null)
+                    {
+                        dailyEntry = CreateDailyEntry(
+                            rect,
+                            font,
+                            localization,
+                            rounded);
+                        changed = dailyEntry != null;
+                    }
+                }
+                SerializedProperty dailyProperty = data.FindProperty("dailyEntry");
+                if (dailyProperty != null &&
+                    dailyProperty.objectReferenceValue != dailyEntry)
+                {
+                    dailyProperty.objectReferenceValue = dailyEntry;
+                    changed = true;
+                }
+
                 if (!changed) return;
                 data.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -366,6 +409,205 @@ namespace Meowdoku.Editor
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        private static DailyChallengeEntryPresenter CreateDailyEntry(
+            RectTransform slot,
+            Font font,
+            LocalizationCatalog localization,
+            Shader roundedShader)
+        {
+            RectTransform root = CreateRect("DailyChallengeEntryCell", slot);
+            Stretch(root);
+            DailyChallengeEntryPresenter presenter =
+                root.gameObject.AddComponent<DailyChallengeEntryPresenter>();
+
+            RectTransform visualRoot = CreateRect("DcEntryImg", root);
+            Stretch(visualRoot);
+            RectTransform normal = CreateRect("StateNormal", visualRoot);
+            RectTransform locked = CreateRect("StateLocked", visualRoot);
+            RectTransform done = CreateRect("StateDone", visualRoot);
+            Stretch(normal, new Vector2(20f, 20f));
+            Stretch(locked, new Vector2(20f, 20f));
+            Stretch(done, new Vector2(20f, 20f));
+
+            Text normalTitle = CreateDailyBackgroundAndTitle(
+                normal,
+                DailyNormalPath,
+                "state_normal",
+                font,
+                new Color(0.3373f, 0.3505f, 0.6933f, 1f));
+            Text normalDate = CreateText(
+                "Jun3Txt", normal, font, 80, "Jun 3", Color.white);
+            SetCenteredRect(normalDate.rectTransform,
+                new Vector2(-2f, 105f), new Vector2(370f, 105f));
+            Text normalCountdown = CreateDailyMetricPanel(
+                "CountdownGroup",
+                normal,
+                font,
+                roundedShader,
+                DailyTimerPath,
+                "icon_timer",
+                "21:55:44",
+                new Vector2(0f, -75f),
+                new Color(0.352f, 0.354f, 0.604f, 0.6f));
+            Text normalPlay = CreateDailyActionPanel(
+                normal,
+                font,
+                roundedShader,
+                "Play",
+                new Color(0.906f, 0.929f, 0.984f, 1f),
+                new Color(0.337f, 0.349f, 0.694f, 1f));
+
+            Text lockedTitle = CreateDailyBackgroundAndTitle(
+                locked,
+                DailyLockedPath,
+                "state_locked",
+                font,
+                new Color(0.278f, 0.290f, 0.541f, 1f));
+            Image lockIcon = CreateImage("Lock", locked);
+            lockIcon.sprite = LoadSprite(DailyLockPath, "lock");
+            lockIcon.preserveAspect = true;
+            SetCenteredRect(lockIcon.rectTransform,
+                new Vector2(0f, 5f), new Vector2(100f, 127f));
+            Text lockedMessage = CreateText(
+                "UnlockAtLv21Txt",
+                locked,
+                font,
+                45,
+                "Unlock at Level 21",
+                new Color(0.965f, 0.965f, 0.977f, 1f));
+            SetCenteredRect(lockedMessage.rectTransform,
+                new Vector2(0f, -115f), new Vector2(330f, 70f));
+
+            Text doneTitle = CreateDailyBackgroundAndTitle(
+                done,
+                DailyNormalPath,
+                "state_normal",
+                font,
+                new Color(0.3373f, 0.3505f, 0.6933f, 1f));
+            Text doneDate = CreateText(
+                "Jun3Txt", done, font, 80, "Jun 3", Color.white);
+            SetCenteredRect(doneDate.rectTransform,
+                new Vector2(-2f, 105f), new Vector2(370f, 105f));
+            Text doneTime = CreateDailyMetricPanel(
+                "CountdownGroup",
+                done,
+                font,
+                roundedShader,
+                DailyRecordPath,
+                "daily_record",
+                "08:55",
+                new Vector2(0f, -75f),
+                new Color(0.352f, 0.354f, 0.604f, 0.6f));
+            Text doneRank = CreateDailyActionPanel(
+                done,
+                font,
+                roundedShader,
+                "Top 90%",
+                new Color(0.981f, 0.394f, 0.883f, 1f),
+                Color.white);
+
+            Image clickImage = CreateImage("ClickBtn", root);
+            Stretch(clickImage.rectTransform);
+            clickImage.color = new Color(1f, 1f, 1f, 0f);
+            clickImage.raycastTarget = true;
+            Button click = clickImage.gameObject.AddComponent<Button>();
+            click.targetGraphic = clickImage;
+            click.transition = Selectable.Transition.None;
+
+            locked.gameObject.SetActive(false);
+            done.gameObject.SetActive(false);
+
+            SerializedObject data = new(presenter);
+            SetReference(data, "normalState", normal.gameObject);
+            SetReference(data, "lockedState", locked.gameObject);
+            SetReference(data, "doneState", done.gameObject);
+            SetReference(data, "clickButton", click);
+            SetReference(data, "normalTitle", normalTitle);
+            SetReference(data, "normalDate", normalDate);
+            SetReference(data, "normalCountdown", normalCountdown);
+            SetReference(data, "normalPlay", normalPlay);
+            SetReference(data, "lockedTitle", lockedTitle);
+            SetReference(data, "lockedMessage", lockedMessage);
+            SetReference(data, "doneTitle", doneTitle);
+            SetReference(data, "doneDate", doneDate);
+            SetReference(data, "doneTime", doneTime);
+            SetReference(data, "doneRank", doneRank);
+            SetReference(data, "localization", localization);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            return presenter;
+        }
+
+        private static Text CreateDailyBackgroundAndTitle(
+            RectTransform state,
+            string spritePath,
+            string spriteName,
+            Font font,
+            Color titleColor)
+        {
+            Image visual = CreateImage("Visual", state);
+            visual.sprite = LoadSprite(spritePath, spriteName);
+            visual.preserveAspect = false;
+            SetCenteredRect(visual.rectTransform,
+                new Vector2(0f, 1f), new Vector2(460f, 592f));
+            Text title = CreateText(
+                "DailyChallengeTxt",
+                state,
+                font,
+                60,
+                "Daily\nChallenge",
+                titleColor);
+            title.alignment = TextAnchor.MiddleLeft;
+            SetCenteredRect(title.rectTransform,
+                new Vector2(-55f, 205f), new Vector2(290f, 150f));
+            return title;
+        }
+
+        private static Text CreateDailyMetricPanel(
+            string name,
+            RectTransform parent,
+            Font font,
+            Shader roundedShader,
+            string iconPath,
+            string iconName,
+            string value,
+            Vector2 position,
+            Color color)
+        {
+            Image panel = CreateImage(name, parent);
+            panel.color = color;
+            ConfigureRounded(panel, roundedShader, 45f);
+            SetCenteredRect(panel.rectTransform, position, new Vector2(370f, 90f));
+            Image icon = CreateImage("Icon", panel.transform);
+            icon.sprite = LoadSprite(iconPath, iconName);
+            icon.preserveAspect = true;
+            SetCenteredRect(icon.rectTransform,
+                new Vector2(-105f, 0f), new Vector2(62f, 68f));
+            Text text = CreateText(
+                "TimeTxt", panel.transform, font, 54, value, Color.white);
+            SetCenteredRect(text.rectTransform,
+                new Vector2(40f, 0f), new Vector2(220f, 70f));
+            return text;
+        }
+
+        private static Text CreateDailyActionPanel(
+            RectTransform parent,
+            Font font,
+            Shader roundedShader,
+            string value,
+            Color color,
+            Color textColor)
+        {
+            Image panel = CreateImage("ActionBtn", parent);
+            panel.color = color;
+            ConfigureRounded(panel, roundedShader, 45f);
+            SetCenteredRect(panel.rectTransform,
+                new Vector2(0f, -185f), new Vector2(370f, 90f));
+            Text text = CreateText(
+                "Text", panel.transform, font, 60, value, textColor);
+            Stretch(text.rectTransform, new Vector2(30f, 8f));
+            return text;
         }
 
         private static LocalizedText ConfigureLocalizedText(

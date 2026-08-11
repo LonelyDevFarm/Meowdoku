@@ -1,6 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Meowdoku.Core.Ads;
+using Meowdoku.Core.Config;
+using Meowdoku.Core.Daily;
+using Meowdoku.Core.Profile;
+using Meowdoku.Core.Rank;
+using Meowdoku.Core.Tracking;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,6 +26,13 @@ namespace Meowdoku.Core.UI
         [Header("Registry and ownership")]
         [SerializeField] private UIRegistry registry;
         [SerializeField] private RectTransform windowRoot;
+        [SerializeField] private ClockTicker clockTicker;
+        [SerializeField] private DailyMetaRuntime dailyMetaRuntime;
+        [SerializeField] private ProfileRuntime profileRuntime;
+        [SerializeField] private RankActivityRuntime rankActivityRuntime;
+        [SerializeField] private TrackingRuntime trackingRuntime;
+        [SerializeField] private AdRuntime adRuntime;
+        [SerializeField] private AbConfigRuntime abConfigRuntime;
 
         [Header("Shared mask")]
         [SerializeField] private Canvas maskCanvas;
@@ -39,6 +52,7 @@ namespace Meowdoku.Core.UI
 
         private int _maskReferenceCount;
         private bool _guardActive;
+        private UITrackerObserver _trackerObserver;
 
         public UIEvents Events { get; } = new();
         public bool IsAnyLoading => _loading.Count > 0;
@@ -49,9 +63,14 @@ namespace Meowdoku.Core.UI
         private void Awake()
         {
             if (windowRoot == null) windowRoot = transform as RectTransform;
+            ResetTrackerObserver();
             SetMaskVisible(false, 0f, 0);
             SetInputGuard(false);
         }
+
+        internal TrackerService Tracker => trackingRuntime != null
+            ? trackingRuntime.Tracker
+            : null;
 
         public UIFrameWindow Show(
             UiName name,
@@ -101,15 +120,26 @@ namespace Meowdoku.Core.UI
 
         public void Hide(UiName name)
         {
-            if (!_cache.TryGetValue(name, out UIFrameWindow window) ||
-                window == null || !window.IsShowing)
+            if (!TryBeginClosing(name, out UIFrameWindow window))
                 return;
 
-            window.BeginClosingLifecycle();
-            window.SetOccluded(false);
             Coroutine routine = StartCoroutine(HideRoutine(name, window));
             _closing[name] = routine;
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// EditMode tests do not advance MonoBehaviour-started coroutines.
+        /// This drives the exact same close routine through the test
+        /// enumerator without changing player/runtime scheduling.
+        /// </summary>
+        internal IEnumerator HideForTests(UiName name)
+        {
+            if (!TryBeginClosing(name, out UIFrameWindow window))
+                yield break;
+            yield return HideRoutine(name, window);
+        }
+#endif
 
         public UIFrameWindow Get(UiName name)
         {
@@ -253,13 +283,22 @@ namespace Meowdoku.Core.UI
             StartCoroutine(ReleaseButtonAtEndOfFrame(guardId, generation));
         }
 
+        internal void NotifyDialogClosing(UIFrameWindow window)
+        {
+            if (window == null || trackingRuntime == null) return;
+            string dialog = window.GetTrackingDialogName();
+            if (!string.IsNullOrEmpty(dialog))
+                trackingRuntime.Tracker.NotifyDialogClosed(dialog);
+        }
+
         internal void ConfigureForTests(
             UIRegistry testRegistry,
             RectTransform testWindowRoot,
             Canvas testMaskCanvas = null,
             CanvasGroup testMaskGroup = null,
             Graphic testInputBlocker = null,
-            Canvas testInputBlockerCanvas = null)
+            Canvas testInputBlockerCanvas = null,
+            TrackingRuntime testTrackingRuntime = null)
         {
             registry = testRegistry;
             windowRoot = testWindowRoot;
@@ -267,6 +306,8 @@ namespace Meowdoku.Core.UI
             maskGroup = testMaskGroup;
             inputBlocker = testInputBlocker;
             inputBlockerCanvas = testInputBlockerCanvas;
+            trackingRuntime = testTrackingRuntime;
+            ResetTrackerObserver();
             SetMaskVisible(false, 0f, 0);
             SetInputGuard(false);
         }
@@ -292,6 +333,20 @@ namespace Meowdoku.Core.UI
             window.name = prefab.name;
             _cache[name] = window;
             _sourcePrefabs[name] = prefab;
+            if (window is IClockTickConsumer clockConsumer)
+                clockConsumer.BindClockTicker(clockTicker);
+            if (window is IDailyMetaConsumer metaConsumer)
+                metaConsumer.BindDailyMetaRuntime(dailyMetaRuntime);
+            if (window is IProfileConsumer profileConsumer)
+                profileConsumer.BindProfileRuntime(profileRuntime);
+            if (window is IRankActivityConsumer rankConsumer)
+                rankConsumer.BindRankActivityRuntime(rankActivityRuntime);
+            if (window is IAdServiceConsumer adConsumer)
+                adConsumer.BindAdService(adRuntime != null
+                    ? adRuntime.Service
+                    : null);
+            if (window is IAbConfigRuntimeConsumer abConsumer)
+                abConsumer.BindAbConfigRuntime(abConfigRuntime);
             window.InitializeFrame(this, name);
             Events.RaiseCreated(name, window);
             return window;
@@ -310,6 +365,19 @@ namespace Meowdoku.Core.UI
             Events.RaiseHidden(name, window);
             RefreshOcclusion();
             UpdateMask();
+        }
+
+        private bool TryBeginClosing(
+            UiName name,
+            out UIFrameWindow window)
+        {
+            if (!_cache.TryGetValue(name, out window) ||
+                window == null || !window.IsShowing)
+                return false;
+
+            window.BeginClosingLifecycle();
+            window.SetOccluded(false);
+            return true;
         }
 
         private void PushStack(UiLayer layer, UIFrameWindow window)
@@ -470,6 +538,8 @@ namespace Meowdoku.Core.UI
 
         private void OnDestroy()
         {
+            _trackerObserver?.Dispose();
+            _trackerObserver = null;
             foreach (UIFrameWindow window in _cache.Values)
             {
                 if (window != null) window.DestroyLifecycle();
@@ -481,6 +551,12 @@ namespace Meowdoku.Core.UI
             _loading.Clear();
             _heldButtonGenerations.Clear();
             Events.Clear();
+        }
+
+        private void ResetTrackerObserver()
+        {
+            _trackerObserver?.Dispose();
+            _trackerObserver = new UITrackerObserver(Events, trackingRuntime);
         }
 
         private static bool Contains(

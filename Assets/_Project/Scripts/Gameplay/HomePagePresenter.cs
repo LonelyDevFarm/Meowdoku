@@ -3,8 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
 using Meowdoku.Core;
+using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
+using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
+using Meowdoku.Core.Profile;
+using Meowdoku.Core.Rank;
+using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
 using Meowdoku.Services;
 using UnityEngine;
@@ -13,8 +18,15 @@ using UnityEngine.UI;
 namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
-    public sealed class HomePagePresenter : UIFrameWindow
+    public sealed class HomePagePresenter : UIFrameWindow,
+        IClockTickConsumer,
+        IDailyMetaConsumer,
+        IProfileConsumer,
+        IRankActivityConsumer
     {
+        public override string GetTrackingScreenName() =>
+            TrackerCatalog.Screen.Home;
+
         private static readonly UiName[] HomeAndGame =
             { UiName.Home, UiName.Game };
 
@@ -38,6 +50,11 @@ namespace Meowdoku.Gameplay
         [SerializeField] private GameObject profileEntry;
         [SerializeField] private Button profileButton;
         [SerializeField] private GameObject dailyStreakLayout;
+        [SerializeField] private DailyChallengeEntryPresenter dailyEntry;
+        [SerializeField] private StreakEntryPresenter streakEntry;
+        [SerializeField] private RankActivityEntryPresenter rankEntry;
+        [SerializeField] private TextAsset dialogPriorityConfig;
+        [SerializeField] private TextAsset abSwitchPopupConfig;
 
         [Header("Scene-owned services")]
         [SerializeField] private LocalizationCatalog localization;
@@ -53,6 +70,10 @@ namespace Meowdoku.Gameplay
         private Vector2 _logoBasePosition;
         private UIFrameWindow _newPage;
         private bool _isExiting;
+        private DailyMetaRuntime _dailyMetaRuntime;
+        private ProfileRuntime _profileRuntime;
+        private RankActivityRuntime _rankActivityRuntime;
+        private bool _rankPopupPending;
 
         public bool IsExiting => _isExiting;
         public float SettingsButtonCenterY => settingsButton != null
@@ -72,6 +93,12 @@ namespace Meowdoku.Gameplay
                 settingsButton.onClick.AddListener(OpenSettings);
             if (profileButton != null)
                 profileButton.onClick.AddListener(OpenProfile);
+            if (dailyEntry != null)
+                dailyEntry.PlayRequested += StartDaily;
+            if (streakEntry != null)
+                streakEntry.OpenRequested += OpenStreak;
+            if (rankEntry != null)
+                rankEntry.OpenRequested += OpenRankEntry;
             if (localization != null)
                 localization.LocaleChanged += RefreshPresentation;
             ApplyHeaderLayout();
@@ -86,17 +113,28 @@ namespace Meowdoku.Gameplay
                 GameStateRuntime.Current,
                 new SettingsLanguageConfig().IsLanguageSwitchEnabledPeek());
             soundService?.StartBgm();
+            GameStateRuntime.Current.AdvanceMaxDailyDate(
+                DailyEntryStateContract.DateKey(DateTime.Now));
             RefreshPresentation();
+            dailyEntry?.Show();
+            streakEntry?.Show();
+            _rankActivityRuntime?.Manager?.OnHomeShown();
+            rankEntry?.Show();
             ApplyHeaderLayout();
             PlayAppear();
+            BuildPopupQueue();
         }
 
         protected override IEnumerator OnHide()
         {
             KillTransition();
-            _popupQueue.Clear();
+            _popupQueue.Abort();
             _isExiting = false;
             _newPage = null;
+            dailyEntry?.Hide();
+            streakEntry?.Hide();
+            rankEntry?.Hide();
+            _rankPopupPending = false;
             yield break;
         }
 
@@ -122,6 +160,12 @@ namespace Meowdoku.Gameplay
                 settingsButton.onClick.RemoveListener(OpenSettings);
             if (profileButton != null)
                 profileButton.onClick.RemoveListener(OpenProfile);
+            if (dailyEntry != null)
+                dailyEntry.PlayRequested -= StartDaily;
+            if (streakEntry != null)
+                streakEntry.OpenRequested -= OpenStreak;
+            if (rankEntry != null)
+                rankEntry.OpenRequested -= OpenRankEntry;
             if (localization != null)
                 localization.LocaleChanged -= RefreshPresentation;
             base.OnDestroyWindow();
@@ -132,12 +176,36 @@ namespace Meowdoku.Gameplay
             soundService = service;
         }
 
+        public void BindClockTicker(ClockTicker ticker)
+        {
+            dailyEntry?.BindClockTicker(ticker);
+        }
+
+        public void BindDailyMetaRuntime(DailyMetaRuntime runtime)
+        {
+            _dailyMetaRuntime = runtime;
+            streakEntry?.BindDailyMetaRuntime(runtime);
+        }
+
+        public void BindProfileRuntime(ProfileRuntime runtime)
+        {
+            _profileRuntime = runtime;
+        }
+
+        public void BindRankActivityRuntime(RankActivityRuntime runtime)
+        {
+            _rankActivityRuntime = runtime;
+            rankEntry?.BindRankActivityRuntime(runtime);
+        }
+
         public void BindLocalization(LocalizationCatalog catalog)
         {
             if (localization == catalog) return;
             if (localization != null)
                 localization.LocaleChanged -= RefreshPresentation;
             localization = catalog;
+            dailyEntry?.BindLocalization(catalog);
+            streakEntry?.BindLocalization(catalog);
             if (localization != null)
                 localization.LocaleChanged += RefreshPresentation;
             RefreshPresentation();
@@ -168,6 +236,8 @@ namespace Meowdoku.Gameplay
             if (hardBadge != null) hardBadge.SetActive(state.IsHardLevel);
             if (dailyStreakLayout != null)
                 dailyStreakLayout.SetActive(state.ShowDailyStreak);
+            dailyEntry?.RefreshNow();
+            streakEntry?.RefreshNow();
             if (profileEntry != null)
                 profileEntry.SetActive(state.ShowProfile);
         }
@@ -175,6 +245,9 @@ namespace Meowdoku.Gameplay
         private void StartGame()
         {
             if (_isExiting || Owner == null) return;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.NormalPlay,
+                GetTrackingScreenName());
             _isExiting = true;
             SetButtonsInteractable(false);
             Owner.HideAllExcept(HomeAndGame);
@@ -184,7 +257,26 @@ namespace Meowdoku.Gameplay
         private void OpenSettings()
         {
             if (_isExiting || Owner == null) return;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.Settings,
+                GetTrackingScreenName());
             Owner.Show(UiName.Setting);
+        }
+
+        private void StartDaily()
+        {
+            if (_isExiting || Owner == null) return;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.DailyPlay,
+                GetTrackingScreenName());
+            var parameters = new Dictionary<string, object>(1)
+            {
+                ["daily_mode"] = true
+            };
+            UIFrameWindow page = Owner.Show(UiName.DailyGame, parameters);
+            if (page == null) return;
+            _isExiting = true;
+            Owner.Hide(UiName.Home);
         }
 
         private void OpenProfile()
@@ -192,7 +284,260 @@ namespace Meowdoku.Gameplay
             if (_isExiting || Owner == null ||
                 profileEntry == null || !profileEntry.activeInHierarchy)
                 return;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.SelfInfo,
+                GetTrackingScreenName());
             Owner.Show(UiName.Profile);
+        }
+
+        private void OpenStreak()
+        {
+            if (_isExiting || Owner == null) return;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.Streak,
+                GetTrackingScreenName());
+            Owner.Show(
+                UiName.Streak,
+                new Dictionary<string, object>
+                {
+                    [StreakPagePresenter.StateParameter] =
+                        (int)StreakDisplayState.Main
+                });
+        }
+
+        private void BuildPopupQueue()
+        {
+            if (_popupQueue.IsRunning || dialogPriorityConfig == null)
+                return;
+            _popupQueue.Clear();
+            if (_dailyMetaRuntime != null)
+                _dailyMetaRuntime.Streak.NotifyGroupDyed(
+                    _dailyStreak.Value);
+            var handlers =
+                new Dictionary<string, Func<IEnumerator>>(
+                    StringComparer.Ordinal)
+                {
+                    ["ab_switch_popup"] = ShowAbSwitchPopup,
+                    ["rank_reward_and_tryopen_popup"] =
+                        ShowRankRewardAndTryOpenPopup,
+                    ["ad_reward_restored"] =
+                        ShowAdRewardRestored,
+                    ["rank_open_popup"] = ShowRankOpenPopup
+                };
+            UIPopupConfig.BuildQueueForScene(
+                UIPopupConfig.ParsePriorities(
+                    dialogPriorityConfig.text),
+                "home",
+                handlers,
+                _popupQueue);
+            StartManagedCoroutine(_popupQueue.Flush());
+        }
+
+        private IEnumerator ShowAbSwitchPopup()
+        {
+            if (_dailyMetaRuntime == null ||
+                abSwitchPopupConfig == null)
+                yield break;
+            int targetPage =
+                _dailyMetaRuntime.Streak.PendingSwitchPage;
+            if (targetPage <= 0) yield break;
+
+            IReadOnlyList<AbSwitchPopupRule> rules =
+                UIPopupConfig.ParseAbSwitchRules(
+                    abSwitchPopupConfig.text);
+            AbSwitchPopupRule matched =
+                UIPopupConfig.FindSwitchRule(
+                    rules,
+                    "daily_streak",
+                    targetPage);
+            if (matched == null) yield break;
+
+            yield return new WaitForSecondsRealtime(0.1f);
+            if (!IsShowing || _isExiting || Owner == null)
+                yield break;
+            var parameters = new Dictionary<string, object>(
+                matched.Parameters,
+                StringComparer.Ordinal);
+            UIFrameWindow popup = Owner.Show(
+                UiName.AbSwitchPopup,
+                parameters);
+            if (popup == null) yield break;
+
+            _dailyMetaRuntime.Streak.ConsumePendingSwitch();
+            yield return Owner.AwaitHidden(UiName.AbSwitchPopup);
+            ApplySwitchRewards(parameters);
+        }
+
+        private void OpenRankEntry()
+        {
+            if (_isExiting || Owner == null || _rankPopupPending) return;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.ChallengeEntrance,
+                GetTrackingScreenName());
+            RankActivityManager manager = _rankActivityRuntime?.Manager;
+            if (manager == null) return;
+            StartManagedCoroutine(manager.IsOpenNotJoined
+                ? ShowRankOpenPopup()
+                : ShowRankPageThenTryOpen());
+        }
+
+        private IEnumerator ShowRankPageThenTryOpen()
+        {
+            if (Owner == null) yield break;
+            UIFrameWindow page = Owner.Show(UiName.RankActivityPage);
+            if (page == null) yield break;
+            yield return Owner.AwaitHidden(UiName.RankActivityPage);
+            yield return null;
+            yield return null;
+            yield return ShowRankOpenPopup();
+        }
+
+        private IEnumerator ShowRankRewardAndTryOpenPopup()
+        {
+            if (_rankActivityRuntime?.Manager?.GetPendingReward() == null)
+                yield break;
+            yield return ShowRankPageThenTryOpen();
+        }
+
+        private IEnumerator ShowAdRewardRestored()
+        {
+            yield return new WaitForSecondsRealtime(
+                HomePageContract.RewardRestoreDelaySeconds);
+            if (_isExiting || !IsShowing || Owner == null)
+                yield break;
+
+            GameStateService state = GameStateRuntime.Current;
+            var restore = new RewardRestoreService(state);
+            RewardRestoreBatch batch = restore.BuildBatch(
+                DateTimeOffset.Now.ToUnixTimeSeconds());
+            if (batch == null) yield break;
+
+            var parameters = new Dictionary<string, object>(1)
+            {
+                ["batch"] = batch
+            };
+            var page = Owner.Show(
+                UiName.AdRewardRestored,
+                parameters) as AdRewardRestoredPagePresenter;
+            if (page == null) yield break;
+
+            bool done = false;
+            bool collected = false;
+            void HandleCollected()
+            {
+                collected = true;
+                done = true;
+            }
+            void HandleClosed() => done = true;
+            page.Collected += HandleCollected;
+            page.Closed += HandleClosed;
+            try
+            {
+                while (!done && IsShowing && !_isExiting)
+                    yield return null;
+            }
+            finally
+            {
+                page.Collected -= HandleCollected;
+                page.Closed -= HandleClosed;
+            }
+            if (!done) yield break;
+            restore.Complete(batch, collected);
+        }
+
+        private IEnumerator ShowRankOpenPopup()
+        {
+            RankActivityManager manager = _rankActivityRuntime?.Manager;
+            if (manager == null || !manager.IsOpenNotJoined ||
+                _rankPopupPending || Owner == null)
+                yield break;
+            UIFrameWindow existing = Owner.Get(UiName.RankActivityOpenPopup);
+            if (existing != null && existing.IsShowing) yield break;
+
+            _rankPopupPending = true;
+            yield return new WaitForSecondsRealtime(0.1f);
+            for (int frame = 0; frame < 60 && !_isExiting && !IsShowing;
+                 frame++)
+                yield return null;
+            if (_isExiting || !IsShowing || Owner == null)
+            {
+                _rankPopupPending = false;
+                yield break;
+            }
+
+            var popup = Owner.Show(UiName.RankActivityOpenPopup) as
+                RankActivityOpenPopupPresenter;
+            if (popup == null)
+            {
+                _rankPopupPending = false;
+                yield break;
+            }
+
+            yield return Owner.AwaitHidden(UiName.RankActivityOpenPopup);
+            _rankPopupPending = false;
+            manager.ConfirmParticipation();
+            rankEntry?.RefreshNow();
+            if (_isExiting || !IsShowing) yield break;
+
+            bool firstPeriod = manager.PeriodCount == 1;
+            if (!firstPeriod && !popup.WasStarted) yield break;
+            if (firstPeriod &&
+                _profileRuntime?.Service?.IsIdentityDefault == true)
+            {
+                UIFrameWindow profile = Owner.Show(
+                    UiName.Profile,
+                    new Dictionary<string, object>(1)
+                    {
+                        ["from_rank_open_guide"] = true
+                    });
+                if (profile != null)
+                    yield return Owner.AwaitHidden(UiName.Profile);
+                if (_isExiting || !IsShowing) yield break;
+            }
+
+            EnterMainLevelCovering();
+        }
+
+        private void EnterMainLevelCovering()
+        {
+            if (_isExiting || Owner == null) return;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.NormalPlay,
+                GetTrackingScreenName());
+            var parameters = new Dictionary<string, object>(1)
+            {
+                ["level_index"] = GameStateRuntime.Current.CurrentLevel
+            };
+            UIFrameWindow game = Owner.Show(UiName.Game, parameters);
+            if (game == null) return;
+            _isExiting = true;
+            Owner.Hide(UiName.Home);
+        }
+
+        private static void ApplySwitchRewards(
+            IReadOnlyDictionary<string, object> parameters)
+        {
+            if (parameters == null ||
+                !parameters.TryGetValue("reward", out object raw) ||
+                raw is not IReadOnlyDictionary<string, object> rewards)
+                return;
+            GameStateService state = GameStateRuntime.Current;
+            foreach (KeyValuePair<string, object> pair in rewards)
+            {
+                int count;
+                try
+                {
+                    count = Convert.ToInt32(pair.Value);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+                if (count <= 0) continue;
+                state.SetToolCount(
+                    pair.Key,
+                    state.GetToolCount(pair.Key) + count);
+            }
         }
 
         private void PlayAppear()

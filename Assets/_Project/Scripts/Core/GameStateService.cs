@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Meowdoku.Core.Config;
+using Meowdoku.Core.Daily;
 
 namespace Meowdoku.Core
 {
@@ -28,6 +29,10 @@ namespace Meowdoku.Core
     public sealed class GameStateService
     {
         private const int RecentPuzzlesLimit = 100;
+        private const long RewardHistoryRetainSeconds = 7 * 24 * 3600;
+        private const long RestoreNormalLookbackSeconds = 3 * 24 * 3600;
+        private const int RestoreMinimumNormalRewards = 3;
+        private const int RestoreDailyMaximum = 3;
         private readonly IGameStatePlayerStore _store;
         private readonly IGameStateEndgameStore _endgameStore;
         private readonly IVibrationStateSink _vibrationSink;
@@ -46,7 +51,9 @@ namespace Meowdoku.Core
         private int _sessionPlayedCount;
         private int _sessionConsecutiveWins;
         private bool _hasWonSinceColdStart;
+        private int _sessionRewardViewCount;
         private bool _firstSessionRuntime;
+        private readonly Dictionary<int, float> _failTextRevivePercent = new();
 
         public GameStateService(
             GameStateData data,
@@ -75,6 +82,8 @@ namespace Meowdoku.Core
         public bool TutorialDone => Data.TutorialDone;
         public bool IsFirstSession => _firstSessionRuntime;
         public int CurrentStrategy => Data.CurrentStrategy;
+        public string CurrentDate => _dateProvider.CurrentDate;
+        public string LastSplashDate => Data.LastSplashDate;
         public string AppliedLocale => Data.AppliedLocale;
         public bool MusicOn => Data.MusicOn;
         public bool SoundOn => Data.SoundOn;
@@ -83,6 +92,21 @@ namespace Meowdoku.Core
         public bool PatternModeOn => Data.PatternModeOn;
         public bool PatternEntryDotDismissed => Data.PatternEntryDotDismissed;
         public bool PatternSwitchDotDismissed => Data.PatternSwitchDotDismissed;
+        public bool HasUsedReviveFree => Data.HasUsedReviveFree;
+        public float LastWinBeatPercent => Data.LastWinBeatPercent;
+        public int DailyIndex => Data.DailyIndex;
+        public string DailyCompletedDate => Data.DailyCompletedDate;
+        public string MaxDailyDate => Data.MaxDailyDate;
+        public int DailyElapsedSeconds => Data.DailyElapsedSeconds;
+        public float DailyBeatPercent => Data.DailyBeatPercent;
+        public float DailyBestBeatPercent => Data.DailyBestBeatPercent;
+        public string DailyStartedDate => Data.DailyStartedDate;
+        public DailyEntryState CurrentDailyEntryState =>
+            DailyEntryStateContract.Compute(
+                Data.CurrentLevel,
+                _dateProvider.CurrentDate,
+                Data.DailyCompletedDate,
+                Data.MaxDailyDate);
         public bool HasUsedTool => Data.HasUsedTool;
         public bool HasPropHighlightShown => Data.PropHighlightShown;
         public bool IsCurrentLevelDirty => _currentLevelDirty;
@@ -92,9 +116,25 @@ namespace Meowdoku.Core
         public int SessionPlayedCount => _sessionPlayedCount;
         public int SessionConsecutiveWins => _sessionConsecutiveWins;
         public bool HasWonSinceColdStart => _hasWonSinceColdStart;
+        public bool InterstitialUnlocked => Data.InterstitialUnlocked;
+        public bool BannerUnlocked => Data.BannerUnlocked;
+        public int SessionRewardViewCount => _sessionRewardViewCount;
         public bool IsDailyFirstEasyAvailable => _dailyFirstEasyAvailable;
         public bool IsCurrentLevelDailyFirstEasy => _isCurrentLevelDailyFirstEasy;
         public event Action<bool> LevelSettled;
+
+        public void EnsureFirstOpenTime(
+            long sdkValueMilliseconds,
+            long fallbackNowMilliseconds = 0)
+        {
+            if (Data.FirstOpenTimeMs > 0) return;
+            Data.FirstOpenTimeMs = sdkValueMilliseconds > 0
+                ? sdkValueMilliseconds
+                : fallbackNowMilliseconds > 0
+                    ? fallbackNowMilliseconds
+                    : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            SavePlayer();
+        }
 
         public void EvaluateDailyFirstEasy()
         {
@@ -156,6 +196,49 @@ namespace Meowdoku.Core
             _isCurrentLevelDailyFirstEasy = false;
         }
 
+        public void SetDailyIndex(int value)
+        {
+            Data.DailyIndex = value;
+            SavePlayer();
+        }
+
+        public void SetDailyStartedDate(string date)
+        {
+            Data.DailyStartedDate = date ?? string.Empty;
+            SavePlayer();
+        }
+
+        public void AdvanceMaxDailyDate(string date = null)
+        {
+            string target = date ?? _dateProvider.CurrentDate;
+            if (string.CompareOrdinal(target, Data.MaxDailyDate) <= 0) return;
+            Data.MaxDailyDate = target;
+            SavePlayer();
+        }
+
+        public void MarkDailyCompleted(
+            string date,
+            int elapsedSeconds,
+            float beatPercent)
+        {
+            Data.DailyCompletedDate = date ?? string.Empty;
+            Data.DailyElapsedSeconds = elapsedSeconds;
+            Data.DailyBeatPercent = beatPercent;
+            if (beatPercent > Data.DailyBestBeatPercent)
+                Data.DailyBestBeatPercent = beatPercent;
+            _hasWonSinceColdStart = true;
+            SavePlayer();
+        }
+
+        public void ClearDailyCompletion()
+        {
+            Data.DailyCompletedDate = string.Empty;
+            Data.DailyElapsedSeconds = 0;
+            Data.DailyBeatPercent = 0f;
+            Data.DailyBestBeatPercent = 0f;
+            SavePlayer();
+        }
+
         public void SetCurrentLevel(int value)
         {
             Data.CurrentLevel = value;
@@ -184,6 +267,19 @@ namespace Meowdoku.Core
         {
             Data.CurrentStrategy = value;
             SavePlayer();
+        }
+
+        public bool MarkSplashShownToday()
+        {
+            string today = _dateProvider.CurrentDate;
+            bool firstToday = !string.Equals(
+                Data.LastSplashDate,
+                today,
+                StringComparison.Ordinal);
+            if (!firstToday) return false;
+            Data.LastSplashDate = today;
+            SavePlayer();
+            return true;
         }
 
         public void SetAppliedLocale(string value)
@@ -245,6 +341,32 @@ namespace Meowdoku.Core
             SavePlayer();
         }
 
+        public void MarkReviveFreeUsed()
+        {
+            if (Data.HasUsedReviveFree) return;
+            Data.HasUsedReviveFree = true;
+            SavePlayer();
+        }
+
+        public void SetLastWinBeatPercent(float value)
+        {
+            if (Math.Abs(Data.LastWinBeatPercent - value) < 0.0001f) return;
+            Data.LastWinBeatPercent = value;
+            SavePlayer();
+        }
+
+        public float GetFailTextRevivePercent(int level)
+        {
+            return _failTextRevivePercent.TryGetValue(level, out float value)
+                ? value
+                : -1f;
+        }
+
+        public void SetFailTextRevivePercent(int level, float value)
+        {
+            _failTextRevivePercent[level] = value;
+        }
+
         public int GetToolCount(string kind)
         {
             switch (kind)
@@ -269,6 +391,46 @@ namespace Meowdoku.Core
                 Data.HasUsedTool = true;
             SavePlayer();
             ToolCountChanged?.Invoke(kind, count);
+        }
+
+        public List<object> GetInFlightAwards()
+        {
+            return new List<object>(Data.InFlightAwards);
+        }
+
+        public void AddInFlightAward(Dictionary<string, object> entry)
+        {
+            if (entry == null) return;
+            Data.InFlightAwards.Add(entry);
+            SavePlayer();
+        }
+
+        public bool RemoveInFlightAward(int uid)
+        {
+            for (int index = Data.InFlightAwards.Count - 1;
+                 index >= 0;
+                 index--)
+            {
+                if (Data.InFlightAwards[index] is not
+                        Dictionary<string, object> entry ||
+                    ReadObjectInt(entry, "uid", -1) != uid)
+                    continue;
+                Data.InFlightAwards.RemoveAt(index);
+                SavePlayer();
+                return true;
+            }
+            return false;
+        }
+
+        public Dictionary<string, object> FindInFlightAward(int uid)
+        {
+            foreach (object value in Data.InFlightAwards)
+            {
+                if (value is Dictionary<string, object> entry &&
+                    ReadObjectInt(entry, "uid", -1) == uid)
+                    return entry;
+            }
+            return null;
         }
 
         public void MarkPropHighlightShown()
@@ -312,6 +474,159 @@ namespace Meowdoku.Core
             Data.TodaySessionCount++;
             _sessionPlayedCount = 0;
             _sessionConsecutiveWins = 0;
+            _sessionRewardViewCount = 0;
+            SavePlayer();
+        }
+
+        public void IncrementSessionRewardViewCount()
+        {
+            _sessionRewardViewCount++;
+        }
+
+        public void ResetSessionRewardViewCount()
+        {
+            _sessionRewardViewCount = 0;
+        }
+
+        public void MarkInterstitialUnlocked()
+        {
+            if (Data.InterstitialUnlocked) return;
+            Data.InterstitialUnlocked = true;
+            SavePlayer();
+        }
+
+        public void MarkBannerUnlocked()
+        {
+            if (Data.BannerUnlocked) return;
+            Data.BannerUnlocked = true;
+            SavePlayer();
+        }
+
+        public bool HasPendingRewards() => Data.PendingRewards.Count > 0;
+
+        public List<object> GetPendingRewards() =>
+            new(Data.PendingRewards);
+
+        public void AddPendingReward(Dictionary<string, object> reward)
+        {
+            if (reward == null) return;
+            Data.PendingRewards.Add(reward);
+            SavePlayer();
+        }
+
+        public List<object> PopAllPendingRewards()
+        {
+            var result = new List<object>(Data.PendingRewards);
+            if (result.Count == 0) return result;
+            Data.PendingRewards.Clear();
+            SavePlayer();
+            return result;
+        }
+
+        public void RemovePendingRewards(IReadOnlyCollection<string> showIds)
+        {
+            if (showIds == null || showIds.Count == 0) return;
+            bool changed = false;
+            for (int index = Data.PendingRewards.Count - 1; index >= 0; index--)
+            {
+                if (Data.PendingRewards[index] is not
+                        Dictionary<string, object> entry ||
+                    !Contains(showIds, ReadString(entry, "show_id")))
+                    continue;
+                Data.PendingRewards.RemoveAt(index);
+                changed = true;
+            }
+            if (changed) SavePlayer();
+        }
+
+        public void RemovePendingRewardEntries(
+            IReadOnlyCollection<object> entries)
+        {
+            if (entries == null || entries.Count == 0) return;
+            bool changed = false;
+            foreach (object entry in entries)
+                changed |= Data.PendingRewards.Remove(entry);
+            if (changed) SavePlayer();
+        }
+
+        public void RecordNormalReward(long unixTimestamp)
+        {
+            Data.RewardHistoryTimestamps.Add(unixTimestamp);
+            long cutoff = unixTimestamp - RewardHistoryRetainSeconds;
+            for (int index = Data.RewardHistoryTimestamps.Count - 1;
+                 index >= 0;
+                 index--)
+            {
+                if (ReadLong(Data.RewardHistoryTimestamps[index]) < cutoff)
+                    Data.RewardHistoryTimestamps.RemoveAt(index);
+            }
+            SavePlayer();
+        }
+
+        public int GetRestoreRemainingToday(long unixTimestamp)
+        {
+            RollDayIfNeeded();
+            long cutoff = unixTimestamp - RestoreNormalLookbackSeconds;
+            int recent = 0;
+            for (int index = 0;
+                 index < Data.RewardHistoryTimestamps.Count;
+                 index++)
+            {
+                if (ReadLong(Data.RewardHistoryTimestamps[index]) >= cutoff)
+                    recent++;
+            }
+            if (recent < RestoreMinimumNormalRewards) return 0;
+            return Math.Max(
+                0,
+                RestoreDailyMaximum - Data.RestoredTodayCount);
+        }
+
+        public int RestoredTodayCount
+        {
+            get
+            {
+                RollDayIfNeeded();
+                return Data.RestoredTodayCount;
+            }
+        }
+
+        public void AddRestoredTodayCount(int count)
+        {
+            if (count <= 0) return;
+            RollDayIfNeeded();
+            Data.RestoredTodayCount += count;
+            SavePlayer();
+        }
+
+        public void AddActiveSeconds(int seconds)
+        {
+            if (seconds <= 0) return;
+            RollDayIfNeeded();
+            Data.TodayActiveSeconds += seconds;
+            Data.TotalActiveSeconds += seconds;
+            SavePlayer();
+        }
+
+        public bool HasGrtLevelD90Reported(int level) =>
+            Data.GrtLevelD90Reported.Contains(level);
+
+        public void MarkGrtLevelD90Reported(int level)
+        {
+            if (level <= 0 || HasGrtLevelD90Reported(level)) return;
+            Data.GrtLevelD90Reported.Add(level);
+            SavePlayer();
+        }
+
+        public bool HasGrtEventReported(string eventName) =>
+            !string.IsNullOrEmpty(eventName) &&
+            Data.GrtReportedEvents.Contains(eventName);
+
+        public void MarkGrtEventReported(string eventName)
+        {
+            if (string.IsNullOrEmpty(eventName) ||
+                HasGrtEventReported(eventName))
+                return;
+            Data.GrtReportedEvents.Add(eventName);
             SavePlayer();
         }
 
@@ -500,6 +815,7 @@ namespace Meowdoku.Core
             Data.TodaySessionCount = 0;
             Data.TodayPlayedCount = 0;
             Data.TodayActiveSeconds = 0;
+            Data.RestoredTodayCount = 0;
             Data.ActiveDays++;
 
             if (DateTime.TryParseExact(
@@ -895,6 +1211,29 @@ namespace Meowdoku.Core
             }
         }
 
+        private static long ReadLong(object value)
+        {
+            if (value == null) return 0;
+            try { return Convert.ToInt64(value); }
+            catch (Exception exception) when (
+                exception is FormatException ||
+                exception is InvalidCastException ||
+                exception is OverflowException)
+            {
+                return 0;
+            }
+        }
+
+        private static bool Contains(
+            IReadOnlyCollection<string> values,
+            string target)
+        {
+            foreach (string value in values)
+                if (string.Equals(value, target, StringComparison.Ordinal))
+                    return true;
+            return false;
+        }
+
         private static int CollectionCount(Dictionary<string, object> values, string key)
         {
             return values.TryGetValue(key, out object raw) && raw is System.Collections.ICollection collection
@@ -978,6 +1317,55 @@ namespace Meowdoku.Core
         {
             return _repository == null || _repository.FlushEndgameWrites();
         }
+
+#if UNITY_INCLUDE_TESTS
+        /// <summary>
+        /// Temporarily replaces the process-wide runtime state without
+        /// flushing, replacing, or otherwise touching the repository that
+        /// owns the player's real save. The exact previous references are
+        /// restored when the returned scope is disposed.
+        /// </summary>
+        internal static IDisposable OverrideForTests(GameStateService service)
+        {
+            if (service == null) throw new ArgumentNullException(nameof(service));
+            var scope = new TestOverrideScope(
+                _current,
+                _repository,
+                service);
+            _current = service;
+            _repository = null;
+            return scope;
+        }
+
+        private sealed class TestOverrideScope : IDisposable
+        {
+            private readonly GameStateService _previousCurrent;
+            private readonly GameStateRepository _previousRepository;
+            private readonly GameStateService _replacement;
+            private bool _disposed;
+
+            public TestOverrideScope(
+                GameStateService previousCurrent,
+                GameStateRepository previousRepository,
+                GameStateService replacement)
+            {
+                _previousCurrent = previousCurrent;
+                _previousRepository = previousRepository;
+                _replacement = replacement;
+            }
+
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+                if (!ReferenceEquals(_current, _replacement))
+                    throw new InvalidOperationException(
+                        "GameStateRuntime test overrides must be disposed in order.");
+                _current = _previousCurrent;
+                _repository = _previousRepository;
+            }
+        }
+#endif
 
         private static void RegisterQuittingHook()
         {

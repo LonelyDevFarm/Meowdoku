@@ -143,6 +143,71 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void SplashDate_IsFirstOncePerDayAndPersistsSourceKey()
+        {
+            var store = new CountingStore();
+            var service = new GameStateService(
+                new GameStateData(),
+                store,
+                dateProvider: new DateProvider("2026-08-10"));
+
+            Assert.That(service.MarkSplashShownToday(), Is.True);
+            Assert.That(service.MarkSplashShownToday(), Is.False);
+            Assert.That(service.LastSplashDate, Is.EqualTo("2026-08-10"));
+            Assert.That(store.SaveCount, Is.EqualTo(1));
+
+            Dictionary<string, object> player =
+                service.Data.ToPlayerDocument();
+            var progress = (Dictionary<string, object>)player["progress"];
+            Assert.That(
+                progress["last_splash_date"],
+                Is.EqualTo("2026-08-10"));
+            Assert.That(
+                GameStateData.FromDocuments(player, null).LastSplashDate,
+                Is.EqualTo("2026-08-10"));
+        }
+
+        [Test]
+        public void FreeReviveFlag_IsIdempotentAndPersistsSourceKey()
+        {
+            var store = new CountingStore();
+            var service = new GameStateService(new GameStateData(), store);
+
+            service.MarkReviveFreeUsed();
+            service.MarkReviveFreeUsed();
+
+            Assert.That(service.HasUsedReviveFree, Is.True);
+            Assert.That(store.SaveCount, Is.EqualTo(1));
+            Dictionary<string, object> player =
+                service.Data.ToPlayerDocument();
+            var progress = (Dictionary<string, object>)player["progress"];
+            Assert.That(progress["has_used_revive_free"], Is.True);
+            Assert.That(
+                GameStateData.FromDocuments(player, null).HasUsedReviveFree,
+                Is.True);
+        }
+
+        [Test]
+        public void LastWinBeatPercent_PersistsSourceProgressKey()
+        {
+            var store = new CountingStore();
+            var service = new GameStateService(new GameStateData(), store);
+
+            service.SetLastWinBeatPercent(83.7f);
+            service.SetLastWinBeatPercent(83.7f);
+
+            Assert.That(service.LastWinBeatPercent, Is.EqualTo(83.7f));
+            Assert.That(store.SaveCount, Is.EqualTo(1));
+            Dictionary<string, object> player =
+                service.Data.ToPlayerDocument();
+            var progress = (Dictionary<string, object>)player["progress"];
+            Assert.That(progress["last_win_beat_percent"], Is.EqualTo(83.7f));
+            Assert.That(
+                GameStateData.FromDocuments(player, null).LastWinBeatPercent,
+                Is.EqualTo(83.7f));
+        }
+
+        [Test]
         public void MusicUserChoice_BlocksLaterDefaultInitialization()
         {
             var store = new CountingStore();

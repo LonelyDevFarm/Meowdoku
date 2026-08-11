@@ -79,6 +79,25 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void LevelEntry_PreservesGodotInt64Seed()
+        {
+            const long sourceSeed = 9_579_550_828L;
+            LevelEntry entry = Entry(new Dictionary<string, object>
+            {
+                ["seed"] = sourceSeed,
+                ["size"] = 7,
+                ["r"] = 4,
+                ["regionMap"] = Enumerable.Range(0, 7)
+                    .Select(row => Enumerable.Repeat(row, 7).ToArray())
+                    .ToArray(),
+                ["solution"] = Enumerable.Range(0, 7).ToArray()
+            });
+
+            Assert.That(entry.Seed, Is.EqualTo(sourceSeed));
+            Assert.That(entry.Clone().Seed, Is.EqualTo(sourceSeed));
+        }
+
+        [Test]
         public void ResolveInitial_UsesSourcePriorityAndDefaultSize()
         {
             var all = new Dictionary<string, object>
@@ -278,6 +297,38 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(request.Parameters["custom_color_map"],
                 Is.EqualTo(new[] { 1, 2, 3 }));
             Assert.That(request.Parameters.ContainsKey("bank_gc"), Is.False);
+        }
+
+        [Test]
+        public void NextBankLaunch_DropsDirectBrowserReturnFlagLikeSource()
+        {
+            LevelBankIO.LoadOverride = filename => filename == "bankDataSP.json"
+                ? new Dictionary<string, object>
+                {
+                    ["levels"] = new List<object>
+                    {
+                        EntryDictionary(4, 1, string.Empty, seed: 10),
+                        EntryDictionary(4, 1, string.Empty, seed: 11)
+                    }
+                }
+                : null;
+            LevelEntry current = Entry(new Dictionary<string, object>
+            {
+                ["id"] = 10,
+                ["size"] = 4,
+                ["r"] = 1,
+                ["bank_sp"] = true,
+                ["bank_index"] = 1,
+                ["bank_total"] = 2
+            });
+
+            Assert.That(BankBrowserContract.TryCreateNextLaunch(
+                current,
+                out BankLaunchRequest request), Is.True);
+            Assert.That(request.Index, Is.EqualTo(2));
+            Assert.That(request.Parameters["bank_mode"], Is.True);
+            Assert.That(request.Parameters.ContainsKey("from_bank_browser"),
+                Is.False);
         }
 
         [Test]

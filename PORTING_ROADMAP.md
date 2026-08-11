@@ -1,6 +1,6 @@
 # Meowdoku Godot → Unity: Roadmap port chính thức
 
-> Cập nhật gần nhất: 2026-08-09  
+> Cập nhật gần nhất: 2026-08-11  
 > Nguồn chuẩn: `D:\Projects\_GameExtract\Main_Meokdoku`  
 > Dự án đích: `D:\Projects\Meowdoku`
 
@@ -82,7 +82,7 @@ Ký hiệu:
 | `CellState.cs` | `[x]` | Đã port model trạng thái cơ bản |
 | `GameScoreModel.cs` | `[x]` | Model/restore, công thức legacy/8 variant và typed score/combo/deduction/life feedback contract đã port/test; presenter hình ảnh còn ở R9 |
 | `QueendokuCore.cs` | `[x]` | Đã port API conflict/completion và nối qua `BoardStateModel`; có fixture kiểm tra thứ tự luật nguồn |
-| `BankData/LevelBankIO/MiniJson` | `[~]` | Đã đủ regular/SP/LK/LK Modified/LK Style/GC, cache và API size/rank/tier; còn malformed/encrypted-resource PlayMode tests |
+| `BankData/LevelBankIO/MiniJson` | `[~]` | Đã đủ regular/SP/LK/LK Modified/LK Style/GC, cache và API size/rank/tier. PlayMode đã giải mã/load bank thật; `seed` giữ signed 64-bit đúng Godot và regression khóa seed > Int32. Còn malformed-resource matrix |
 | `LevelData.cs` | `[~]` | Selection pipeline, injected inclusive RNG, Daily First Easy, filters, transform, prefill và puzzle ID đã có; còn GameSession dedup retry |
 | `LevelGenerator.cs` | `[x]` | Đã đủ RGB, Lab, pattern dark/light, seeded LCG và toàn bộ palette/config branch nguồn; đã nối GameplayManager → BoardView |
 | 5.411 level thường | `[x]` | Đã xác thực cấu trúc/solution ở bước kiểm tra trước |
@@ -94,12 +94,12 @@ Ký hiệu:
 | Rounded-corner shader | `[~]` | Đã port lại từ `cell_bg_round(.hard).gdshader` với bốn bán kính, hard-edge và cache material; chờ PlayMode/device parity |
 | Loading/Home/Gameplay scenes | `[~]` | Scene khung hoặc test; Home gần như chưa có nội dung |
 | GameState/SaveStore | `[~]` | P0 schema/runtime/dual-slot/migration đã port; endgame encrypted write đã tách khỏi main thread và có lifecycle flush; app-kill thiết bị thật và P1/P2 còn thiếu |
-| AB default configuration | `[~]` | Default profile 27 config, gồm input/layout, score, reward/prop highlight và `mark_sound`; remote/timing runtime còn thiếu |
+| AB default configuration | `[~]` | Default profile 56 config; đã có timing/dye runtime provider-neutral và LivingDays cho Ads. Production remote adapter cùng runtime consumer ngoài lát cắt Ads còn thiếu |
 | HintEngine/PreCat | `[~]` | Logic HintEngine và PreCatDecider đã port/test, Hint/Locate resource flow đã nối session; UI hint còn ở R9 |
-| UI stack/registry/popup queue | `[~]` | Đã port registry/window/manager cùng popup priority queue + hai config DSL parser; chưa tạo registry asset, Home handlers và scene bootstrap |
-| Tutorial/Result/Daily/Meta | `[ ]` | Chưa làm |
+| UI stack/registry/popup queue | `[~]` | Registry asset hiện có 25 page, AppScene/bootstrap và handler chính đã nối. PlayMode đạt startup Home, 8 page show/hide, abort-close/reopen, Bank load, cùng Button thật Home→Settings→Home và Home→Game→Back→Home. Còn nhánh phụ/input-guard/pixel parity |
+| Tutorial/Home/Settings/Bank/Result | `[~]` | Đã có page/prefab/registry và runtime route chính; Result còn thiếu win-toast, rewarded-ad mock và PlayMode parity. Daily/Meta chưa làm |
 | Audio manager/settings | `[~]` | Đã port SoundManager contract, fixed path/polyphony, oldest-voice pool, settings/silent, dynamic path/meow delay và BGM hard-off; còn catalog asset/bootstrap, presenter call sites và PlayMode audio |
-| Automated Unity tests | `[~]` | Các assembly Core/Gameplay/Editor/EditMode compile sạch; bổ sung test R7 và UI/startup/popup R10, full Unity suite và PlayMode/UI được gom để chạy sau |
+| Automated Unity tests | `[~]` | Unity Test Runner thật chạy tự động qua hai Editor-only bridge: EditMode **508 passed, 0 failed**; PlayMode AppScene/navigation/Main result **3 passed, 0 failed**. Còn mở rộng Bank/device suite |
 
 ## 5. Thứ tự phụ thuộc
 
@@ -174,9 +174,9 @@ Mục tiêu: Unity dùng đúng tài nguyên gốc với import setting ổn đ�
 
 Mục tiêu: thay hard-code/PlayerPrefs tạm bằng state giống nguồn.
 
-- `[~]` Đã port contract typed của `AbConfigBase`, default provider và catalog tra cứu; switch-history/dye timing runtime chưa có.
+- `[~]` Đã port contract typed của `AbConfigBase`, default provider, catalog tra cứu và timing/dye runtime provider-neutral; switch-history đầy đủ cùng consumer ngoài lát cắt Ads chưa có.
 - `[~]` Đã port đầy đủ policy `region_color`, `size_cycle`, `swipe_protect`, `doubletap_protect`, `score_encourage`; 19 config P0 còn lại mới có metadata/default, chưa có policy/runtime consumer.
-- `[x]` Đã tạo `DefaultConfigProfile` gồm đúng 24 config P0 từ `default_value` của nguồn, có đánh dấu 4 config không được manager gốc đăng ký; chưa phụ thuộc SDK remote.
+- `[~]` `DefaultConfigProfile` hiện có 56 config offline từ `default_value` nguồn, trong đó 50 config được manager gốc đăng ký và 6 config giữ đúng trạng thái không đăng ký; catalog toàn bộ khoảng 89 config và production remote adapter còn thiếu.
 - `[~]` Đã tạo `GameStateData` typed P0 và port legacy-file migration; nguồn không có schema-version migration thực thi. P1/P2 và version tương lai của format Unity chưa hoàn tất.
 - `[~]` Đã port schema field P0, repository player/endgame và runtime service cho progress/settings/tools/retry/pre-cat/endgame; win/fail aggregate P0 đã nối, migration tương lai và P1/P2 chưa hoàn tất.
 - `[~]` Đã port adapter `SaveStore`: encrypted/authenticated write, verify, dual-slot A/B, flag, retry load và legacy fallback. Endgame runtime serialize snapshot bất biến trên caller rồi coalesce/mã hóa/verify/fsync tuần tự trên worker; pause/focus-out/quit flush chờ hoàn tất. Cần test app-kill/platform filesystem thật.
@@ -266,7 +266,7 @@ Mục tiêu: port hành vi P0 của `BaseGamePage`, không tiếp tục nhồi l
 - `[~]` Lives, mistake, pending wrong guess 0,4/0,6 giây, fail và revive theo số life truyền vào đã chạy trong session; heart/fish UI và revive config consumer còn thiếu.
 - `[~]` Correct/wrong action, rule violation, score, history và win transition đã chạy qua session; feedback arbitration thuộc R9.
 - `[~]` AutoComplete domain đã đúng mark-ring/cat order và không ghi history; PreCat placement API đã có; auto-mark/config runtime còn thiếu và mặc định nguồn đang Off.
-- `[~]` Clear, Locate và Hint request/apply/cancel đã chạy qua session; Locate/Hint nay dùng `ToolResourceCoordinator` đúng free zone, decrement, cooldown dùng chung 800 ms và reward-request event. Award/ads cùng ToolButton UI còn chờ adapter/view; Undo UI không có implementation trong source.
+- `[~]` Clear, Locate và Hint request/apply/cancel đã chạy qua session; Locate/Hint dùng `ToolResourceCoordinator` đúng free zone, decrement, cooldown chung 800 ms và reward-request event. Reward event nay đi qua `AdService`, chỉ sau callback rewarded mới dispatch Hint/Locate bằng `AwardManager`; provider thật và ToolButton visual còn thiếu. Undo UI không có implementation trong source.
 - `[~]` Hint cooldown 0,5/0,8 giây và mutex log-free đã nối. Idle policy đã port đúng 20 giây chờ, guard, once/lifetime và nhịp repeat 10 giây chạy → 20 giây chờ; pulse thực tế chờ `ToolButtonView` ở R9.
 - `[~]` Save/resume/exit và flush app pause/focus đã nối bằng scheduler 0,5 giây. Win/Fail/Revive/Restart/Quit sở hữu snapshot đúng thời điểm; app-kill PlayMode còn thiếu.
 - `[~]` Remaining và completion transition đã ở session; aggregate coordinator phát typed data cho result, còn normal/hard toast cùng progress UI.
@@ -293,14 +293,14 @@ Mục tiêu: sau khi logic ổn định mới nối phần cảm giác chơi.
 
 Mục tiêu: tạo tương đương Unity cho UIManager/Launcher thay vì tăng số scene rời rạc không có stack.
 
-- `[~]` Đã port `UiName`, layer và `UIRegistry` kiểu ScriptableObject từ registry Godot; prefab registry asset/variant Win sẽ được điền khi các page tồn tại.
-- `[~]` Đã port page cache, stack, z-step, fullscreen occlusion, mask ref-count, back request, release-frame input guard và one-flight prewarm; còn nối AppBootstrap/visual mask và PlayMode.
+- `[~]` Đã port `UiName`, layer và `UIRegistry` kiểu ScriptableObject từ registry Godot; registry thật hiện có 25 page, gồm đủ Splash/Home/Game/Bank/Tutorial/Setting/Language/HowToPlay/HowToPlayPaged/Win/Fail cùng Daily/Streak/Award/Profile/Rank đã triển khai. Composition fixture xác minh đúng prefab/presenter và không missing script.
+- `[~]` Đã port page cache, stack, z-step, fullscreen occlusion, mask ref-count, back request, release-frame input guard và one-flight prewarm; `AppScene` đã nối shared overlays bằng serialized reference. Unity Test Runner khóa show/reuse/abort-close/hide; PlayMode input-through/spam transition vẫn phải xác nhận.
 - `[~]` Đã port popup queue priority giảm dần/stable, cancel/insert-next/flush và parser cho hai JSON gốc; Home handler/AB evaluation thuộc R12/R16.
-- `[~]` Đã tạo `AppBootstrap` duy nhất theo serialized composition và đúng startup phase; chưa gắn scene vì Splash/Home/Tutorial prefab chưa tồn tại.
-- `[~]` Đã port 60 FPS/keep-awake, first-session state, splash 2,0+0,5 giây, Game+board+bank prewarm; locale implementation thật thuộc R12.
-- `[~]` Route bằng `tutorial_done` đến Tutorial/Home đã có trong coordinator; chờ page prefab/registry để chạy.
+- `[~]` Đã tạo `AppBootstrap` duy nhất theo serialized composition và gắn tại `App/Systems` trong `AppScene`; UIManager, localization catalog và offline external boundary đều là serialized dependency.
+- `[~]` Đã port 60 FPS/keep-awake, first-session state, launcher 2,0+0,5 giây, Splash progress 3,0 giây/finish 0,1 giây, slogan đầu ngày và Game+board+bank prewarm. Board tạo đúng 4 cell/frame vào pool; locale thật đã nối catalog R12.
+- `[~]` Route bằng `tutorial_done` đến Tutorial/Home đã nối registry/page thật; chờ PlayMode cold/warm-start xác nhận.
 - `[x]` SDK/privacy/ATT/push/remote/data-sync/shortcut đã nằm sau `IAppStartupExternalServices`; offline dùng no-op và không thể chặn startup.
-- `[~]` Đã xác định `SceneLoader.cs` singleton/scene-per-page là prototype không tương đương nguồn; giữ tạm cho scene hiện tại tới khi AppBootstrap/UI navigation thay consumer.
+- `[~]` Đã xác định `SceneLoader.cs` singleton/scene-per-page là prototype không tương đương nguồn. `AppScene`/UIManager nay là entry tích hợp; installer bảo đảm đưa AppScene lên đầu Build Settings sau Refresh, còn ba scene cũ giữ làm test/đối chiếu.
 
 **Cổng hoàn thành:** cold start/warm start/back/overlay đúng, không double-open page hoặc lọt input qua popup.
 
@@ -308,13 +308,13 @@ Mục tiêu: tạo tương đương Unity cho UIManager/Launcher thay vì tăng 
 
 Mục tiêu: người chơi mới hoàn thành đúng tutorial 4×4 gốc rồi vào Game level 1 như nguồn.
 
-- `[~]` Đã port board/solution/region guide cố định, contract layout width 919 và nối `TutorialPagePresenter` với `BoardView`; chờ Unity sinh prefab sau Refresh và PlayMode xác nhận.
+- `[~]` Đã port board/solution/region guide cố định, contract layout width 919 và nối `TutorialPagePresenter` với `BoardView`; prefab/registry đã được Unity sinh, còn PlayMode xác nhận.
 - `[~]` Đã port state machine đủ 7 bước và nối chung input core của board vào policy tutorial; chờ PlayMode xác nhận toàn chuỗi.
 - `[~]` Đã port allowed cells, required marks, confirm state, double-tap và step completion; fixture đã compile, chờ chạy Unity Test Runner.
 - `[~]` Đã port static-hand adapter/tap pulse, swipe loop, mask/mirror cell, message/submessage, select-frame asset và confetti mặc định. Spine hand và IQ CPUParticles chưa có Unity runtime tương đương nên chưa giả lập sai.
 - `[~]` Đã port domain và presenter default/check/IQ theo `GuideFeedbackConfig`, gồm SuccessCheck 0,95 giây và IQ bar 0,4 giây; IQ fireworks còn chờ adapter particle trung thực.
 - `[~]` Đã port `TutorialDiagonalConfig`, `GuideFeedbackConfig` và dùng `DoubleTapProtectConfig` mặc định từ source; chờ test runner.
-- `[~]` Đã nối committer idempotent, `Show(Game, level_index=1)` rồi `Hide(Tutorial)` đúng nguồn; còn chờ registry/startup pages và PlayMode route.
+- `[~]` Đã nối committer idempotent, `Show(Game, level_index=1)` rồi `Hide(Tutorial)` đúng nguồn; registry/startup/Game page thật đã có, còn PlayMode route.
 - `[~]` State reset/recreate, event/tween/mask/board-pool cleanup đã nối đúng lifecycle page; app lifecycle PlayMode còn chờ.
 
 **Cổng hoàn thành:** tutorial có cùng chuỗi hành động, chặn sai input và khôi phục/reroute đúng.
@@ -323,11 +323,12 @@ Mục tiêu: người chơi mới hoàn thành đúng tutorial 4×4 gốc rồi 
 
 Mục tiêu: hoàn chỉnh vòng điều hướng offline quanh Main Game.
 
-- `[~]` Đã port contract và `HomePagePresenter`: level/hard state, ba A/B config mặc định, Start/Settings/Profile/Back handlers, safe-top header, flow shader, source animation marker/timing, cleanup và level text động. Unity đã sinh prefab, material và registry entry; Daily/Profile dependency cùng PlayMode parity còn chờ.
-- `[~]` Đã port Settings core state, presenter và prefab: music/sound/vibration/people persistence, pattern mode/dot persistence, outgame/game-mode visibility, phản hồi toggle, source toast, GenericPopup timing, Restart/Terms/Privacy/Feedback và route Language/HTP có điều kiện. Unity đã sinh prefab/registry entry; HTP page thật, PlayMode và pixel parity còn chờ.
-- `[~]` Đã copy nguyên CSV nguồn và port parser/catalog, locale alias/fallback/Chinese canonicalization, persistence, dynamic `LocalizedText`, font adapter zh/ja/ko, Language popup 10 hàng và System/English dropdown. Parser file thật, compile và prefab/registry structure đã kiểm chứng; Unity Test Runner, device glyph và PlayMode locale refresh còn chờ.
-- `[~]` Đã port cả `HowToPlay` toàn màn hình và `HowToPlayPaged`: matrix/coordinate nguồn, frame schedule, vòng demo, Previous/Next/Got it, localization/highlight, GenericPopup, silence/cleanup và cell cố định. Unity đã sinh/đăng ký cả hai prefab, không có missing-script marker; còn scene composition, Test Runner và PlayMode/VFX parity.
-- `[~]` Đã port Bank browser đủ sáu nhánh nguồn Regular/LK/LK Modified/LK Style/GC/SP: toàn bộ scalar metadata thật, root/size/tier/LK/SP panel state, hard-tier split, selector, back stack, pooled row views và ba shape launch params chính xác. Core/Gameplay/Editor/EditMode compile sạch bằng Unity Roslyn; chờ Auto Refresh sinh/đăng ký `BankPage.prefab`, Test Runner và Game-page composition để chạy route thật.
+- `[~]` Đã port contract và `HomePagePresenter`: level/hard state, ba A/B config mặc định, Start/Settings/Profile/Back handlers, safe-top header, flow shader, source animation marker/timing, cleanup và level text động. AppScene startup/reopen cùng `StartBtn`→Game và `SettingsBtn`→Settings đạt PlayMode; còn nhánh meta/pixel parity.
+- `[~]` Đã port Settings core state, presenter và prefab: music/sound/vibration/people persistence, pattern mode/dot persistence, outgame/game-mode visibility, phản hồi toggle, source toast, GenericPopup timing, Restart/Terms/Privacy/Feedback và route Language/HTP có điều kiện. Show/back/hide và `CloseBtn` thật đạt PlayMode; còn toggle/nhánh phụ/pixel parity.
+- `[~]` Đã copy nguyên CSV nguồn và port parser/catalog, locale alias/fallback/Chinese canonicalization, persistence, dynamic `LocalizedText`, font adapter zh/ja/ko, Language popup 10 hàng và System/English dropdown. Parser file thật, composition và show/hide/reopen PlayMode đạt; còn locale restart và device glyph.
+- `[~]` Đã port cả `HowToPlay` toàn màn hình và `HowToPlayPaged`: matrix/coordinate nguồn, frame schedule, vòng demo, Previous/Next/Got it, localization/highlight, GenericPopup, silence/cleanup và cell cố định. Cả hai prefab không missing script và đã qua vòng show/hide PlayMode; còn Button/VFX/pixel parity.
+- `[~]` Đã port Bank browser đủ sáu nhánh nguồn Regular/LK/LK Modified/LK Style/GC/SP: metadata, panel state, hard-tier split, selector, back stack, pooled row và launch params. PlayMode đã mở Bank, giải mã toàn pool thật, phát hiện/sửa `seed` Godot 64-bit và bấm thật SP card → row động → Game bank-mode → Return Bank về root; còn các nhánh launch khác, Bank result/Next và pool-soak.
+- `[x]` Composition/runtime gate cho Home/Tutorial/Settings/Language/HowToPlay/HowToPlayPaged/Bank/Game đã đạt: registry/presenter/binding hợp lệ, không missing script; AppScene PlayMode đạt startup, show/hide, back, abort-close/reopen và Game level 1.
 - `[ ]` Gắn entry Daily/Streak/Rank theo feature availability; phần chưa làm hiển thị đúng source/default, không làm nút giả.
 - `[ ]` So pixel/animation Home và settings với reference.
 
@@ -337,14 +338,14 @@ Mục tiêu: hoàn chỉnh vòng điều hướng offline quanh Main Game.
 
 Mục tiêu: khép kín Main Game từ chọn level đến kết quả và level kế tiếp.
 
-- `[ ]` Port Win page mặc định và variant được config chọn.
-- `[ ]` Port score/time/combo/beat percent/pass text và board preview.
-- `[ ]` Port win toast variants và thứ tự popup sau thắng.
-- `[ ]` Port Fail page, remaining cats, fail text, restart/home.
-- `[ ]` Port revive life/free revive logic; quảng cáo dùng contract/no-op hoặc mock trước.
+- `[~]` Đã port Win page mặc định, title normal/hard, `pass_text` V0/V1/V2/V3-G1/G2/G3 và `pass_page` G1/G2/G4. Static sprite đang thay Spine chưa có runtime; visual parity còn thiếu.
+- `[~]` Đã port time/score/combo với delay/roll G4, beat-percent, next main level và next bank launch/label. “Board preview” G1/G2 trong tên nguồn thực chất là panel thống kê; Unity đã sinh `Root/PassPanel` đủ Size/Time/Score/Combo và Completion/Mistake/Tools, mọi reference đã serialize; PlayMode/pixel parity còn chờ.
+- `[~]` Đã port threshold size 6–12, tier/message pool, `{N}/{CATS}`, highlight màu/sprite từng tier và presenter `Overlays/WinToast`. Luồng Game chờ 1,5 giây nếu toast hiện, nếu không mới chờ 1,2 giây; default `win_toast=0` vẫn tắt đúng nguồn. Unity đã sinh `Overlays/WinToast` với đủ presenter/icon/text/popup reference; rank/streak/rate/push sau thắng thuộc R14–R16.
+- `[~]` Đã port Fail page, remaining cats, fail-text progress/promote, input lock, BGM/sound và restart. Nguồn Fail không có Home nên Unity không tự thêm nút này; animation/Spine và PlayMode parity còn thiếu.
+- `[~]` Đã port revive life/free-on-level/free-once, persisted `has_used_revive_free` và rewarded-ad boundary. Fail page dùng `AdService` với đúng position Main/Daily; khi null provider thì nhánh reward ẩn đúng nguồn offline. Provider thật/PlayMode còn chờ, không thêm mock-ad ngoài Editor flow nguồn.
 - `[x]` Port level advance, clean win/fail/retry counters và DDA strategy update P0.
 - `[x]` Port endgame snapshot clear/restore đúng thời điểm cho Win/Fail/Revive/Restart/Quit.
-- `[ ]` Test special/hard level, retry nhiều lần và đóng app tại mọi điểm transition.
+- `[~]` Regression fixtures cho next bank, fail restart, elapsed clock, free revive, pass-text strategy, `StepsUsed`, special/hard advance và fail–revive nhiều lần đạt. AppScene PlayMode đã qua Fail 3 mạng → null-ad Revive ẩn → Restart → Win → Streak/Award → Next level 2; còn provider-revive, Bank result và app-kill matrix.
 
 **Cổng hoàn thành:** Home → Game → Win/Fail/Revive → Next/Home không mất hoặc tăng progress sai.
 
@@ -352,14 +353,14 @@ Mục tiêu: khép kín Main Game từ chọn level đến kết quả và level
 
 Mục tiêu: port cụm meta offline theo đúng phụ thuộc.
 
-- `[ ]` Port Daily entry/calendar/model và chọn daily level.
-- `[ ]` Port DailyGame kế thừa/chia sẻ GameSession thay vì sao chép logic.
-- `[ ]` Port Daily Win/Fail và daily progress/best beat percent.
-- `[ ]` Port ClockTicker/date rollover/timezone behavior.
-- `[ ]` Port Daily Streak core, page, resume, backfill và protect.
-- `[ ]` Port AwardManager, pending/in-flight/history và render direct/streak/rank gift.
-- `[ ]` Port popup priority giữa daily/streak/award/home.
-- `[ ]` Test đổi ngày, missed day, backfill và crash giữa lúc nhận thưởng.
+- `[~]` Đã port Daily entry state mở ở level 21, date/countdown/done format, persisted started/completed/max/elapsed/beat/best state, `DailyStats`, ba config `dc_level/no_dc/dc_tag_ui`, ngày neo 21/04/2026, selector pool/8 transform/invalid fallback và Home entry presenter ba trạng thái. Code/installer compile sạch; chờ Unity Refresh sinh prefab, Test Runner và PlayMode.
+- `[~]` DailyGame đã chia sẻ `GameSession`, Board/input/tool/score/life feedback với game thường nhưng dùng `GameplaySessionMode.Daily` và coordinator riêng; Daily không đọc/ghi snapshot, retry, DDA, PreCat hay progress Main. Restart giữ puzzle cùng ngày, Back chỉ về Home như nguồn; header ngày/timer đã port, chờ PlayMode.
+- `[~]` Daily Win/Fail đã route riêng, revive/restart/win settlement idempotent, lưu elapsed/beat percent và không advance Main. Prefab result chung có cây visual Daily riêng, time `minutes:seconds`, beat một chữ số thập phân và input gate 2 giây; còn tracker tổng, Spine adapter và PlayMode.
+- `[~]` Đã port `ClockTicker` căn tick theo `ceil(now+0,001)`, local date key, không catch-up burst sau pause và day-watch cho Streak; chờ PlayMode rollover/focus/timezone trên Editor và thiết bị.
+- `[~]` Đã port Daily Streak core, persistence riêng, check-in/reward chu kỳ 7 ngày, page Main/Lit/Settle, Home entry, resume/backfill/protect, pending-win crash recovery, week slots, flow trước Result mặc định và settle-reorder sau Continue. Streak restore đã nối rewarded callback `streak_revive_reward`; null provider giữ nút không thể cấp thưởng, còn provider thật/PlayMode.
+- `[~]` Đã port `AwardManager` với transaction in-flight ghi trước khi trình bày, cold-start sweep, nhận một lần, double chỉ cho tool, direct/streak/rank render boundary và Award page Collect offline. Rank Gift hai pha, podium/rương và frame item đã nối ở R15; rewarded-ad double/restore cùng frame fly VFX còn chờ R16.
+- `[~]` Queue thắng ván mặc định đã giữ thứ tự delay/toast → revive → Streak → Award → Win cho Main/Daily; variant settle-reorder chạy sau Continue đúng nguồn. Home popup queue đã đọc `dialog_priority_strategy.json`, giữ stable priority và port handler `ab_switch_popup`/Daily Streak cùng reward tool; Rank và rewarded-ad restore còn chờ đúng module R15–R16.
+- `[~]` Reflection regression Daily Streak/Award/Popup đạt 25/25, bao phủ đổi ngày, missed day, backfill/resume, pending-win crash, in-flight cold-start, double-complete, priority/DSL/switch occurrence và abort coroutine theo lifecycle Unity; còn Unity Test Runner và PlayMode nhiều ngày.
 
 **Cổng hoàn thành:** dữ liệu ngày/streak/award idempotent, không nhận lặp hoặc mất quà.
 
@@ -367,12 +368,12 @@ Mục tiêu: port cụm meta offline theo đúng phụ thuộc.
 
 Mục tiêu: hoàn thiện các hệ thống meta/social có trong bản gốc.
 
-- `[ ]` Port ProfileService, avatar, frame, unlock/equip và red-dot.
-- `[ ]` Port RobotService/model/cache dùng cho bảng xếp hạng offline/mock.
-- `[ ]` Port RankActivityManager, periods, points, promotion/demotion/reward.
-- `[ ]` Port rank pages, open popup, how-to-play và change page.
-- `[ ]` Nối rank reward vào AwardManager và Home popup queue.
-- `[ ]` Khi backend chưa có, dùng fixture/mock có nguồn rõ; không giả làm production data.
+- `[~]` Đã port ProfileService/model/catalog, nickname 12 code point, 8 avatar + 8 classic frame + leaderboard frame 100, unlock/equip/count/red-dot, source-shaped remote export/merge và `profile.cfg` repository. `ProfileRuntime` scene-owned đã nối làm frame sink thật cho AwardManager. Presenter cùng ba tầng prefab `ProfileAvatarView → ProfileSelectionCell → ProfilePage`, tabs/grid/lock-tip/pending Save/close và registry route đã có installer; chờ Unity Refresh/Test Runner/PlayMode.
+- `[~]` Đã port RobotService/model/cache source-shaped: score generation, timeline/cooldown, identity, ranking tie-break, stalking/freeze/catch-up, effective-time clamp, `robots.cfg` repository và `RobotRuntime` scene-owned. Catalog 1.699 nickname giữ nguyên checksum nguồn; RankActivity consumer đã nối và reflection regression tổng đạt 48/48. Chờ Unity Test Runner và PlayMode restart/time rollback.
+- `[~]` Đã port `RankActivityManager`, ba group, period 24 giờ, điều kiện mở lại, level-cache chỉ commit khi thắng, điểm/rank/encouragement, expiry/settlement và reward table đúng nguồn. Hook start/win/restart/exit đã nối vào Gameplay theo đúng thứ tự trước transition; persistence/restart có fixture.
+- `[~]` Đã port Home entry, open popup, leaderboard page, HTP và change page; registry/installer dùng sprite nguồn, hierarchy theo nhánh chức năng và change timing/BBCode adapter theo Godot. Unity Refresh cần sinh bốn prefab mới; PlayMode còn cần kiểm tra layout, scroll, countdown và animation lên hạng.
+- `[~]` Rank reward đã nối `AwardManager`/Home popup/game win flow: pending reward, Rank Gift hai pha, top-3 podium, rương tier 3/2/1, frame-only, frame inventory và mở period kế tiếp. Transaction vẫn idempotent; chest/celebration/frame-fly VFX chưa đạt đầy đủ Spine/particle parity.
+- `[~]` Backend chưa có nên dùng RobotService offline và fixture có nguồn rõ; không giả production service/data.
 
 **Cổng hoàn thành:** profile/rank state ổn định qua restart và reward không lặp.
 
@@ -380,13 +381,13 @@ Mục tiêu: hoàn thiện các hệ thống meta/social có trong bản gốc.
 
 Mục tiêu: chỉ tích hợp sau khi bản offline parity đã ổn định.
 
-- `[ ]` Tracker/event schema và session attribution.
-- `[ ]` Ads: interstitial/banner/rewarded, cooldown/unlock/protection và audio hooks.
+- `[~]` Tracker/event schema và session attribution: đã port event/name/key catalog, source stack, game ID/round stats, GRT dedup, active-time/session refresh 30 phút và observer screen/dialog theo `UIManager` gốc. Language/Settings/Rank Award, Main/Daily `game_start/game_end/restart`, toàn bộ Hint/Locate/Clear action stat, gesture step/error/fail counters và button call site hiện có của Home/Profile/Streak/Rank/Result đã nối đúng key/thứ tự nguồn; `game_end.step_used` dùng round stat tích lũy thay vì history còn lại sau Undo. Tiêu tool phát `prop_use` sau decrement, Award tool phát `prop_get` sau inventory mutation; ad placement/source/payload và impression attribution đã port. Runtime dùng no-op sink/null ad provider an toàn khi chưa có SDK; còn Coordinate UI, consent gate, online provider và PlayMode attribution.
+- `[~]` Ads: đã có `AdRuntime` scene-owned, `IAdProvider`/`NullAdProvider`, show-id/readiness/validity, callback shown/rewarded/closed/error/impression tách biệt, one-flight rewarded request và cleanup/dispose. Impression mới phát tracker show; close không tự cấp thưởng. Audio pause/resume và Daily timer compensation đã nối; Hint/Locate, Fail revive và Streak revive dùng đúng source position. Interstitial entry đã port đúng gate order: reward-view 80%, endgame restore, enable, unlock level 11/session 2, RAM 300 MB, protect scheme mặc định `session_game_2`, cooldown 60 giây và readiness; board/input chờ close/error/focus. Banner đã port gate session 2/level 11/protection `{no}`/size `{all}` cùng show/destroy lifecycle ở start, restart, revive, hint, fail, win và hide. Reward restore giữ watchdog 30 giây, callback muộn, pending queue bền vững, anti-abuse 3 lượt trong 3 ngày/3 lượt mỗi ngày, newest-first và popup Home priority 10010. `living_days`, local-calendar segment, first-open persistence và timing `game_start` đã nối chung vào interstitial/banner/reward-restore; còn SDK/provider quảng cáo thật và remote SDK adapter.
 - `[ ]` Auth/device identity/API config.
 - `[ ]` Data sync/merge conflict và startup timeout.
 - `[ ]` Privacy/CMP/ATT/push permission/local notification.
 - `[ ]` Feedback, Rate Us và Helpshift tương đương hoặc platform replacement được duyệt.
-- `[ ]` Remote A/B provider; fallback luôn là `DefaultConfigProfile` đã port.
+- `[~]` Remote A/B đã có `IAbRuntimeProvider`, callback init/remote-ready/params-updated, timeout fallback, dye timing và scene-owned `AbConfigRuntime`; chưa có production SDK adapter/backend, fallback vẫn dùng default nguồn.
 - `[ ]` Crash reporting chỉ log lỗi hữu ích; không khôi phục log debug rác.
 
 **Cổng hoàn thành:** mất mạng/SDK lỗi không chặn startup hay làm hỏng save; consent được tôn trọng.
@@ -399,9 +400,9 @@ Mục tiêu: khóa chất lượng sau khi feature parity đạt yêu cầu.
 - `[ ]` Audio/animation timing comparison bằng video.
 - `[ ]` Kiểm thử touch thật trên Android/iOS, notch/safe-area và resume.
 - `[ ]` Soak test level 1–250, daily, restart và memory/pool.
-- `[ ]` Profiling CPU/GPU/GC, atlas/batch/draw call và thời gian startup.
+- `[~]` Static audit hot path/lifecycle đã loại `GetComponent` lặp trong quy đổi pointer của `BoardView`, cache Canvas/Grid theo hierarchy và tái sử dụng buffer góc/đường viền để giảm GC. Unity Profiler trên thiết bị, GPU/batch/draw call và startup profile còn chờ.
 - `[ ]` Kiểm thử save corruption, app kill, update/migration và thiếu mạng.
-- `[ ]` Dọn TODO, adapter tạm, asset thừa và development UI khỏi release.
+- `[~]` Đã xác định `PoolManager` singleton prototype không còn consumer runtime chính nhưng vẫn nằm trong `LoadingScene` legacy; `SceneLoader` cũng thuộc luồng scene prototype. Chưa xóa cho đến khi khóa Build Settings và xác minh không còn đường test cần chúng.
 - `[ ]` Build pipeline, signing, versioning, symbols và release checklist.
 - `[ ]` Lập danh sách sai khác cuối cùng; chỉ chấp nhận sai khác đã ghi lý do và được duyệt.
 
@@ -448,6 +449,13 @@ Mục tiêu: khóa chất lượng sau khi feature parity đạt yêu cầu.
 | A-023 | Godot `DisplayServer.get_display_safe_area()` + `canvas_items/keep_width` → Unity UGUI | Unity adapter bắt buộc | `CanvasScaler` dùng reference 1080×2400, match width; inset vật lý từ `Screen.safeArea` được đổi sang đơn vị Canvas trước khi áp layout. Giữ đúng collapse `HeaderAdaptHolder`, ratio normal/big và chỉ áp safe-area trên mobile như source |
 | A-024 | Godot autoload `UIManager` → Unity bootstrap-owned component | Unity adapter bắt buộc | `UIManager` không tự tạo singleton/global state; AppBootstrap sẽ sở hữu serialized registry/root/mask. Cache, layer stack, Z_STEP=50, fullscreen occlusion, mask ref-count, back và held-button guard giữ contract nguồn. Prefab reference dùng trực tiếp vì dự án chưa có Addressables; async API coalesce/yield một frame và không giả vờ tải nền |
 | A-025 | Godot popup handler bằng `has_method/Callable` → Unity explicit handler map | Unity adapter tổ chức mã | `UIPopupConfig.BuildQueueForScene` nhận map key→coroutine có kiểu, tránh reflection nhưng giữ filter OpenScene, priority giảm dần, await từng handler và stable order. `CanExceedLimit` được parse nhưng không áp vì source HomePage hiện cũng không đọc field này |
+| A-026 | Godot `PassPageG1/G2` là các PackedScene riêng → một `GameWinPagePresenter` với nhánh `PassPanel` | Unity adapter tổ chức UI | Giữ nguyên hai layout, số liệu, sprite, màu và timing nguồn; gom vào một prefab có cây con rõ ràng để tránh nhân bản lifecycle/navigation và chỉ bật nhánh theo config |
+| A-027 | Bốn scene `GameWinToast01…04` → một presenter đổi sprite/màu theo tier | Unity adapter tổ chức UI | Giữ threshold, localization pool, placeholder, highlight, popup timing và sorting nguồn; dùng bốn sprite serialized thay vì bốn CanvasLayer gần như trùng nhau |
+| A-028 | Tách chọn puzzle khỏi `DailyGamePage` thành `DailyPuzzleSelector` thuần | Unity adapter tổ chức mã | Giữ mốc JDN, pool band/A-B, 8 transform, vòng bỏ entry lỗi và metadata nguồn; Daily presenter sau này chỉ consume selection và dùng chung `GameSession`, không sao chép gameplay |
+| A-029 | Godot có scene `DailyGame/DailyWin/DailyFail` riêng → Unity registry alias cùng prefab với nhánh session/presentation Daily | Unity adapter tổ chức UI | Mỗi `UiName` vẫn có instance/lifecycle/stack riêng; gameplay dùng chung `GameSession`, result presenter đổi text/time/beat và coordinator Daily cô lập state Main. Cây visual Daily chuyên biệt tiếp tục được dựng trong cùng prefab thay vì nhân bản logic |
+| A-030 | Cache `Canvas`/`GridLayoutGroup` và buffer hình học trong `BoardView`/`BoardGridOverlayGraphic` | Unity adapter hiệu năng | Không thay coordinate, gesture, timing hoặc mesh nguồn. Cache được làm mới khi parent/container thay đổi; buffer chỉ tái sử dụng trên Unity main thread để bỏ component lookup theo pointer-move và allocation layout/intro lặp |
+| A-031 | Named-event bridge chạy Unity EditMode Test Runner | Editor-only automation | `Local\\Meowdoku.UnityEditModeTests` chỉ tồn tại trong `Meowdoku.Editor`, gọi API Test Framework chính thức và ghi TXT/XML dưới `Temp`; không vào player, không log runtime và không thay gameplay |
+| A-032 | Named-event bridge chạy Unity PlayMode Test Runner qua domain reload | Editor-only automation | `Local\\Meowdoku.UnityPlayModeTests` giữ trạng thái run bằng `SessionState`, đăng ký lại callback khi vào/thoát Play Mode và ghi TXT/XML dưới `Temp`. Test dùng scope state bộ nhớ tạm, giữ nguyên service/repository save thật |
 
 ## 9. Rủi ro đã biết
 
@@ -463,10 +471,10 @@ Mục tiêu: khóa chất lượng sau khi feature parity đạt yêu cầu.
 
 Sprint tiếp theo theo đúng chuỗi phụ thuộc là:
 
-1. Refresh Unity và PlayMode-test R7 ở 1080×1920/1080×2400; xác nhận CanvasScaler, safe layout, board size 4–10 và Console sạch.
-2. Dùng `GEM-R11-014` để port Tutorial state machine/domain fixture trước khi dựng UI.
-3. Khi Splash/Home/Tutorial prefab có thật, tạo registry asset/root hierarchy và bật AppBootstrap route; không tạo page giả để lấp registry.
-4. Chỉ thay consumer của `SceneLoader` khi route UI mới hoạt động; giữ Result/Fail popup ở R13 và device notch/pixel matrix ở R17.
+1. Mở rộng PlayMode R13 cho provider-revive và Bank Win/Fail/Next; null-ad gate, Restart, Main Next và Bank SP launch/Return Bank đã đạt.
+2. Mở rộng Button interaction cho các nhánh có điều kiện: Settings Language/HTP.
+3. Chạy transition/input-guard stress và xác nhận không duplicate page, không kẹt `Closing`, không xuyên click.
+4. Giữ pixel/timing 1080×1920/1080×2400 cùng touch/notch/device ở R17; không đóng bằng fixture logic đơn thuần.
 
 ## 11. Nhật ký cập nhật
 
@@ -524,3 +532,12 @@ Sprint tiếp theo theo đúng chuỗi phụ thuộc là:
 - **2026-08-10:** hoàn thiện Settings presenter/prefab theo source: toggle state/icon/toast cập nhật ngay, preview sound/vibration qua boundary, Restart/Terms/Privacy/Feedback, pattern dot và skip-close HTP. Tách `GenericPopupAnimator` dùng chung theo đúng marker/timing `GenericPopup.res`, port source toast `0,15 + 1,2 + 0,2 s`; Unity sinh prefab không missing script và Core/Gameplay/Editor/EditMode compile sạch.
 - **2026-08-10:** copy nguyên `translations.csv` với SHA-256 khớp nguồn, port CSV parser hỗ trợ quoted newline, catalog chỉ giữ current+fallback locale, alias/fallback/Chinese canonicalization, `%s/%d` dynamic text và NotoSourceHan adapter. Smoke parse implementation thật xác nhận 76 cột, 1.695 record, 1.645 key; port Language popup/dropdown, Unity sinh `LocalizationCatalog.asset`, `LanguagePage.prefab` và `UIRegistry.asset` chỉ gồm Home/Tutorial/Setting/Language. Test Runner/PlayMode/device-font vẫn chờ.
 - **2026-08-10:** đối chiếu trực tiếp hai script/scene How-to-play và `cell.tscn`, không gộp hai page. Port full demo ba board 3×5 cùng paged demo 4×4/5×5/4×4, toàn bộ matrix/toạ độ/frame wave, clear/loop/slide, Previous/Next/Got it, localization highlight, silence và lifecycle cleanup. Installer dùng 102 nested Cell prefab cố định, mở rộng rounded view per-corner và chỉ đăng ký hai page khi prefab thật tồn tại. Core/Gameplay/Editor/EditMode compile sạch; prefab auto-install, Test Runner, scene composition và PlayMode/VFX parity còn chờ.
+- **2026-08-10:** bắt đầu R13 bằng đối chiếu trực tiếp Win/Fail, pass-text V0–V3, pass-page G1/G2/G4, revive configs và GameState nguồn. Nối terminal transition vào Win/Fail page; sửa elapsed clock chỉ tính thời gian chơi và fail-restart không settle lặp; port next Bank, remaining/fail text, revive/free-once, `last_win_beat_percent`, G4 stats roll và toàn bộ PassText strategy. Unity đã sinh Win/Fail prefab/registry 11 page, `Root/PassPanel` G1/G2 và `Overlays/WinToast` với reference hợp lệ, không có missing script/import error. Bổ sung fixture `StepsUsed`, special/hard advance và fail–revive nhiều vòng; bốn assembly compile sạch. Rewarded-ad mock/Test Runner/PlayMode matrix còn chờ nên R13 vẫn `[~]`.
+- **2026-08-10:** bắt đầu R14 bằng đối chiếu trực tiếp Daily entry/state/stats/game/win/fail. Port persisted daily state, selector deterministic từ bank thật, launch metadata, Home entry ba trạng thái và dùng chung `GameSession` qua mode/coordinator Daily riêng. Daily fail/revive/restart/quit/win không chạm snapshot/retry/DDA/PreCat/progress Main; win lưu elapsed/beat idempotent và result route riêng. Bổ sung fixture launch/ràng buộc Main–Daily/fail-revive/restart/win; bốn assembly compile sạch bằng Unity Roslyn. Unity chưa refresh các file presenter mới nên prefab/registry và toàn vòng PlayMode còn chờ.
+- **2026-08-11:** bắt đầu Robot trong R15 bằng đối chiếu trực tiếp toàn bộ `scripts/module/robot`. Port model/config/pool, player-base/bot-score/score-array/timeline, identity, timestamp tie-break, stalking freeze/catch-up, effective-time monotonic, `robots.cfg` repository và scene-owned `RobotRuntime`. Chuyển cơ học nguyên 1.699 nickname với SHA-256 `f864d209…e4fd`; không mang `debug_dump`/log rác sang Unity. Core/Gameplay/Editor/EditMode compile sạch, reflection regression 39/39; Unity bridge chưa được import nên Refresh/Test Runner/PlayMode và RankActivity còn chờ.
+- **2026-08-11:** hoàn thiện lát cắt Rank Activity R15 bằng đối chiếu trực tiếp manager/page/change/HTP/rank-gift nguồn. Port period/state/points/settlement, Home entry/open popup, leaderboard, HTP, change animation, gameplay lifecycle và win/continue flow; Rank Gift giữ hai pha podium/rương → item, hỗ trợ frame-only và frame inventory. Sửa chest mapping hạng 1/2/3 → tier 3/2/1, strip BBCode Godot và gọi restart/exit trước transition. Bốn assembly compile sạch, reflection regression 48/48; chờ một Manual Refresh để bridge hoạt động, sinh prefab/registry và PlayMode parity.
+- **2026-08-11:** bắt đầu R16 Tracker/Session bằng đối chiếu `tracker.gd`, `session_manager.gd`, `ui_tracker_observer.gd`, Language/Settings/Award và lifecycle Main/Daily Game. Port exact event/screen/dialog/button/switch/ad/prop schema, source stack, game ID/round stats, question rotation, GRT dedup, 60 giây active flush và ngưỡng background `> 30 phút`; thêm scene-owned `TrackingRuntime`, no-op sink không log rác và observer UI tập trung. Nối dropdown Language lồng, Rank Award hai pha, Hint/Locate/Clear cùng board-step/error/fail stats, Home/Profile/Streak/Rank/Result button call site, tool `prop_use`/Award `prop_get` và thứ tự `game_end(quit) → on_restart → game_start(restart)`; qid hard-tier, full end payload và board counters dùng transition chụp trước reload. AppScene installer nối serialized reference qua Unity API; bốn assembly compile sạch, regression 58/58. `UnityRefreshBridge` đã được Editor nạp và named-event trả `REFRESH_SIGNAL_SENT`; SDK/ad provider/consent/online provider cùng PlayMode attribution vẫn chưa gắn.
+- **2026-08-11:** mở rộng R16 Ads bằng đối chiếu trực tiếp `UniKitManager`, `_compute_start_interstitial` và rewarded call site nguồn. Thêm `AdRuntime` dưới `App/Systems`, provider-neutral `AdService`, null provider, one-flight request, callback shown/rewarded/closed/error/impression và dispose cleanup; chỉ impression mới track lượt show, close không cấp thưởng. Nối BGM/Daily clock, Hint/Locate award, Main/Daily Fail revive và Streak revive. Port năm config interstitial, persisted unlock, session reward-view counter, protection/cooldown/readiness theo đúng thứ tự và trì hoãn board intro/input đến close/error/focus. Unity serialize `UIManager.adRuntime` bằng installer, bốn assembly compile sạch và regression 64/64; SDK provider, remote LivingDays segment binding, banner/watchdog reward restore còn thiếu.
+- **2026-08-11:** hoàn thiện banner/reward-restore R16 theo `base_game_page.gd`, `unikit_manager.gd` và `home_page.gd`. Port bốn banner config/default, durable unlock, gameplay show/destroy lifecycle; reward watchdog đúng 30 giây, late-callback cancellation, persisted history/pending queue, anti-abuse/newest-first aggregation và popup `AdRewardRestored` trong Home priority queue. Unity tự sinh prefab/registry bằng asset gốc; migrate năm close-button reference để bỏ field trùng base và suspend/restore Light2D quanh preview installer. Bốn assembly compile sạch, regression 71/71; log sau refresh không còn C#/exception/duplicate-field/Global-Light.
+- **2026-08-11:** nối A/B LivingDays cho R16 theo `abtest_manager.gd`, `ab_config_base.gd`, `living_days_config.gd` và `ProtectScheme`. Thêm provider-neutral `AbConfigService/AbConfigRuntime`, timing/dye đúng source, offline fallback không giả backend, persisted `first_open_time_ms` và segment theo ngày lịch địa phương; interstitial/banner/reward-restore dùng chung config reload tại `game_start` với fallback phần tử đầu khi số segment không khớp. Installer tạo `App/Systems/AbConfigRuntime` và serialize ba reference; sửa upgrade scene dùng additive scene có thể lưu thay cho preview scene. Bốn assembly compile sạch, regression 90/90; Unity compile và lưu AppScene sạch C#/installer exception.
+- **2026-08-11:** bổ sung PlayMode Test Runner chịu domain reload và state scope không chạm save thật. AppScene đạt startup/8 route/cache/back, Button Home→Settings/Game→Home, Main result Fail→Restart→Win→Streak/Award→Next level 2 và Bank SP card→row động→Game bank-mode→Return Bank root. PlayMode lộ seed LK Style vượt Int32; đổi `LevelEntry.Seed`/Daily/Bank launch sang `long` đúng Godot int64. Kết quả Unity thật: EditMode 508/508, PlayMode 4/4; không thêm runtime log.

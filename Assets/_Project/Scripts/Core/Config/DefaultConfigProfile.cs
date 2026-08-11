@@ -11,6 +11,8 @@ namespace Meowdoku.Core.Config
         public const string GameStartNormal = "game_start_normal";
         public const string GameStartNormal11 = "game_start_normal_11";
         public const string GameStartNormal21 = "game_start_normal_21";
+        public const string GameStartDaily = "game_start_dc";
+        public const string GameEnd = "game_end";
     }
 
     public sealed class AbConfigDefinition
@@ -47,6 +49,7 @@ namespace Meowdoku.Core.Config
             new AbConfigDefinition("swipe_protect", 0, AbConfigTiming.GameStart),
             new AbConfigDefinition("dda_rank", 0, AbConfigTiming.GameStartNormal),
             new AbConfigDefinition("revive_life", 0, AbConfigTiming.GameStart),
+            new AbConfigDefinition("revive_free_logic", 0, AbConfigTiming.AppStart),
             new AbConfigDefinition("life_icon", 1, AbConfigTiming.AppStart),
             new AbConfigDefinition("single_region_num", 2, AbConfigTiming.GameStartNormal),
             new AbConfigDefinition("board_size_big", 0, AbConfigTiming.GameStart),
@@ -67,13 +70,34 @@ namespace Meowdoku.Core.Config
             new AbConfigDefinition("hard_button", 0, AbConfigTiming.AppStart),
             new AbConfigDefinition("settings_language", 0, AbConfigTiming.OpenSetting),
             new AbConfigDefinition("blind_mod", 0, AbConfigTiming.GameStart),
+            new AbConfigDefinition(
+                "living_days",
+                LivingDaysConfig.DefaultSegments,
+                AbConfigTiming.GameStart),
             new AbConfigDefinition("undo_btn", 0, AbConfigTiming.GameStart, false),
             new AbConfigDefinition("game_auto_mark", 0, AbConfigTiming.GameStart, false),
             new AbConfigDefinition("game_life_rule", 0, AbConfigTiming.AppStart, false),
             new AbConfigDefinition("wrong_cat_effect", 0, AbConfigTiming.GameStart, false),
             new AbConfigDefinition("reward_unlock_level", 0, AbConfigTiming.GameStart),
             new AbConfigDefinition("prop_highlight", 2, AbConfigTiming.GameStart),
-            new AbConfigDefinition("mark_sound", 0, AbConfigTiming.AppStart)
+            new AbConfigDefinition("mark_sound", 0, AbConfigTiming.AppStart),
+            new AbConfigDefinition("pass_page", 0, AbConfigTiming.GameStart),
+            new AbConfigDefinition("pass_text", 0, AbConfigTiming.GameStart),
+            new AbConfigDefinition("fail_text", 0, AbConfigTiming.GameEnd),
+            new AbConfigDefinition("win_toast", 0, AbConfigTiming.GameStart),
+            new AbConfigDefinition("dc_level", 0, AbConfigTiming.GameStartDaily),
+            new AbConfigDefinition("no_dc", 0, AbConfigTiming.AppStart, false),
+            new AbConfigDefinition("dc_tag_ui", 0, AbConfigTiming.AppStart, false)
+            ,new AbConfigDefinition("inter_unlock_level", 11, AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("inter_unlock_session", 2, AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("inter_unlock_memory", 300, AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("inter_cd_lc", "{60}", AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("inter_extra_protect_lc", "{session_game_2}", AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("banner_unlock_session", 2, AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("banner_unlock_level", 11, AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("banner_extra_protect_lc", "{no}", AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("banner_unlock_diff_lc", "{all}", AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("common_rewardad_logic", 0, AbConfigTiming.GameStart)
         };
 
         private static readonly Dictionary<string, AbConfigDefinition> ByKey = BuildIndex();

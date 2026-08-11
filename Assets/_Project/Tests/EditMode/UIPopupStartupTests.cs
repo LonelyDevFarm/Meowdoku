@@ -42,6 +42,24 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void PopupQueue_AbortReleasesUnityStoppedCoroutineState()
+        {
+            var queue = new UIPopupQueue();
+            queue.Enqueue(new UIPopupEntry(
+                "wait",
+                1,
+                () => Endless()));
+            IEnumerator flush = queue.Flush();
+            Assert.That(flush.MoveNext(), Is.True);
+            Assert.That(queue.IsRunning, Is.True);
+
+            queue.Abort();
+
+            Assert.That(queue.IsRunning, Is.False);
+            Assert.That(queue.Count, Is.Zero);
+        }
+
+        [Test]
         public void PriorityConfig_ParsesAllFourSourceEntries()
         {
             const string json = "[" +
@@ -82,6 +100,40 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(reward["hint"], Is.EqualTo(3));
         }
 
+        [Test]
+        public void SwitchRule_UsesSourceOccurrenceForRequestedKey()
+        {
+            const char quote = (char)34;
+            string json =
+                "[{" + quote + "Trigger" + quote + ":" + quote +
+                "trigger=abtest_switch,key=daily_streak" + quote + "," +
+                quote + "Param" + quote + ":" + quote +
+                "title=ONE" + quote + "},{" +
+                quote + "Trigger" + quote + ":" + quote +
+                "trigger=abtest_switch,key=other" + quote + "," +
+                quote + "Param" + quote + ":" + quote +
+                "title=OTHER" + quote + "},{" +
+                quote + "Trigger" + quote + ":" + quote +
+                "trigger=abtest_switch,key=daily_streak" + quote + "," +
+                quote + "Param" + quote + ":" + quote +
+                "title=TWO" + quote + "}]";
+            IReadOnlyList<AbSwitchPopupRule> rules =
+                UIPopupConfig.ParseAbSwitchRules(json);
+
+            Assert.That(
+                UIPopupConfig.FindSwitchRule(
+                    rules,
+                    "daily_streak",
+                    2).Parameters["title"],
+                Is.EqualTo("TWO"));
+            Assert.That(
+                UIPopupConfig.FindSwitchRule(
+                    rules,
+                    "daily_streak",
+                    3),
+                Is.Null);
+        }
+
         [TestCase(0f, 2.5f)]
         [TestCase(0.5f, 2f)]
         [TestCase(2f, 0.5f)]
@@ -113,6 +165,11 @@ namespace Meowdoku.Tests.EditMode
         {
             order.Add(key);
             yield break;
+        }
+
+        private static IEnumerator Endless()
+        {
+            while (true) yield return null;
         }
 
         private static void Drain(IEnumerator routine)

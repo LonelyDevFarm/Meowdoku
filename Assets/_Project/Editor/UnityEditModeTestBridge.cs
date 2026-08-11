@@ -1,0 +1,230 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading;
+using UnityEditor;
+using UnityEditor.TestTools.TestRunner.Api;
+using UnityEngine;
+using UnityEngine.TestTools;
+
+namespace Meowdoku.Editor
+{
+    /// <summary>
+    /// Runs the project's real Unity EditMode suite on request from local
+    /// development tools. Results are written under Temp and this class is
+    /// excluded from players by the Editor-only assembly definition.
+    /// </summary>
+    [InitializeOnLoad]
+    internal static class UnityEditModeTestBridge
+    {
+        internal const string EventName =
+            @"Local\Meowdoku.UnityEditModeTests";
+        internal const string ResultPath =
+            "Temp/MeowdokuEditModeTestResult.txt";
+        internal const string XmlResultPath =
+            "Temp/MeowdokuEditModeTestResult.xml";
+
+        private static EventWaitHandle _runEvent;
+        private static bool _runPending;
+        private static bool _runActive;
+        private static TestRunnerApi _runner;
+        private static ResultCallbacks _callbacks;
+
+        static UnityEditModeTestBridge()
+        {
+            if (AssetDatabase.IsAssetImportWorkerProcess()) return;
+            TryCreateEvent();
+            EditorApplication.update -= Poll;
+            EditorApplication.update += Poll;
+            AssemblyReloadEvents.beforeAssemblyReload -= Dispose;
+            AssemblyReloadEvents.beforeAssemblyReload += Dispose;
+            EditorApplication.quitting -= Dispose;
+            EditorApplication.quitting += Dispose;
+        }
+
+        [MenuItem("Tools/Meowdoku/Run EditMode Tests")]
+        private static void RunFromMenu()
+        {
+            QueueRun();
+        }
+
+        private static void TryCreateEvent()
+        {
+            try
+            {
+                _runEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    EventName);
+            }
+            catch (Exception)
+            {
+                _runEvent = null;
+            }
+        }
+
+        private static void Poll()
+        {
+            try
+            {
+                if (_runEvent != null && _runEvent.WaitOne(0))
+                    QueueRun();
+            }
+            catch (ObjectDisposedException)
+            {
+                _runEvent = null;
+            }
+        }
+
+        private static void QueueRun()
+        {
+            if (_runPending || _runActive)
+                return;
+
+            _runPending = true;
+            EditorApplication.delayCall += RunWhenReady;
+        }
+
+        private static void RunWhenReady()
+        {
+            if (EditorApplication.isCompiling ||
+                EditorApplication.isUpdating ||
+                EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                EditorApplication.delayCall += RunWhenReady;
+                return;
+            }
+
+            _runPending = false;
+            _runActive = true;
+            WriteResult("RUNNING");
+
+            _runner = ScriptableObject.CreateInstance<TestRunnerApi>();
+            _callbacks = new ResultCallbacks(CompleteRun);
+            _runner.RegisterCallbacks(_callbacks);
+            try
+            {
+                _runner.Execute(new ExecutionSettings(new Filter
+                {
+                    testMode =
+                        UnityEditor.TestTools.TestRunner.Api.TestMode.EditMode,
+                    assemblyNames = new[] { "Meowdoku.EditModeTests" }
+                }));
+            }
+            catch (Exception exception)
+            {
+                WriteResult("BRIDGE_ERROR\n" + exception);
+                ReleaseRunner();
+            }
+        }
+
+        private static void CompleteRun(ITestResultAdaptor result)
+        {
+            try
+            {
+                TestRunnerApi.SaveResultToFile(result, XmlResultPath);
+                var builder = new StringBuilder();
+                builder.Append("RESULT passed=")
+                    .Append(result.PassCount)
+                    .Append(" failed=")
+                    .Append(result.FailCount)
+                    .Append(" skipped=")
+                    .Append(result.SkipCount)
+                    .Append(" inconclusive=")
+                    .Append(result.InconclusiveCount)
+                    .Append(" duration=")
+                    .Append(result.Duration.ToString("0.000"))
+                    .AppendLine();
+
+                var failures = new List<ITestResultAdaptor>();
+                CollectFailures(result, failures);
+                foreach (ITestResultAdaptor failure in failures)
+                {
+                    builder.Append("FAIL ")
+                        .Append(failure.FullName)
+                        .Append(": ")
+                        .AppendLine(failure.Message);
+                }
+                WriteResult(builder.ToString());
+            }
+            catch (Exception exception)
+            {
+                WriteResult("BRIDGE_ERROR\n" + exception);
+            }
+            finally
+            {
+                ReleaseRunner();
+            }
+        }
+
+        private static void CollectFailures(
+            ITestResultAdaptor result,
+            ICollection<ITestResultAdaptor> failures)
+        {
+            if (result == null)
+                return;
+            if (!result.HasChildren)
+            {
+                if (result.TestStatus == TestStatus.Failed)
+                    failures.Add(result);
+                return;
+            }
+
+            foreach (ITestResultAdaptor child in result.Children)
+                CollectFailures(child, failures);
+        }
+
+        private static void WriteResult(string value)
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath)
+                ?.FullName;
+            if (string.IsNullOrEmpty(projectRoot))
+                return;
+            string path = Path.Combine(projectRoot, ResultPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(path) ??
+                                      projectRoot);
+            File.WriteAllText(path, value ?? string.Empty);
+        }
+
+        private static void ReleaseRunner()
+        {
+            if (_runner != null && _callbacks != null)
+                _runner.UnregisterCallbacks(_callbacks);
+            if (_runner != null)
+                UnityEngine.Object.DestroyImmediate(_runner);
+            _runner = null;
+            _callbacks = null;
+            _runActive = false;
+        }
+
+        private static void Dispose()
+        {
+            EditorApplication.update -= Poll;
+            AssemblyReloadEvents.beforeAssemblyReload -= Dispose;
+            EditorApplication.quitting -= Dispose;
+            ReleaseRunner();
+            _runEvent?.Dispose();
+            _runEvent = null;
+        }
+
+        private sealed class ResultCallbacks : ICallbacks
+        {
+            private readonly Action<ITestResultAdaptor> _completed;
+
+            public ResultCallbacks(Action<ITestResultAdaptor> completed)
+            {
+                _completed = completed;
+            }
+
+            public void RunStarted(ITestAdaptor testsToRun) { }
+            public void TestStarted(ITestAdaptor test) { }
+            public void TestFinished(ITestResultAdaptor result) { }
+
+            public void RunFinished(ITestResultAdaptor result)
+            {
+                _completed?.Invoke(result);
+            }
+        }
+    }
+}

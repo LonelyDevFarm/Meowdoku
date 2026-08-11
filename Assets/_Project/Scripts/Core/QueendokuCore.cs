@@ -166,6 +166,24 @@ namespace Meowdoku.Core
             return count;
         }
 
+        public int CountState(CellStateType state)
+        {
+            int count = 0;
+            for (int row = 0; row < Size; row++)
+                for (int column = 0; column < Size; column++)
+                    if (_board[row][column] == state) count++;
+            return count;
+        }
+
+        public int CountCrosses()
+        {
+            int count = 0;
+            for (int row = 0; row < Size; row++)
+                for (int column = 0; column < Size; column++)
+                    if (CellState.IsCross(_board[row][column])) count++;
+            return count;
+        }
+
         public bool IsComplete()
         {
             return QueendokuCore.IsComplete(_board, Size, _regions);

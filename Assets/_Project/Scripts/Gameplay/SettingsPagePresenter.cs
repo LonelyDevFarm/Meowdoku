@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Meowdoku.Core;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.Localization;
+using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
 using Meowdoku.Services;
 using UnityEngine;
@@ -14,6 +15,10 @@ namespace Meowdoku.Gameplay
     [DisallowMultipleComponent]
     public sealed class SettingsPagePresenter : UIFrameWindow
     {
+        public override string GetTrackingDialogName() => _isGameMode
+            ? TrackerCatalog.Dialog.Options
+            : TrackerCatalog.Dialog.Settings;
+
         [Header("Popup hierarchy")]
         [SerializeField] private RectTransform panel;
         [SerializeField] private GenericPopupAnimator popupAnimator;
@@ -94,7 +99,11 @@ namespace Meowdoku.Gameplay
             AddListener(termsButton, OpenTerms);
             AddListener(privacyButton, OpenPrivacy);
             if (languageSwitchWidget != null)
+            {
                 languageSwitchWidget.LanguagePicked += ApplyLanguageAndClose;
+                languageSwitchWidget.DropdownOpened += HandleLanguageDropdownOpened;
+                languageSwitchWidget.DropdownClosed += HandleLanguageDropdownClosed;
+            }
             if (localization != null)
                 localization.LocaleChanged += RefreshStaticText;
             RefreshStaticText();
@@ -164,6 +173,11 @@ namespace Meowdoku.Gameplay
             yield break;
         }
 
+        protected override void OnCloseButtonPressed()
+        {
+            TrackButton(TrackerCatalog.Button.Close);
+        }
+
         protected override void OnDestroyWindow()
         {
             popupAnimator?.Stop();
@@ -181,7 +195,11 @@ namespace Meowdoku.Gameplay
             RemoveListener(termsButton, OpenTerms);
             RemoveListener(privacyButton, OpenPrivacy);
             if (languageSwitchWidget != null)
+            {
                 languageSwitchWidget.LanguagePicked -= ApplyLanguageAndClose;
+                languageSwitchWidget.DropdownOpened -= HandleLanguageDropdownOpened;
+                languageSwitchWidget.DropdownClosed -= HandleLanguageDropdownClosed;
+            }
             if (localization != null)
                 localization.LocaleChanged -= RefreshStaticText;
             base.OnDestroyWindow();
@@ -293,6 +311,7 @@ namespace Meowdoku.Gameplay
             ShowToast(
                 value ? "SETTING_MUSIC_ON" : "SETTING_MUSIC_OFF",
                 value ? "Music On" : "Music Off");
+            TrackSwitch(TrackerCatalog.Switch.Music, value);
         }
 
         private void ToggleSound()
@@ -304,6 +323,7 @@ namespace Meowdoku.Gameplay
             ShowToast(
                 value ? "SETTING_SOUND_ON" : "SETTING_SOUND_OFF",
                 value ? "Sound On" : "Sound Off");
+            TrackSwitch(TrackerCatalog.Switch.Sound, value);
         }
 
         private void ToggleVibration()
@@ -314,11 +334,14 @@ namespace Meowdoku.Gameplay
             ShowToast(
                 value ? "SETTING_VIBRATION_ON" : "SETTING_VIBRATION_OFF",
                 value ? "Vibration On" : "Vibration Off");
-            if (!value) return;
-            if (_onVibrationPreview != null)
-                _onVibrationPreview.Invoke();
-            else if (Application.isMobilePlatform)
-                Handheld.Vibrate();
+            if (value)
+            {
+                if (_onVibrationPreview != null)
+                    _onVibrationPreview.Invoke();
+                else if (Application.isMobilePlatform)
+                    Handheld.Vibrate();
+            }
+            TrackSwitch(TrackerCatalog.Switch.Vibration, value);
         }
 
         private void TogglePeople()
@@ -344,6 +367,10 @@ namespace Meowdoku.Gameplay
             ShowToast(
                 value ? "SETTING_PATTERN_ON" : "SETTING_PATTERN_OFF",
                 value ? "Pattern Mode On" : "Pattern Mode Off");
+            Tracking?.TrackSwitchClick(
+                TrackerCatalog.Switch.Pattern,
+                value ? 1 : 0,
+                TrackerCatalog.Dialog.Options);
             _onPatternChanged?.Invoke();
         }
 
@@ -357,18 +384,22 @@ namespace Meowdoku.Gameplay
         {
             if (_restartConsumed) return;
             _restartConsumed = true;
+            TrackButton(TrackerCatalog.Button.Restart);
             _onRestart?.Invoke();
             Owner?.Hide(UiName.Setting);
         }
 
         private void OpenLanguage()
         {
+            TrackButton(TrackerCatalog.Button.Language);
             Owner?.Show(UiName.Language);
         }
 
         private void ApplyLanguageAndClose(string locale)
         {
             if (string.IsNullOrWhiteSpace(locale)) return;
+            TrackButton(TrackerCatalog.Button.LanguageConfirm);
+            Tracking?.TrackUiLanguage(locale);
             localization?.SetLocale(locale);
             GameStateRuntime.Current.SetAppliedLocale(locale);
             Owner?.Hide(UiName.Setting);
@@ -402,6 +433,7 @@ namespace Meowdoku.Gameplay
 
         private void OpenFeedback()
         {
+            TrackButton(TrackerCatalog.Button.Feedback);
             if (Application.internetReachability == NetworkReachability.NotReachable)
             {
                 ShowToast("NETWORK_ERROR", "Please check your network connection.");
@@ -412,17 +444,46 @@ namespace Meowdoku.Gameplay
 
         private void OpenCmp()
         {
+            TrackButton(TrackerCatalog.Button.PrivacyPreference);
             _onCmp?.Invoke();
         }
 
-        private static void OpenTerms()
+        private void OpenTerms()
         {
+            TrackButton(TrackerCatalog.Button.Terms);
             Application.OpenURL("https://oakevergames.com/tos.html");
         }
 
-        private static void OpenPrivacy()
+        private void OpenPrivacy()
         {
+            TrackButton(TrackerCatalog.Button.Privacy);
             Application.OpenURL("https://oakevergames.com/pp.html");
+        }
+
+        private void HandleLanguageDropdownOpened()
+        {
+            TrackButton(TrackerCatalog.Button.Language);
+            Tracking?.TrackDialogShown(
+                TrackerCatalog.Dialog.LanguagePicker);
+        }
+
+        private void HandleLanguageDropdownClosed()
+        {
+            Tracking?.NotifyDialogClosed(
+                TrackerCatalog.Dialog.LanguagePicker);
+        }
+
+        private void TrackButton(string name)
+        {
+            Tracking?.TrackButtonClick(name, GetTrackingDialogName());
+        }
+
+        private void TrackSwitch(string name, bool value)
+        {
+            Tracking?.TrackSwitchClick(
+                name,
+                value ? 1 : 0,
+                GetTrackingDialogName());
         }
 
         private void ShowToast(string key, string fallback)

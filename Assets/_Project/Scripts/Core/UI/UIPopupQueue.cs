@@ -65,6 +65,17 @@ namespace Meowdoku.Core.UI
             _queue.Clear();
         }
 
+        /// <summary>
+        /// Unity lifecycle adapter: StopCoroutine does not guarantee that an
+        /// iterator's finally block runs. A page that owns a queue must abort
+        /// it before its managed coroutine is stopped.
+        /// </summary>
+        public void Abort()
+        {
+            _queue.Clear();
+            IsRunning = false;
+        }
+
         public IEnumerator Flush()
         {
             if (IsRunning) yield break;

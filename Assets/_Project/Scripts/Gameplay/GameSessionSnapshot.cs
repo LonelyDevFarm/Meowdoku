@@ -6,6 +6,14 @@ using UnityEngine;
 
 namespace Meowdoku.Gameplay
 {
+    public enum GameplaySessionMode
+    {
+        Unspecified = 0,
+        Main = 1,
+        Bank = 2,
+        Daily = 3
+    }
+
     public sealed class GameSessionSnapshotContext
     {
         public const int CurrentVersion = 2;
@@ -13,9 +21,20 @@ namespace Meowdoku.Gameplay
         public int Level { get; set; }
         public int BankIndex { get; set; }
         public LevelEntry Entry { get; set; }
+        public GameplaySessionMode Mode { get; set; }
+        public string DailyDate { get; set; } = string.Empty;
+        public int DailyIndex { get; set; }
+        public Dictionary<string, object> LaunchParameters { get; set; } =
+            new Dictionary<string, object>();
         public string PreType { get; set; } = PreCatDecider.PreTypeNone;
         public List<Vector2Int> PrefillPositions { get; } = new List<Vector2Int>();
         public Vector2Int PreCatPosition { get; set; } = new Vector2Int(-1, -1);
+
+        public GameplaySessionMode ResolvedMode => Mode != GameplaySessionMode.Unspecified
+            ? Mode
+            : Level > 0
+                ? GameplaySessionMode.Main
+                : GameplaySessionMode.Bank;
     }
 
     public sealed class GameSessionSnapshotRestore

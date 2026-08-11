@@ -59,6 +59,13 @@ namespace Meowdoku.Tests.EditMode
                 IsFirstSession = false,
                 TutorialDone = true,
                 CurrentStrategy = 3,
+                DailyIndex = 17,
+                DailyCompletedDate = "2026-08-07",
+                MaxDailyDate = "2026-08-08",
+                DailyElapsedSeconds = 754,
+                DailyBeatPercent = 77.3f,
+                DailyBestBeatPercent = 88.4f,
+                DailyStartedDate = "2026-08-08",
                 DailyFirstEasyDate = "2026-08-08",
                 RecentWinCountsByDay = new Dictionary<string, object> { { "2026-08-08", 3 } },
                 SessionCount = 7,
@@ -99,6 +106,13 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(restored.IsFirstSession, Is.False);
             Assert.That(restored.TutorialDone, Is.True);
             Assert.That(restored.CurrentStrategy, Is.EqualTo(3));
+            Assert.That(restored.DailyIndex, Is.EqualTo(17));
+            Assert.That(restored.DailyCompletedDate, Is.EqualTo("2026-08-07"));
+            Assert.That(restored.MaxDailyDate, Is.EqualTo("2026-08-08"));
+            Assert.That(restored.DailyElapsedSeconds, Is.EqualTo(754));
+            Assert.That(restored.DailyBeatPercent, Is.EqualTo(77.3f));
+            Assert.That(restored.DailyBestBeatPercent, Is.EqualTo(88.4f));
+            Assert.That(restored.DailyStartedDate, Is.EqualTo("2026-08-08"));
             Assert.That(restored.DailyFirstEasyDate, Is.EqualTo("2026-08-08"));
             Assert.That(restored.RecentWinCountsByDay["2026-08-08"], Is.EqualTo(3L));
             Assert.That(restored.SessionCount, Is.EqualTo(7));

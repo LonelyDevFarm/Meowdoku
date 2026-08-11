@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Meowdoku.Core;
 using Meowdoku.Core.Localization;
+using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,6 +12,9 @@ namespace Meowdoku.Gameplay
     [DisallowMultipleComponent]
     public sealed class LanguagePagePresenter : UIFrameWindow
     {
+        public override string GetTrackingDialogName() =>
+            TrackerCatalog.Dialog.LanguagePicker;
+
         [SerializeField] private GenericPopupAnimator popupAnimator;
         [SerializeField] private ScrollRect scrollRect;
         [SerializeField] private LanguageOptionView[] optionViews;
@@ -72,6 +76,10 @@ namespace Meowdoku.Gameplay
 
         protected override IEnumerator OnHide()
         {
+            if (!_confirmed)
+                Tracking?.TrackButtonClick(
+                    TrackerCatalog.Button.LanguageCancel,
+                    GetTrackingDialogName());
             popupAnimator?.Stop();
             yield break;
         }
@@ -121,6 +129,10 @@ namespace Meowdoku.Gameplay
                 return;
             _confirmed = true;
             string locale = _display[_selectedIndex].Locale;
+            Tracking?.TrackButtonClick(
+                TrackerCatalog.Button.LanguageConfirm,
+                GetTrackingDialogName());
+            Tracking?.TrackUiLanguage(locale);
             localization?.SetLocale(locale);
             GameStateRuntime.Current.SetAppliedLocale(locale);
             Owner?.Hide(UiName.Language);

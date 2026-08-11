@@ -13,8 +13,14 @@ MonoBehaviour:
   m_Name: UIRegistry
   m_EditorClassIdentifier: Meowdoku.Core::Meowdoku.Core.UI.UIRegistry
   entries:
+  - name: 0
+    prefab: {fileID: 5951015997643907789, guid: a80d275cd60b3d648b6fee316b02f9ab, type: 3}
   - name: 1
     prefab: {fileID: 2688280571714366183, guid: 037042e847c75234a9d6c4012e655565, type: 3}
+  - name: 2
+    prefab: {fileID: 7386330157425422299, guid: fff97b52810859a449669454f040d6ec, type: 3}
+  - name: 9
+    prefab: {fileID: 7386330157425422299, guid: fff97b52810859a449669454f040d6ec, type: 3}
   - name: 4
     prefab: {fileID: 1722383274502822530, guid: 9fd959e88ad266f4a8de50986b875fd1, type: 3}
   - name: 5
@@ -27,3 +33,33 @@ MonoBehaviour:
     prefab: {fileID: 6289035499429964742, guid: 78134617080793f4e9ddb8a3efc66a95, type: 3}
   - name: 8
     prefab: {fileID: 4741210023859798572, guid: d8d6810bff027be4baa82d67b529cb51, type: 3}
+  - name: 18
+    prefab: {fileID: 4723428740812745661, guid: c1d3ef8721b1aad40881d283333cfaff, type: 3}
+  - name: 19
+    prefab: {fileID: 4723428740812745661, guid: c1d3ef8721b1aad40881d283333cfaff, type: 3}
+  - name: 20
+    prefab: {fileID: 6964899016040260410, guid: c7ade058ba505764088e5b80f1722255, type: 3}
+  - name: 21
+    prefab: {fileID: 6964899016040260410, guid: c7ade058ba505764088e5b80f1722255, type: 3}
+  - name: 22
+    prefab: {fileID: 5132987171515417247, guid: 0e1bdc9264acf684f95c619259bfae08, type: 3}
+  - name: 23
+    prefab: {fileID: 1206757395502833249, guid: b8e710f30632da14ca50175f20ed255d, type: 3}
+  - name: 24
+    prefab: {fileID: 5740450182742047731, guid: 67efbf24f76e80c4589a4f61b9509eca, type: 3}
+  - name: 25
+    prefab: {fileID: 5992403216991014391, guid: 4e3eab9844747124ba7d3009f3cf36de, type: 3}
+  - name: 26
+    prefab: {fileID: 6920957281934562761, guid: 15e65781ae1392d4db08b01e54149e16, type: 3}
+  - name: 27
+    prefab: {fileID: 2445698747482615442, guid: 1463d14bd0da4d147bb812bf509315b7, type: 3}
+  - name: 28
+    prefab: {fileID: 8631610081300297624, guid: 7f9386526c909db409b7195189f2d77e, type: 3}
+  - name: 30
+    prefab: {fileID: 5689396598957968902, guid: aae0d7a23787d5c4698de9d34a49421d, type: 3}
+  - name: 29
+    prefab: {fileID: 1339539269343365799, guid: 25c00c3289523cd4e9bcdd3c748bafdd, type: 3}
+  - name: 31
+    prefab: {fileID: 6574724024367701370, guid: 1e6cc660bba2a6c498d0917f1acc9a6a, type: 3}
+  - name: 32
+    prefab: {fileID: 965121450763966476, guid: 6d0c6377d93b83b429d831950c2e9ba5, type: 3}

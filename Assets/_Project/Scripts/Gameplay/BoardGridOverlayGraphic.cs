@@ -26,6 +26,7 @@ namespace Meowdoku.Gameplay
         private float _elapsed = 99999f;
         private float _synchronizedDuration;
         private bool _introActive;
+        private readonly List<Vector2> _framePath = new List<Vector2>(53);
 
         protected override void Awake()
         {
@@ -110,7 +111,8 @@ namespace Meowdoku.Gameplay
                 new Rect(left, top - span, span, span),
                 FrameCornerRadius / _boardScale,
                 BorderWidth / _boardScale,
-                frameProgress);
+                frameProgress,
+                _framePath);
         }
 
         private void DrawGrowingGridLine(
@@ -165,11 +167,12 @@ namespace Meowdoku.Gameplay
             Rect frame,
             float radius,
             float width,
-            float progress)
+            float progress,
+            List<Vector2> path)
         {
             if (progress <= 0f) return;
             radius = Mathf.Clamp(radius, 0f, Mathf.Min(frame.width, frame.height) * 0.5f);
-            var path = new List<Vector2>(53);
+            path.Clear();
             AppendArc(path, frame.xMin + radius, frame.yMax - radius, 180f, 90f, radius);
             AppendArc(path, frame.xMax - radius, frame.yMax - radius, 90f, 0f, radius);
             AppendArc(path, frame.xMax - radius, frame.yMin + radius, 0f, -90f, radius);

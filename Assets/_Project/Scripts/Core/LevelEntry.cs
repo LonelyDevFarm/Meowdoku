@@ -8,7 +8,10 @@ namespace Meowdoku.Core
     public sealed class LevelEntry
     {
         public int Id { get; private set; }
-        public int Seed { get; private set; }
+        // Godot's int is signed 64-bit. Some original LK Style banks contain
+        // seeds above Int32.MaxValue, so this identity field must remain long.
+        public long Seed { get; private set; }
+        public bool HasSeed { get; private set; }
         public int Size { get; private set; }
         public int Rank { get; private set; }
         public int MaxRank { get; private set; }
@@ -52,7 +55,8 @@ namespace Meowdoku.Core
             var entry = new LevelEntry
             {
                 Id = ReadInt(data, "id"),
-                Seed = ReadInt(data, "seed"),
+                Seed = ReadLong(data, "seed"),
+                HasSeed = data.ContainsKey("seed"),
                 Size = ReadInt(data, "size"),
                 Rank = ReadInt(data, "r", 1),
                 MaxRank = ReadInt(data, "maxR", ReadInt(data, "r", 1)),
@@ -103,6 +107,7 @@ namespace Meowdoku.Core
             {
                 Id = Id,
                 Seed = Seed,
+                HasSeed = HasSeed,
                 Size = Size,
                 Rank = Rank,
                 MaxRank = MaxRank,
@@ -160,6 +165,16 @@ namespace Meowdoku.Core
         {
             if (!data.TryGetValue(key, out object value) || value == null) return fallback;
             return Convert.ToInt32(value);
+        }
+
+        private static long ReadLong(
+            IDictionary<string, object> data,
+            string key,
+            long fallback = 0L)
+        {
+            if (!data.TryGetValue(key, out object value) || value == null)
+                return fallback;
+            return Convert.ToInt64(value);
         }
 
         private static string ReadString(IDictionary<string, object> data, string key)

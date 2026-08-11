@@ -68,6 +68,7 @@ namespace Meowdoku.Core.UI
     {
         [SerializeField] private UIManager uiManager;
         [SerializeField] private LocalizationCatalog localizationCatalog;
+        [SerializeField] private AbConfigRuntime abConfigRuntime;
         [SerializeField] private MonoBehaviour externalServicesAdapter;
         [SerializeField] private bool runOnStart = true;
 
@@ -107,6 +108,7 @@ namespace Meowdoku.Core.UI
             Application.targetFrameRate = 60;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             GameStateService gameState = GameStateRuntime.Current;
+            abConfigRuntime?.Initialize(gameState);
             if (!_runtimeInitialized)
             {
                 gameState.OnSessionStarted();
@@ -146,6 +148,9 @@ namespace Meowdoku.Core.UI
                 AppStartupContract.ExternalWaitMaximumSeconds));
             yield return RunOptional(external.AwaitRemoteDefaults(
                 AppStartupContract.ExternalWaitMaximumSeconds));
+            if (abConfigRuntime != null)
+                yield return abConfigRuntime.AwaitRemoteReady(
+                    AppStartupContract.ExternalWaitMaximumSeconds);
             external.SetupScreen();
 
             Phase = AppStartupPhase.Prewarming;

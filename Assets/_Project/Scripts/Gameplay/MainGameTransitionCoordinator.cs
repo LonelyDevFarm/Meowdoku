@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Meowdoku.Core;
+using Meowdoku.Core.UI;
 using UnityEngine;
 
 namespace Meowdoku.Gameplay
@@ -26,8 +27,61 @@ namespace Meowdoku.Gameplay
         public int RestartCount { get; internal set; }
         public int FinalScore { get; internal set; }
         public int MaxCombo { get; internal set; }
+        public int Size { get; internal set; }
+        public float ElapsedSeconds { get; internal set; }
+        public int CompletionRate { get; internal set; }
+        public int ToolsUsed { get; internal set; }
+        public int StepsUsed { get; internal set; }
+        public int CrossCount { get; internal set; }
+        public int CorrectCrossCount { get; internal set; }
+        public int FalseCrossCount { get; internal set; }
+        public int ErrorCount { get; internal set; }
+        public bool IsBankSession { get; internal set; }
+        public bool IsDailySession { get; internal set; }
+        public string DailyDate { get; internal set; } = string.Empty;
+        public int DailyIndex { get; internal set; }
+        public float DailyBeatPercent { get; internal set; }
+        public bool DailyCompletionCommitted { get; internal set; }
+        public bool StreakSettlementCommitted { get; internal set; }
+        public Dictionary<string, object> BankParameters { get; internal set; } =
+            new Dictionary<string, object>();
+        public string NextBankLabel { get; internal set; } = string.Empty;
         public Dictionary<string, object> RetryParameters { get; internal set; } =
             new Dictionary<string, object>();
+    }
+
+    public interface IGameTransitionCoordinator
+    {
+        bool TrySettleFail(
+            GameSession session,
+            GameSessionSnapshotContext context,
+            out MainGameTransitionData transition);
+
+        bool TryRevive(
+            GameSession session,
+            GameSessionSnapshotContext context,
+            int livesToRestore,
+            out MainGameTransitionData transition);
+
+        bool TrySettleWin(
+            GameSession session,
+            GameSessionSnapshotContext context,
+            out MainGameTransitionData transition);
+
+        bool TryRestart(
+            GameSession session,
+            GameSessionSnapshotContext context,
+            out MainGameTransitionData transition);
+
+        bool TryRestartAfterFail(
+            GameSession session,
+            GameSessionSnapshotContext context,
+            out MainGameTransitionData transition);
+
+        bool TryQuit(
+            GameSession session,
+            GameSessionSnapshotContext context,
+            out MainGameTransitionData transition);
     }
 
     /// <summary>
@@ -132,7 +186,7 @@ namespace Meowdoku.Gameplay
     /// P0 aggregate port of GamePage terminal callbacks and LevelOps. UI,
     /// tracker, animation and online rewards consume the emitted data outside.
     /// </summary>
-    public sealed class MainGameTransitionCoordinator
+    public sealed class MainGameTransitionCoordinator : IGameTransitionCoordinator
     {
         private readonly GameStateService _gameState;
         private bool _failSettled;
@@ -151,7 +205,7 @@ namespace Meowdoku.Gameplay
             out MainGameTransitionData transition)
         {
             transition = null;
-            if (_failSettled || session == null || context == null ||
+            if (_failSettled || IsDaily(context) || session == null || context == null ||
                 session.State != GameSessionState.Failed)
                 return false;
 
@@ -172,7 +226,7 @@ namespace Meowdoku.Gameplay
             out MainGameTransitionData transition)
         {
             transition = null;
-            if (!_failSettled || session == null || context == null ||
+            if (!_failSettled || IsDaily(context) || session == null || context == null ||
                 !session.Revive(livesToRestore))
                 return false;
 
@@ -182,7 +236,9 @@ namespace Meowdoku.Gameplay
             _gameState.MarkPreCatRevived();
             _gameState.IncrementGameTotalStat("main", "revive_count");
             _gameState.IncrementGameTotalStat("main", "rv_count");
-            _gameState.SetEndgameSnapshot(GameSessionSnapshot.Build(session, context));
+            if (context.Level > 0)
+                _gameState.SetEndgameSnapshot(
+                    GameSessionSnapshot.Build(session, context));
 
             transition = Build(MainGameTransitionKind.Revived, session, context, null);
             return true;
@@ -194,14 +250,17 @@ namespace Meowdoku.Gameplay
             out MainGameTransitionData transition)
         {
             transition = null;
-            if (_winSettled || session == null || context == null ||
+            if (_winSettled || IsDaily(context) || session == null || context == null ||
                 session.State != GameSessionState.Won)
                 return false;
 
             _winSettled = true;
             _gameState.OnGameFinished();
-            if (context.Level > 0) _gameState.OnLevelWon(context.Level);
-            _gameState.ClearEndgameSnapshot();
+            if (context.Level > 0)
+            {
+                _gameState.OnLevelWon(context.Level);
+                _gameState.ClearEndgameSnapshot();
+            }
 
             transition = Build(MainGameTransitionKind.Won, session, context, null);
             return true;
@@ -213,17 +272,43 @@ namespace Meowdoku.Gameplay
             out MainGameTransitionData transition)
         {
             transition = null;
-            if (_restartSettled || session == null || context == null ||
+            if (_restartSettled || IsDaily(context) || session == null || context == null ||
                 session.State != GameSessionState.Playing)
                 return false;
 
             _restartSettled = true;
-            _gameState.ClearEndgameSnapshot();
+            if (context.Level > 0)
+                _gameState.ClearEndgameSnapshot();
             _gameState.OnGameFinished();
             if (context.Level > 0) _gameState.OnLevelFailed(context.Level);
             Dictionary<string, object> retry = GameRetryParameters.BuildFailure(context);
 
             transition = Build(MainGameTransitionKind.Restart, session, context, retry);
+            transition.RestartCount = session.RestartCount + 1;
+            return true;
+        }
+
+        public bool TryRestartAfterFail(
+            GameSession session,
+            GameSessionSnapshotContext context,
+            out MainGameTransitionData transition)
+        {
+            transition = null;
+            if (_restartSettled || !_failSettled || IsDaily(context) ||
+                session == null || context == null ||
+                session.State != GameSessionState.Failed)
+                return false;
+
+            _restartSettled = true;
+            if (context.Level > 0)
+                _gameState.ClearEndgameSnapshot();
+            Dictionary<string, object> retry =
+                GameRetryParameters.BuildFailure(context);
+            transition = Build(
+                MainGameTransitionKind.Restart,
+                session,
+                context,
+                retry);
             transition.RestartCount = session.RestartCount + 1;
             return true;
         }
@@ -234,13 +319,17 @@ namespace Meowdoku.Gameplay
             out MainGameTransitionData transition)
         {
             transition = null;
-            if (_quitSettled || session == null || context == null ||
+            if (_quitSettled || IsDaily(context) || session == null || context == null ||
                 session.State != GameSessionState.Playing)
                 return false;
 
             _quitSettled = true;
-            if (context.Level > 0) _gameState.MarkCurrentLevelDirty();
-            _gameState.SetEndgameSnapshot(GameSessionSnapshot.Build(session, context));
+            if (context.Level > 0)
+            {
+                _gameState.MarkCurrentLevelDirty();
+                _gameState.SetEndgameSnapshot(
+                    GameSessionSnapshot.Build(session, context));
+            }
             transition = Build(MainGameTransitionKind.Quit, session, context, null);
             return true;
         }
@@ -251,11 +340,47 @@ namespace Meowdoku.Gameplay
             GameSessionSnapshotContext context,
             Dictionary<string, object> retry)
         {
+            MainGameTransitionData transition = GameTransitionDataFactory.Build(
+                kind,
+                session,
+                context,
+                _gameState.CurrentLevel,
+                retry);
+            transition.BankParameters = transition.IsBankSession
+                ? GameRetryParameters.BuildFailure(context)
+                : new Dictionary<string, object>();
+            if (transition.IsBankSession &&
+                BankBrowserContract.TryCreateNextLaunch(
+                    context.Entry,
+                    out BankLaunchRequest next))
+                transition.NextBankLabel =
+                    BankBrowserContract.NextLaunchLabel(next);
+            return transition;
+        }
+
+        private static bool IsDaily(GameSessionSnapshotContext context)
+        {
+            return context != null &&
+                   context.ResolvedMode == GameplaySessionMode.Daily;
+        }
+
+    }
+
+    internal static class GameTransitionDataFactory
+    {
+        internal static MainGameTransitionData Build(
+            MainGameTransitionKind kind,
+            GameSession session,
+            GameSessionSnapshotContext context,
+            int currentLevelAfter,
+            Dictionary<string, object> retry)
+        {
+            GameplaySessionMode mode = context.ResolvedMode;
             return new MainGameTransitionData
             {
                 Kind = kind,
                 Level = context.Level,
-                CurrentLevelAfter = _gameState.CurrentLevel,
+                CurrentLevelAfter = currentLevelAfter,
                 Lives = session.Lives,
                 RemainingCats = session.RemainingCats,
                 MistakeCount = session.MistakeCount,
@@ -263,8 +388,39 @@ namespace Meowdoku.Gameplay
                 RestartCount = session.RestartCount,
                 FinalScore = session.Score.Score,
                 MaxCombo = session.Score.MaxCombo,
+                Size = context.Entry.Size,
+                CompletionRate = CompletionRate(session),
+                StepsUsed = session.History.Count,
+                CrossCount = session.CrossCount,
+                CorrectCrossCount = session.CorrectCrossCount,
+                FalseCrossCount = session.FalseCrossCount,
+                ErrorCount = session.ErrorCount,
+                IsBankSession = mode == GameplaySessionMode.Bank,
+                IsDailySession = mode == GameplaySessionMode.Daily,
+                DailyDate = context.DailyDate ?? string.Empty,
+                DailyIndex = context.DailyIndex,
                 RetryParameters = retry ?? new Dictionary<string, object>()
             };
+        }
+
+        private static int CompletionRate(GameSession session)
+        {
+            CellStateType[][] board = session.Board.GetBoardSnapshot();
+            int total = 0;
+            int filled = 0;
+            for (int row = 0; row < board.Length; row++)
+            {
+                CellStateType[] columns = board[row];
+                if (columns == null) continue;
+                for (int column = 0; column < columns.Length; column++)
+                {
+                    total++;
+                    if (!CellState.IsBlank(columns[column])) filled++;
+                }
+            }
+            return total > 0
+                ? (int)Math.Round(100.0 * filled / total)
+                : 0;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Meowdoku.Core.Tracking;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,6 +26,7 @@ namespace Meowdoku.Core.UI
         private bool _occluded;
 
         protected UIManager Owner => _owner;
+        protected TrackerService Tracking => _owner?.Tracker;
 
         public UiName UiName { get; private set; }
         public UiLayer Layer => uiLayer;
@@ -36,6 +38,13 @@ namespace Meowdoku.Core.UI
         public int SortingOrder => rootCanvas != null
             ? rootCanvas.sortingOrder
             : (int)uiLayer;
+
+        // Mirrors UIFrameWindow.get_scr_name/get_dlg_name/get_dlg_extra.
+        // Concrete pages override only the metadata that exists in Godot.
+        public virtual string GetTrackingScreenName() => string.Empty;
+        public virtual string GetTrackingDialogName() => string.Empty;
+        public virtual IReadOnlyDictionary<string, object>
+            GetTrackingDialogExtra() => null;
 
         internal void InitializeFrame(UIManager owner, UiName uiName)
         {
@@ -72,6 +81,7 @@ namespace Meowdoku.Core.UI
             IEnumerator animation = PlayCloseAnimation();
             if (animation != null) yield return animation;
             if (WindowState != UiWindowState.Closing) yield break;
+            _owner?.NotifyDialogClosing(this);
             yield return HideLifecycle();
         }
 
@@ -90,6 +100,7 @@ namespace Meowdoku.Core.UI
         protected virtual void OnStackTop() { }
         protected virtual void OnStackBottom() { }
         protected virtual bool OnBackRequest() => false;
+        protected virtual void OnCloseButtonPressed() { }
 
         protected virtual IEnumerator PlayCloseAnimation()
         {
@@ -105,6 +116,7 @@ namespace Meowdoku.Core.UI
 
         private void CloseFromButton()
         {
+            OnCloseButtonPressed();
             if (_owner != null) _owner.Hide(UiName);
         }
 

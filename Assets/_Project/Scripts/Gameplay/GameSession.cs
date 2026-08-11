@@ -103,6 +103,8 @@ namespace Meowdoku.Gameplay
         public bool HasPendingHint => _pendingHint != null;
         public int CorrectCrossCount => Board.CountCorrectCrosses();
         public int FalseCrossCount => Board.CountFalseCrosses();
+        public int CrossCount => Board.CountCrosses();
+        public int ErrorCount => Board.CountState(CellStateType.ERROR);
         public int RemainingCats => Board.RemainingCats;
 
         public GameSession(

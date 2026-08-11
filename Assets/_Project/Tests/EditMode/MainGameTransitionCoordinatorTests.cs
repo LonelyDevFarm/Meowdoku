@@ -91,6 +91,10 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(result.Kind, Is.EqualTo(MainGameTransitionKind.Won));
             Assert.That(result.CurrentLevelAfter, Is.EqualTo(13));
             Assert.That(result.FinalScore, Is.EqualTo(2880));
+            Assert.That(result.Size, Is.EqualTo(4));
+            Assert.That(result.CompletionRate, Is.EqualTo(25));
+            Assert.That(result.StepsUsed, Is.EqualTo(4));
+            Assert.That(result.IsBankSession, Is.False);
             Assert.That(data.CurrentLevel, Is.EqualTo(13));
             Assert.That(data.LastLevelCleanWin, Is.True);
             Assert.That(data.RetryPuzzleLevel, Is.Zero);
@@ -98,6 +102,73 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(data.EndgameSnapshot, Is.Empty);
             Assert.That(store.Operations, Is.EqualTo(new[] { "player", "player", "endgame" }));
             Assert.That(coordinator.TrySettleWin(session, Context(), out _), Is.False);
+        }
+
+        [TestCase(20, true, false)]
+        [TestCase(40, true, true)]
+        public void Win_SpecialOrHardLevelAdvancesExactlyOnce(
+            int level,
+            bool isSpecial,
+            bool isHard)
+        {
+            var store = new RecordingStore();
+            var data = StateData();
+            data.CurrentLevel = level;
+            var state = Service(data, store);
+            GameSession session = PlayingSession();
+            Complete(session);
+            GameSessionSnapshotContext context = Context();
+            context.Level = level;
+            var coordinator = new MainGameTransitionCoordinator(state);
+
+            Assert.That(LevelData.IsSpecialLevel(level), Is.EqualTo(isSpecial));
+            Assert.That(LevelData.IsHardLevel(level), Is.EqualTo(isHard));
+            Assert.That(
+                coordinator.TrySettleWin(
+                    session,
+                    context,
+                    out MainGameTransitionData result),
+                Is.True);
+
+            Assert.That(result.Level, Is.EqualTo(level));
+            Assert.That(result.CurrentLevelAfter, Is.EqualTo(level + 1));
+            Assert.That(data.CurrentLevel, Is.EqualTo(level + 1));
+            Assert.That(coordinator.TrySettleWin(session, context, out _), Is.False);
+        }
+
+        [Test]
+        public void RepeatedFailReviveCycles_CanStillWinAndAdvanceOnlyOnce()
+        {
+            var store = new RecordingStore();
+            var data = StateData();
+            var state = Service(data, store);
+            GameSession session = FailedSession();
+            GameSessionSnapshotContext context = Context();
+            var coordinator = new MainGameTransitionCoordinator(state);
+
+            Assert.That(coordinator.TrySettleFail(session, context, out _), Is.True);
+            Assert.That(coordinator.TryRevive(session, context, 1, out _), Is.True);
+
+            SessionActionResult wrong = session.DoubleTap(3, 0);
+            Assert.That(wrong.Accepted, Is.True);
+            Assert.That(session.ResolveWrongGuess(), Is.EqualTo(GameSessionState.Failed));
+            Assert.That(coordinator.TrySettleFail(session, context, out _), Is.True);
+            Assert.That(coordinator.TryRevive(session, context, 1, out _), Is.True);
+
+            Complete(session);
+            Assert.That(
+                coordinator.TrySettleWin(
+                    session,
+                    context,
+                    out MainGameTransitionData result),
+                Is.True);
+
+            Assert.That(result.Kind, Is.EqualTo(MainGameTransitionKind.Won));
+            Assert.That(result.ReviveCount, Is.EqualTo(2));
+            Assert.That(data.PreCatPendingStruggle, Is.True);
+            Assert.That(data.PreCatFailCount, Is.Zero);
+            Assert.That(data.CurrentLevel, Is.EqualTo(13));
+            Assert.That(coordinator.TrySettleWin(session, context, out _), Is.False);
         }
 
         [Test]
@@ -122,6 +193,37 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void RestartAfterFail_DoesNotSettleFailureTwiceAndCarriesCount()
+        {
+            var store = new RecordingStore();
+            var data = StateData();
+            var state = Service(data, store);
+            GameSession session = FailedSession();
+            var coordinator = new MainGameTransitionCoordinator(state);
+
+            Assert.That(
+                coordinator.TrySettleFail(session, Context(), out _),
+                Is.True);
+            int savesAfterFail = store.PlayerSaveCount;
+
+            Assert.That(
+                coordinator.TryRestartAfterFail(
+                    session,
+                    Context(),
+                    out MainGameTransitionData restart),
+                Is.True);
+
+            Assert.That(restart.Kind, Is.EqualTo(MainGameTransitionKind.Restart));
+            Assert.That(restart.RestartCount, Is.EqualTo(1));
+            Assert.That(restart.RetryParameters, Is.Not.Empty);
+            Assert.That(store.PlayerSaveCount, Is.EqualTo(savesAfterFail));
+            Assert.That(data.EndgameSnapshot, Is.Empty);
+            Assert.That(
+                coordinator.TryRestartAfterFail(session, Context(), out _),
+                Is.False);
+        }
+
+        [Test]
         public void Quit_MarksDirtyAndPersistsCurrentBoardWithoutFailingLevel()
         {
             var store = new RecordingStore();
@@ -143,6 +245,167 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(((List<object>)data.EndgameSnapshot["marks"]).Count, Is.EqualTo(1));
             Assert.That(store.PlayerSaveCount, Is.Zero);
             Assert.That(store.ImmediateEndgameSaveCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BankQuit_DoesNotOverwriteNormalLevelSnapshot()
+        {
+            var store = new RecordingStore();
+            var data = StateData();
+            Dictionary<string, object> normalSnapshot = data.EndgameSnapshot;
+            var state = Service(data, store);
+            GameSessionSnapshotContext context = Context();
+            context.Level = 0;
+            var coordinator = new MainGameTransitionCoordinator(state);
+
+            Assert.That(
+                coordinator.TryQuit(
+                    PlayingSession(),
+                    context,
+                    out MainGameTransitionData result),
+                Is.True);
+
+            Assert.That(result.Level, Is.Zero);
+            Assert.That(data.EndgameSnapshot, Is.SameAs(normalSnapshot));
+            Assert.That(state.IsCurrentLevelDirty, Is.False);
+            Assert.That(store.ImmediateEndgameSaveCount, Is.Zero);
+        }
+
+        [Test]
+        public void BankWin_DoesNotClearNormalLevelSnapshotOrAdvanceProgress()
+        {
+            var store = new RecordingStore();
+            var data = StateData();
+            Dictionary<string, object> normalSnapshot = data.EndgameSnapshot;
+            var state = Service(data, store);
+            GameSession session = PlayingSession();
+            Complete(session);
+            GameSessionSnapshotContext context = Context();
+            context.Level = 0;
+            var coordinator = new MainGameTransitionCoordinator(state);
+
+            Assert.That(
+                coordinator.TrySettleWin(
+                    session,
+                    context,
+                    out MainGameTransitionData transition),
+                Is.True);
+
+            Assert.That(transition.IsBankSession, Is.True);
+            Assert.That(transition.BankParameters, Is.Not.Empty);
+            Assert.That(data.CurrentLevel, Is.EqualTo(12));
+            Assert.That(data.EndgameSnapshot, Is.SameAs(normalSnapshot));
+            Assert.That(store.ImmediateEndgameSaveCount, Is.Zero);
+        }
+
+        [Test]
+        public void DailyFailRevive_DoesNotTouchMainRetrySnapshotOrDda()
+        {
+            var store = new RecordingStore();
+            var data = StateData();
+            Dictionary<string, object> mainSnapshot = data.EndgameSnapshot;
+            var state = Service(data, store);
+            GameSession session = FailedSession();
+            GameSessionSnapshotContext context = DailyContext();
+            var coordinator = new DailyGameTransitionCoordinator(state);
+
+            Assert.That(
+                coordinator.TrySettleFail(
+                    session,
+                    context,
+                    out MainGameTransitionData failed),
+                Is.True);
+            Assert.That(failed.IsDailySession, Is.True);
+            Assert.That(failed.IsBankSession, Is.False);
+            Assert.That(data.CurrentLevel, Is.EqualTo(12));
+            Assert.That(data.EndgameSnapshot, Is.SameAs(mainSnapshot));
+            Assert.That(data.RetryPuzzleLevel, Is.Zero);
+            Assert.That(state.IsCurrentLevelDirty, Is.False);
+            Assert.That(state.WasDdaToolOrReviveUsed, Is.False);
+
+            Assert.That(
+                coordinator.TryRevive(session, context, 1, out _),
+                Is.True);
+            Assert.That(state.GetGameTotalStat("daily", "revive_count"), Is.EqualTo(1));
+            Assert.That(state.GetGameTotalStat("daily", "rv_count"), Is.EqualTo(1));
+            Assert.That(state.GetGameTotalStat("main", "revive_count"), Is.Zero);
+            Assert.That(data.PreCatRevivedThisLevel, Is.False);
+            Assert.That(data.EndgameSnapshot, Is.SameAs(mainSnapshot));
+        }
+
+        [Test]
+        public void DailyRestart_ReusesFreshLaunchWithoutSettlingFailTwice()
+        {
+            var store = new RecordingStore();
+            var state = Service(StateData(), store);
+            GameSession session = FailedSession();
+            GameSessionSnapshotContext context = DailyContext();
+            var coordinator = new DailyGameTransitionCoordinator(state);
+            Assert.That(coordinator.TrySettleFail(session, context, out _), Is.True);
+            int savesAfterFail = store.PlayerSaveCount;
+
+            Assert.That(
+                coordinator.TryRestartAfterFail(
+                    session,
+                    context,
+                    out MainGameTransitionData restart),
+                Is.True);
+
+            Assert.That(restart.IsDailySession, Is.True);
+            Assert.That(restart.RestartCount, Is.EqualTo(1));
+            Assert.That(restart.RetryParameters["daily_mode"], Is.True);
+            Assert.That(restart.RetryParameters["daily_date"], Is.EqualTo("2026-08-09"));
+            Assert.That(
+                (List<object>)restart.RetryParameters["prefill_positions"],
+                Is.Empty);
+            Assert.That(store.PlayerSaveCount, Is.EqualTo(savesAfterFail));
+        }
+
+        [Test]
+        public void DailyWin_CommitsDateTimeAndPercentOnceWithoutAdvancingMain()
+        {
+            var store = new RecordingStore();
+            var data = StateData();
+            Dictionary<string, object> mainSnapshot = data.EndgameSnapshot;
+            var state = Service(data, store);
+            GameSession session = PlayingSession();
+            Complete(session);
+            var coordinator = new DailyGameTransitionCoordinator(state);
+
+            Assert.That(
+                coordinator.TrySettleWin(
+                    session,
+                    DailyContext(),
+                    out MainGameTransitionData transition),
+                Is.True);
+            Assert.That(data.CurrentLevel, Is.EqualTo(12));
+            Assert.That(data.EndgameSnapshot, Is.SameAs(mainSnapshot));
+            Assert.That(
+                DailyWinSettlement.Commit(state, transition, 75, 3, 10),
+                Is.True);
+            Assert.That(transition.DailyCompletionCommitted, Is.True);
+            Assert.That(transition.DailyBeatPercent, Is.EqualTo(92.6f));
+            Assert.That(state.DailyCompletedDate, Is.EqualTo("2026-08-09"));
+            Assert.That(state.DailyElapsedSeconds, Is.EqualTo(75));
+            Assert.That(state.DailyBeatPercent, Is.EqualTo(92.6f));
+            Assert.That(
+                DailyWinSettlement.Commit(state, transition, 20, 3, 10),
+                Is.False);
+            Assert.That(state.DailyElapsedSeconds, Is.EqualTo(75));
+        }
+
+        [Test]
+        public void MainCoordinator_RejectsDailyContext()
+        {
+            var coordinator = new MainGameTransitionCoordinator(
+                Service(StateData(), new RecordingStore()));
+
+            Assert.That(
+                coordinator.TryQuit(
+                    PlayingSession(),
+                    DailyContext(),
+                    out _),
+                Is.False);
         }
 
         private static GameStateData StateData()
@@ -227,6 +490,23 @@ namespace Meowdoku.Tests.EditMode
             };
             context.PrefillPositions.Add(new Vector2Int(2, 0));
             context.PrefillPositions.Add(context.PreCatPosition);
+            return context;
+        }
+
+        private static GameSessionSnapshotContext DailyContext()
+        {
+            GameSessionSnapshotContext context = Context();
+            context.Level = 0;
+            context.Mode = GameplaySessionMode.Daily;
+            context.DailyDate = "2026-08-09";
+            context.DailyIndex = 11;
+            context.LaunchParameters = new Dictionary<string, object>
+            {
+                { "daily_mode", true },
+                { "daily_date", "2026-08-09" },
+                { "daily_index", 11 },
+                { "prefill_positions", new List<object> { new List<object> { 0, 1 } } }
+            };
             return context;
         }
 

@@ -117,16 +117,17 @@ Nhóm config P0 phải port trước: `region_color`, `size_cycle`, `rule_highli
 
 | Feature | Godot nguồn chính | Unity đích | Trạng thái |
 |---|---|---|---|
-| Splash | `splash/view/splash_page.gd`, scene tương ứng | `SplashPage` | Chưa có |
+| Splash | `splash/view/splash_page.gd`, scene tương ứng | `SplashPagePresenter`, `Prefabs/UI/SplashPage.prefab` | Presenter/prefab/registry và startup route đã port; chờ PlayMode parity |
 | Tutorial | `tutorial/view/tutorial_page.gd`, `tutorial_page.tscn` | `TutorialPuzzle`, `TutorialStateMachine`, `TutorialPagePresenter`, `Prefabs/UI/TutorialPage.prefab` | Domain/presenter/installer đã port và compile; chờ Refresh sinh prefab, PlayMode parity; Spine hand/IQ particle còn adapter |
-| Home | `home/view/home_page.gd`, `home_page.tscn`; `daily_streak_config.gd`, `leaderboard_func_config.gd`, `hard_button_config.gd`; `fx_uv_scroll.gdshader` | `HomePageContract`, `HomeConfigs`, `HomePagePresenter`, `UIHomeFlow.shader`, `HomePagePrefabInstaller` | Contract/presenter/installer compile sạch; chờ Refresh sinh prefab/material, entry modules và PlayMode |
-| Settings | `setting/view/setting_page.gd`, `setting_page.tscn`; `settings_language_config.gd`, `blind_mod_config.gd` | `SettingsPageContract`, `SettingsConfigs`, pattern fields trong `GameStateData/Service`; presenter còn chờ | Core state/config/layout contract đã port và compile |
-| Language | `language_manager.gd`, language page/option | Localization pages | Chưa có |
-| How to play | Hai script/scene page | HowToPlay pages | Chưa có |
-| Win | `result/view/game_win_page.gd`, hai scene variant | GameWin pages | Chưa có |
-| Fail | `result/view/game_fail_page.gd` | GameFail page | Chưa có |
+| Home | `home/view/home_page.gd`, `home_page.tscn`; `daily_challenge_entry_cell.gd/.tscn`; Home configs; `fx_uv_scroll.gdshader` | `HomePageContract`, `HomePagePresenter`, `DailyChallengeEntryPresenter`, `UIHomeFlow.shader`, `HomePagePrefabInstaller` | Daily entry ba trạng thái và route đã nối; chờ Unity Refresh/PlayMode, Streak/Rank/Profile entry |
+| Settings | `setting/view/setting_page.gd`, `setting_page.tscn`; `settings_language_config.gd`, `blind_mod_config.gd` | `SettingsPageContract`, `SettingsPagePresenter`, `Prefabs/UI/SettingsPage.prefab`, pattern fields trong `GameStateData/Service` | State/config/presenter/prefab/registry đã port; chờ PlayMode/pixel parity |
+| Language | `language_manager.gd`, language page/option, `translations.csv` | `LocalizationCatalog`, `LanguagePagePresenter`, `Prefabs/UI/LanguagePage.prefab` | CSV/parser/locale alias/fallback/page đã port; chờ device-font và PlayMode parity |
+| How to play | Hai script/scene page | `HowToPlayPagePresenter`, `HowToPlayPagedPresenter`, hai prefab registry | Hai page, matrix/frame/timing/navigation đã port; chờ PlayMode/VFX parity |
+| Bank | Bank browser page/panels và level entry handlers | `BankBrowserPagePresenter`, `BankBrowserContract`, `Prefabs/UI/BankPage.prefab` | Browser/launch/return route đã port; chờ PlayMode pool/Next parity |
+| Win | `result/view/game_win_page.gd`, pass-page G1/G2/G4, pass-text V0–V3, win-toast scripts/scenes | `GameWinPagePresenter`, `GameplayWinToastPresenter`, `Prefabs/UI/WinPage.prefab`, `Overlays/WinToast` | Logic/presenter/installer compile sạch; Unity đã sinh PassPanel và WinToast đủ reference, còn PlayMode/pixel parity |
+| Fail | `result/view/game_fail_page.gd`, fail-text/revive configs | `GameFailPagePresenter`, `Prefabs/UI/FailPage.prefab`, `IRewardedReviveService` | Fail/restart/revive/free/reward boundary đã port; chờ PlayMode/Spine/ad adapter |
 | Revive restored | `ad_reward_restored_page.gd` | Popup tương ứng | Chưa có |
-| Daily | `daily_game_page.gd`, entry, win/fail, stats | Daily module | Chưa có |
+| Daily | `daily_entry_state.gd`, `daily_stats.gd`, `daily_game_page.gd`, `daily_win_page.gd`, `daily_fail_page.gd` | `Core/Daily/*`, `DailyChallengeEntryPresenter`, `DailyGameTransitionCoordinator`, shared `GameplayManager/GameSession`, Daily branches trong result presenters | Entry/launch/gameplay/fail/revive/restart/win progress đã nối và compile; chờ Refresh, Daily header/result visual, tracker/Streak và PlayMode |
 | Daily Streak | `feature_daily_streak.gd`, data, pages/cells | Streak module | Chưa có |
 | Award | `award_manager.gd`, render/model/page | Award module | Chưa có |
 

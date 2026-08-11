@@ -19,6 +19,13 @@ namespace Meowdoku.Core
         public int ConsecutiveFails { get; set; }
         public int ConsecutiveRetryLevels { get; set; }
         public int RetryTrackingStrategy { get; set; }
+        public int DailyIndex { get; set; }
+        public string DailyCompletedDate { get; set; } = string.Empty;
+        public string MaxDailyDate { get; set; } = string.Empty;
+        public int DailyElapsedSeconds { get; set; }
+        public float DailyBeatPercent { get; set; }
+        public float DailyBestBeatPercent { get; set; }
+        public string DailyStartedDate { get; set; } = string.Empty;
         public string DailyFirstEasyDate { get; set; } = string.Empty;
         public Dictionary<string, object> RecentWinCountsByDay { get; set; } =
             new Dictionary<string, object>();
@@ -29,6 +36,9 @@ namespace Meowdoku.Core
         public int TodayPlayedCount { get; set; }
         public int TodayActiveSeconds { get; set; }
         public int TotalActiveSeconds { get; set; }
+        public List<int> GrtLevelD90Reported { get; set; } = new();
+        public List<string> GrtReportedEvents { get; set; } = new();
+        public long FirstOpenTimeMs { get; set; }
         public string TodayDate { get; set; } = string.Empty;
 
         public Dictionary<string, object> BankProgress { get; set; } =
@@ -41,6 +51,7 @@ namespace Meowdoku.Core
         public int ToolLocate { get; set; } = 5;
         public int ToolHint { get; set; } = 5;
         public int ToolUndo { get; set; } = 3;
+        public string LastSplashDate { get; set; } = string.Empty;
         public bool HasUsedTool { get; set; }
         public bool PropHighlightShown { get; set; }
         public string AppliedLocale { get; set; } = string.Empty;
@@ -52,6 +63,10 @@ namespace Meowdoku.Core
         public bool PatternModeOn { get; set; }
         public bool PatternEntryDotDismissed { get; set; }
         public bool PatternSwitchDotDismissed { get; set; }
+        public bool HasUsedReviveFree { get; set; }
+        public bool InterstitialUnlocked { get; set; }
+        public bool BannerUnlocked { get; set; }
+        public float LastWinBeatPercent { get; set; } = -1f;
 
         public int RetryPuzzleLevel { get; set; }
         public Dictionary<string, object> RetryPuzzleParameters { get; set; } =
@@ -68,6 +83,11 @@ namespace Meowdoku.Core
         public Vector2Int PreCatLockPosition { get; set; } = new Vector2Int(-1, -1);
 
         public List<object> RecentPuzzles { get; set; } = new List<object>();
+        public List<object> InFlightAwards { get; set; } = new List<object>();
+        public List<object> PendingRewards { get; set; } = new List<object>();
+        public List<object> RewardHistoryTimestamps { get; set; } =
+            new List<object>();
+        public int RestoredTodayCount { get; set; }
         public int SavedGameAutoMark { get; set; } = -1;
         public Dictionary<string, object> SavedAbGroups { get; set; } =
             new Dictionary<string, object>();
@@ -98,6 +118,13 @@ namespace Meowdoku.Core
                 { "consecutive_fails", ConsecutiveFails },
                 { "consecutive_retry_levels", ConsecutiveRetryLevels },
                 { "retry_tracking_strategy", RetryTrackingStrategy },
+                { "daily_index", DailyIndex },
+                { "daily_completed_date", DailyCompletedDate },
+                { "max_daily_date", MaxDailyDate },
+                { "daily_elapsed_sec", DailyElapsedSeconds },
+                { "daily_beat_percent", DailyBeatPercent },
+                { "daily_best_beat_percent", DailyBestBeatPercent },
+                { "daily_started_date", DailyStartedDate },
                 { "daily_first_easy_date", DailyFirstEasyDate },
                 { "recent_win_counts_by_day", RecentWinCountsByDay },
                 { "session_count", SessionCount },
@@ -107,6 +134,9 @@ namespace Meowdoku.Core
                 { "today_played_count", TodayPlayedCount },
                 { "today_active_sec", TodayActiveSeconds },
                 { "total_active_sec", TotalActiveSeconds },
+                { "grt_level_d90_reported", ToObjects(GrtLevelD90Reported) },
+                { "grt_reported_events", ToObjects(GrtReportedEvents) },
+                { "first_open_time_ms", FirstOpenTimeMs },
                 { "today_date", TodayDate },
                 { "bank_progress", BankProgress },
                 { "main_bank_progress", MainBankProgress },
@@ -114,6 +144,7 @@ namespace Meowdoku.Core
                 { "tool_locate", ToolLocate },
                 { "tool_hint", ToolHint },
                 { "tool_undo", ToolUndo },
+                { "last_splash_date", LastSplashDate },
                 { "has_used_tool", HasUsedTool },
                 { "prop_highlight_shown", PropHighlightShown },
                 { "apply_locale", AppliedLocale },
@@ -125,6 +156,10 @@ namespace Meowdoku.Core
                 { "pattern_mode_on", PatternModeOn },
                 { "pattern_entry_dot_dismissed", PatternEntryDotDismissed },
                 { "pattern_switch_dot_dismissed", PatternSwitchDotDismissed },
+                { "has_used_revive_free", HasUsedReviveFree },
+                { "interstitial_unlocked", InterstitialUnlocked },
+                { "banner_unlocked", BannerUnlocked },
+                { "last_win_beat_percent", LastWinBeatPercent },
                 { "retry_puzzle_level", RetryPuzzleLevel },
                 { "retry_puzzle_params", RetryPuzzleParameters },
                 { "pre_cat_fail_lv", PreCatFailLevel },
@@ -144,6 +179,10 @@ namespace Meowdoku.Core
                     }
                 },
                 { "recent_puzzles", RecentPuzzles },
+                { "in_flight_awards", InFlightAwards },
+                { "pending_rewards", PendingRewards },
+                { "reward_history_ts", RewardHistoryTimestamps },
+                { "restored_today_count", RestoredTodayCount },
                 { "endgame_snapshot", new Dictionary<string, object>() },
                 { "saved_game_auto_mark", SavedGameAutoMark },
                 { "saved_ab_groups", SavedAbGroups },
@@ -212,6 +251,25 @@ namespace Meowdoku.Core
                 data.ConsecutiveFails = Int(progress, "consecutive_fails", 0);
                 data.ConsecutiveRetryLevels = Int(progress, "consecutive_retry_levels", 0);
                 data.RetryTrackingStrategy = Int(progress, "retry_tracking_strategy", 0);
+                data.DailyIndex = Int(progress, "daily_index", 0);
+                data.DailyCompletedDate = String(
+                    progress,
+                    "daily_completed_date",
+                    string.Empty);
+                data.MaxDailyDate = String(
+                    progress,
+                    "max_daily_date",
+                    string.Empty);
+                data.DailyElapsedSeconds = Int(progress, "daily_elapsed_sec", 0);
+                data.DailyBeatPercent = Float(progress, "daily_beat_percent", 0f);
+                data.DailyBestBeatPercent = Float(
+                    progress,
+                    "daily_best_beat_percent",
+                    0f);
+                data.DailyStartedDate = String(
+                    progress,
+                    "daily_started_date",
+                    string.Empty);
                 data.DailyFirstEasyDate = String(progress, "daily_first_easy_date", string.Empty);
                 data.RecentWinCountsByDay = Dictionary(progress, "recent_win_counts_by_day");
                 data.SessionCount = Int(progress, "session_count", 0);
@@ -221,6 +279,14 @@ namespace Meowdoku.Core
                 data.TodayPlayedCount = Int(progress, "today_played_count", 0);
                 data.TodayActiveSeconds = Int(progress, "today_active_sec", 0);
                 data.TotalActiveSeconds = Int(progress, "total_active_sec", 0);
+                data.GrtLevelD90Reported =
+                    IntList(progress, "grt_level_d90_reported");
+                data.GrtReportedEvents =
+                    StringList(progress, "grt_reported_events");
+                data.FirstOpenTimeMs = Long(
+                    progress,
+                    "first_open_time_ms",
+                    0L);
                 data.TodayDate = String(progress, "today_date", string.Empty);
                 data.BankProgress = Dictionary(progress, "bank_progress");
                 data.MainBankProgress = Dictionary(progress, "main_bank_progress");
@@ -228,6 +294,10 @@ namespace Meowdoku.Core
                 data.ToolLocate = Int(progress, "tool_locate", 5);
                 data.ToolHint = Int(progress, "tool_hint", 5);
                 data.ToolUndo = Int(progress, "tool_undo", 3);
+                data.LastSplashDate = String(
+                    progress,
+                    "last_splash_date",
+                    string.Empty);
                 data.HasUsedTool = Bool(progress, "has_used_tool", false);
                 data.PropHighlightShown = Bool(progress, "prop_highlight_shown", false);
                 data.AppliedLocale = String(progress, "apply_locale", string.Empty);
@@ -245,6 +315,22 @@ namespace Meowdoku.Core
                     progress,
                     "pattern_switch_dot_dismissed",
                     false);
+                data.HasUsedReviveFree = Bool(
+                    progress,
+                    "has_used_revive_free",
+                    false);
+                data.InterstitialUnlocked = Bool(
+                    progress,
+                    "interstitial_unlocked",
+                    false);
+                data.BannerUnlocked = Bool(
+                    progress,
+                    "banner_unlocked",
+                    false);
+                data.LastWinBeatPercent = Float(
+                    progress,
+                    "last_win_beat_percent",
+                    -1f);
                 data.RetryPuzzleLevel = Int(progress, "retry_puzzle_level", 0);
                 data.RetryPuzzleParameters = Dictionary(progress, "retry_puzzle_params");
                 data.PreCatFailLevel = Int(progress, "pre_cat_fail_lv", 0);
@@ -263,6 +349,14 @@ namespace Meowdoku.Core
                 data.PreCatLockType = String(progress, "pre_cat_lock_pre_type", "0");
                 data.PreCatLockPosition = Position(progress, "pre_cat_lock_pos");
                 data.RecentPuzzles = List(progress, "recent_puzzles");
+                data.InFlightAwards = List(progress, "in_flight_awards");
+                data.PendingRewards = List(progress, "pending_rewards");
+                data.RewardHistoryTimestamps =
+                    List(progress, "reward_history_ts");
+                data.RestoredTodayCount = Int(
+                    progress,
+                    "restored_today_count",
+                    0);
                 data.SavedGameAutoMark = Int(progress, "saved_game_auto_mark", -1);
                 data.SavedAbGroups = Dictionary(progress, "saved_ab_groups");
             }
@@ -312,11 +406,45 @@ namespace Meowdoku.Core
             }
         }
 
+        private static long Long(
+            Dictionary<string, object> values,
+            string key,
+            long fallback)
+        {
+            if (!values.TryGetValue(key, out object value) || value == null)
+                return fallback;
+            try { return Convert.ToInt64(value); }
+            catch (Exception exception) when (
+                exception is FormatException ||
+                exception is InvalidCastException ||
+                exception is OverflowException)
+            {
+                return fallback;
+            }
+        }
+
         private static bool Bool(Dictionary<string, object> values, string key, bool fallback)
         {
             return values.TryGetValue(key, out object value) && value is bool result
                 ? result
                 : fallback;
+        }
+
+        private static float Float(
+            Dictionary<string, object> values,
+            string key,
+            float fallback)
+        {
+            if (!values.TryGetValue(key, out object value) || value == null)
+                return fallback;
+            try { return Convert.ToSingle(value); }
+            catch (Exception exception) when (
+                exception is FormatException ||
+                exception is InvalidCastException ||
+                exception is OverflowException)
+            {
+                return fallback;
+            }
         }
 
         private static string String(
@@ -344,6 +472,42 @@ namespace Meowdoku.Core
             return values.TryGetValue(key, out object value) && value is List<object> result
                 ? result
                 : new List<object>();
+        }
+
+        private static List<int> IntList(
+            Dictionary<string, object> values,
+            string key)
+        {
+            var result = new List<int>();
+            List<object> source = List(values, key);
+            for (int index = 0; index < source.Count; index++)
+            {
+                try { result.Add(Convert.ToInt32(source[index])); }
+                catch (Exception) { }
+            }
+            return result;
+        }
+
+        private static List<string> StringList(
+            Dictionary<string, object> values,
+            string key)
+        {
+            var result = new List<string>();
+            List<object> source = List(values, key);
+            for (int index = 0; index < source.Count; index++)
+                if (source[index] is string value &&
+                    !string.IsNullOrEmpty(value))
+                    result.Add(value);
+            return result;
+        }
+
+        private static List<object> ToObjects<T>(IReadOnlyList<T> values)
+        {
+            var result = new List<object>();
+            if (values == null) return result;
+            for (int index = 0; index < values.Count; index++)
+                result.Add(values[index]);
+            return result;
         }
 
         private static Vector2Int Position(Dictionary<string, object> values, string key)

@@ -49,6 +49,17 @@ namespace Meowdoku.Gameplay
             if (isActiveAndEnabled) Apply();
         }
 
+        public void SetCornerRadii(Vector4 radii)
+        {
+            cornerRadii = new Vector4(
+                Mathf.Max(0f, radii.x),
+                Mathf.Max(0f, radii.y),
+                Mathf.Max(0f, radii.z),
+                Mathf.Max(0f, radii.w));
+            usePerCornerRadii = true;
+            if (isActiveAndEnabled) Apply();
+        }
+
         private void Apply()
         {
             if (target == null) target = GetComponent<Image>();

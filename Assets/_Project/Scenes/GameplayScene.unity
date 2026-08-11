@@ -7529,6 +7529,7 @@ MonoBehaviour:
   gameplayFeedbackPresenter: {fileID: 432376617}
   gameplayLifeHudPresenter: {fileID: 333477789}
   startingLevel: 1
+  startAutomatically: 1
 --- !u!4 &512189442
 Transform:
   m_ObjectHideFlags: 0

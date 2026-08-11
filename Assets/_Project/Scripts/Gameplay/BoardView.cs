@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -56,9 +57,19 @@ namespace Meowdoku.Gameplay
         private PointerEventData _rawRaycastEventData;
         private EventSystem _rawRaycastEventSystem;
         private readonly List<RaycastResult> _rawRaycastResults = new List<RaycastResult>(8);
+        private readonly Vector3[] _worldCorners = new Vector3[4];
+        private GridLayoutGroup _grid;
+        private Transform _cachedGridContainer;
+        private Canvas _rootCanvas;
         private int _gridPadding = SourceBoardLayout.BoardPadding;
         private int _gridGap = SourceBoardLayout.CellGap;
         private int _gridSlot = SourceBoardLayout.GridSlot;
+        private const int PrewarmCellsPerFrame = 4;
+
+        private void Awake()
+        {
+            CacheHierarchyReferences();
+        }
 
         private void OnEnable()
         {
@@ -67,7 +78,13 @@ namespace Meowdoku.Gameplay
 
         private void Start()
         {
+            CacheHierarchyReferences();
             BindInputActions();
+        }
+
+        private void OnTransformParentChanged()
+        {
+            _rootCanvas = GetComponentInParent<Canvas>();
         }
 
         // Xóa sạch bàn cờ cũ nếu có (Trả các ô về Pool thay vì Destroy)
@@ -91,6 +108,41 @@ namespace Meowdoku.Gameplay
             _puzzleSize = 0;
             _regions = null;
             if (_gridOverlay != null) _gridOverlay.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Unity pool equivalent of board_view.gd prewarm_cells(). The source
+        /// builds four cells per frame before the first level is shown.
+        /// </summary>
+        public IEnumerator PrewarmCells(int puzzleSize)
+        {
+            if (puzzleSize <= 0 || _cells != null || cellPrefab == null ||
+                cellsContainer == null)
+                yield break;
+
+            int targetCount = puzzleSize * puzzleSize;
+            int builtThisRun = 0;
+            while (_cellPool.Count < targetCount)
+            {
+                // Showing the page can start SetupBoard while startup prewarm
+                // is yielding. Stop immediately so both paths never build.
+                if (_cells != null) yield break;
+
+                int index = _cellPool.Count;
+                CellView cell = Instantiate(
+                    cellPrefab,
+                    cellsContainer,
+                    false).GetComponent<CellView>();
+                if (cell == null) yield break;
+                cell.name = $"Cell_{index / puzzleSize}_{index % puzzleSize}";
+                cell.PrepareForUse(index / puzzleSize, index % puzzleSize);
+                cell.ReleaseToPool();
+                _cellPool.Enqueue(cell);
+                builtThisRun++;
+
+                if (builtThisRun % PrewarmCellsPerFrame == 0)
+                    yield return null;
+            }
         }
 
         // Khởi tạo bàn cờ mới dựa trên kích thước và dữ liệu bản đồ
@@ -556,10 +608,30 @@ namespace Meowdoku.Gameplay
 
         private Camera ResolveBoardEventCamera()
         {
-            Canvas canvas = GetComponentInParent<Canvas>();
-            return canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
-                ? canvas.worldCamera
+            if (_rootCanvas == null)
+                _rootCanvas = GetComponentInParent<Canvas>();
+            return _rootCanvas != null &&
+                   _rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? _rootCanvas.worldCamera
                 : null;
+        }
+
+        private void CacheHierarchyReferences()
+        {
+            _rootCanvas = GetComponentInParent<Canvas>();
+            CacheGridReference();
+        }
+
+        private GridLayoutGroup CacheGridReference()
+        {
+            if (_cachedGridContainer == cellsContainer && _grid != null)
+                return _grid;
+
+            _cachedGridContainer = cellsContainer;
+            _grid = cellsContainer != null
+                ? cellsContainer.GetComponent<GridLayoutGroup>()
+                : null;
+            return _grid;
         }
 
         private void CancelActiveGesture()
@@ -636,11 +708,12 @@ namespace Meowdoku.Gameplay
             CellView cell = _cells[row, column];
             RectTransform cellRect = cell != null ? cell.transform as RectTransform : null;
             if (cellRect == null) return false;
-            Vector3[] corners = new Vector3[4];
-            cellRect.GetWorldCorners(corners);
+            cellRect.GetWorldCorners(_worldCorners);
             Camera camera = ResolveBoardEventCamera();
-            Vector2 screenMin = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
-            Vector2 screenMax = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+            Vector2 screenMin = RectTransformUtility.WorldToScreenPoint(
+                camera, _worldCorners[0]);
+            Vector2 screenMax = RectTransformUtility.WorldToScreenPoint(
+                camera, _worldCorners[2]);
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     targetSpace, screenMin, camera, out Vector2 localMin) ||
                 !RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -669,11 +742,12 @@ namespace Meowdoku.Gameplay
             top = bottom = 0f;
             RectTransform boardRect = cellsContainer as RectTransform;
             if (targetSpace == null || boardRect == null) return false;
-            Vector3[] corners = new Vector3[4];
-            boardRect.GetWorldCorners(corners);
+            boardRect.GetWorldCorners(_worldCorners);
             Camera camera = ResolveBoardEventCamera();
-            Vector2 bottomScreen = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
-            Vector2 topScreen = RectTransformUtility.WorldToScreenPoint(camera, corners[1]);
+            Vector2 bottomScreen = RectTransformUtility.WorldToScreenPoint(
+                camera, _worldCorners[0]);
+            Vector2 topScreen = RectTransformUtility.WorldToScreenPoint(
+                camera, _worldCorners[1]);
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     targetSpace, bottomScreen, camera, out Vector2 bottomLocal) ||
                 !RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -702,9 +776,10 @@ namespace Meowdoku.Gameplay
                 out anchoredPosition);
         }
 
-        private GridLayoutGroup Grid => cellsContainer != null
-            ? cellsContainer.GetComponent<GridLayoutGroup>()
-            : null;
+        private GridLayoutGroup Grid =>
+            _cachedGridContainer == cellsContainer && _grid != null
+                ? _grid
+                : CacheGridReference();
 
         private bool TryScreenPointToBoardPosition(
             Vector2 screenPosition,

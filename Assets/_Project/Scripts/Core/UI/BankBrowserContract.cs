@@ -360,6 +360,60 @@ namespace Meowdoku.Core.UI
                 out request);
         }
 
+        public static bool TryCreateNextLaunch(
+            LevelEntry current,
+            out BankLaunchRequest request)
+        {
+            request = null;
+            if (current == null || current.BankTotal <= 0) return false;
+
+            BankPoolKind pool;
+            if (current.BankLk)
+                pool = current.BankLkModified
+                    ? BankPoolKind.LkModified
+                    : BankPoolKind.Lk;
+            else if (current.BankSp)
+                pool = BankPoolKind.Special;
+            else if (current.BankLkStyle)
+                pool = BankPoolKind.LkStyle;
+            else if (current.BankGc)
+                pool = BankPoolKind.Gc;
+            else
+                pool = BankPoolKind.Regular;
+
+            int nextOneBased = current.BankIndex % current.BankTotal + 1;
+            if (!TryCreateLaunch(
+                pool,
+                nextOneBased - 1,
+                current.Size,
+                current.BankRank > 0 ? current.BankRank : current.Rank,
+                current.BankTier ?? string.Empty,
+                out BankLaunchRequest next))
+                return false;
+
+            var parameters = new Dictionary<string, object>(next.Parameters);
+            parameters.Remove("from_bank_browser");
+            request = new BankLaunchRequest(
+                next.Pool,
+                next.Index,
+                next.Total,
+                parameters);
+            return true;
+        }
+
+        public static string NextLaunchLabel(BankLaunchRequest request)
+        {
+            if (request == null) return string.Empty;
+            IReadOnlyDictionary<string, object> parameters = request.Parameters;
+            int size = ReadInt(parameters, "bank_size", DefaultSize);
+            int rank = ReadInt(parameters, "bank_rank", 1);
+            int index = ReadInt(parameters, "bank_index", request.Index);
+            string dimensions = $"{size}\u00D7{size}";
+            return ReadBool(parameters, "bank_sp")
+                ? $"SP  {dimensions}  #{index}"
+                : $"{dimensions}  R{rank}  #{index}";
+        }
+
         public static bool TryCreateLaunch(
             BankPoolKind pool,
             IReadOnlyList<LevelEntry> levels,
@@ -459,7 +513,7 @@ namespace Meowdoku.Core.UI
             int rank,
             int index,
             int total,
-            int seed)
+            long seed)
         {
             return new Dictionary<string, object>(StringComparer.Ordinal)
             {

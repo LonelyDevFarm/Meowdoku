@@ -2,7 +2,12 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Meowdoku.Core;
+using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
+using Meowdoku.Core.Daily;
+using Meowdoku.Core.Rank;
+using Meowdoku.Core.Tracking;
+using Meowdoku.Core.UI;
 using Meowdoku.Gameplay.Input;
 using Meowdoku.Services;
 
@@ -14,6 +19,9 @@ namespace Meowdoku.Gameplay
         public event Func<GameToolKind, bool> IdleToolHintPlayRequested;
         public event Action<GameToolKind> IdleToolHintStopRequested;
         public event Action<MainGameTransitionData> GameTransitioned;
+        public event Action<GameplayTrackingStartData> GameTrackingStarted;
+        public event Action<GameplaySessionMode, bool>
+            SessionPresentationChanged;
         public event Action<GameplayFeedbackData> GameplayFeedbackRequested;
         public event Action<IReadOnlyList<GameplayFeedbackData>> GameplayFeedbackBatchRequested;
         public event Action<GameplayHintPresentationData> HintPresentationRequested;
@@ -28,6 +36,7 @@ namespace Meowdoku.Gameplay
 
         [Header("Level")]
         [Min(1)] public int startingLevel = 1;
+        [SerializeField] private bool startAutomatically = true;
 
         private GameSession _session;
         private SwipeGuardRecognizer _gestureRecognizer;
@@ -44,7 +53,13 @@ namespace Meowdoku.Gameplay
         private MarkSoundConfig _markSoundConfig;
         private ToolResourceCoordinator _toolResources;
         private IdleToolHintController _idleToolHint;
-        private MainGameTransitionCoordinator _transitions;
+        private IGameTransitionCoordinator _transitions;
+        private GameplaySessionMode _sessionMode = GameplaySessionMode.Unspecified;
+        private DailyMetaRuntime _dailyMetaRuntime;
+        private RankActivityRuntime _rankActivityRuntime;
+        private TrackerService _tracker;
+        private AdService _adService;
+        private AbConfigRuntime _abConfigRuntime;
         private MainGameTransitionData _lastTransition;
         private GameSessionSnapshotContext _snapshotContext;
         private GameStateService _gameState;
@@ -60,7 +75,18 @@ namespace Meowdoku.Gameplay
         private double _winSettlementDeadline;
         private bool _winSettlementPending;
         private bool _dragInProgress;
+        private int _gestureHistoryCount = -1;
         private Vector2 _lastDragPosition;
+        private bool _initialized;
+        private bool _managedByPage;
+        private bool _pageOpen;
+        private double _elapsedPlaySeconds;
+        private double _activePlayStartedAt;
+        private int _toolsUsed;
+        private GameplayTrackingStartData _trackingStartData;
+        private bool _dailyClockPausedForAd;
+        private bool _entryAdPending;
+        private bool _gameplayEntryStarted;
         private const double SnapshotDebounceSeconds = 0.5;
 
         public QueendokuCore.Rule LastRuleViolation => _session != null
@@ -71,9 +97,189 @@ namespace Meowdoku.Gameplay
         public GameSessionState SessionState => _session != null
             ? _session.State
             : GameSessionState.Loading;
+        public GameplaySessionMode SessionMode => _sessionMode;
+        public bool IsDailySession => _sessionMode == GameplaySessionMode.Daily;
+        public int CurrentPuzzleSize => _currentPuzzleSize;
+        public int CurrentLevelNumber => _snapshotContext?.Level ?? 0;
+
+#if UNITY_INCLUDE_TESTS
+        internal int LivesForTests => _session?.Lives ?? 0;
+        internal int BankIndexForTests => _snapshotContext?.BankIndex ?? 0;
+
+        internal int SolutionColumnForTests(int row)
+        {
+            return _currentSolutionColumns != null &&
+                   row >= 0 && row < _currentSolutionColumns.Length
+                ? _currentSolutionColumns[row]
+                : -1;
+        }
+
+        internal SessionActionResult DoubleTapForTests(int row, int column)
+        {
+            return ConsumeDoubleTap(row, column);
+        }
+#endif
+        public float ElapsedPlaySeconds => (float)Math.Max(
+            0.0,
+            CurrentGameplayElapsed());
+
+        public void BindDailyMetaRuntime(DailyMetaRuntime runtime)
+        {
+            _dailyMetaRuntime = runtime;
+        }
+
+        public void BindRankActivityRuntime(RankActivityRuntime runtime)
+        {
+            _rankActivityRuntime = runtime;
+        }
+
+        public void BindTracker(TrackerService tracker)
+        {
+            _tracker = tracker;
+        }
+
+        public void BindAdService(AdService service)
+        {
+            if (_adService == service) return;
+            if (_adService != null)
+            {
+                _adService.AdShown -= HandleAdShown;
+                _adService.AdClosed -= HandleAdClosed;
+                _adService.AdError -= HandleAdError;
+            }
+            _adService = service;
+            if (_adService != null)
+            {
+                _adService.AdShown += HandleAdShown;
+                _adService.AdClosed += HandleAdClosed;
+                _adService.AdError += HandleAdError;
+            }
+        }
+
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _abConfigRuntime = runtime;
+        }
+
+        public bool GrantRewardedTool(GameToolKind kind)
+        {
+            if (_dailyMetaRuntime == null || _gameState == null) return false;
+            string propName = kind == GameToolKind.Locate
+                ? TrackerCatalog.Prop.Locate
+                : TrackerCatalog.Prop.Hint;
+            string reason = kind == GameToolKind.Locate
+                ? TrackerCatalog.PropSource.LocateRewardAd
+                : TrackerCatalog.PropSource.HintRewardAd;
+            _gameState.IncrementGameTotalStat(
+                CurrentTrackingGameType(),
+                "rv_count");
+            return _dailyMetaRuntime.Awards.Dispatch(
+                new[] { AwardItem.Tool(propName, 1) },
+                AwardDisplayType.Direct,
+                reason) >= 0;
+        }
 
         private void Start()
         {
+            InitializeIfNeeded();
+            if (startAutomatically && !_managedByPage)
+            {
+                LoadLevel(startingLevel);
+                _pageOpen = _session != null;
+            }
+        }
+
+        public void ConfigureForPageLifecycle()
+        {
+            _managedByPage = true;
+            startAutomatically = false;
+            InitializeIfNeeded();
+        }
+
+        public bool OpenPage(
+            IReadOnlyDictionary<string, object> parameters)
+        {
+            InitializeIfNeeded();
+            if (!_initialized) return false;
+
+            bool dailyEntry = parameters != null &&
+                (ReadParameterBool(parameters, "daily_mode") ||
+                 ReadParameterBool(parameters, "is_daily"));
+            bool directEntry = parameters != null &&
+                (ReadParameterBool(parameters, "bank_mode") ||
+                 parameters.ContainsKey("prebuilt_regions") ||
+                 parameters.ContainsKey("prebuilt_solution"));
+            int fallbackLevel = GameStateRuntime.Current.CurrentLevel;
+            int level = ReadParameterInt(
+                parameters,
+                "level_index",
+                fallbackLevel);
+            IDictionary<string, object> directParameters = null;
+            GameplaySessionMode mode = GameplaySessionMode.Main;
+            if (dailyEntry)
+            {
+                mode = GameplaySessionMode.Daily;
+                if (directEntry)
+                {
+                    directParameters = new Dictionary<string, object>(parameters);
+                }
+                else
+                {
+                    DailyGameLaunchRequest launch = DailyPuzzleSelector.CreateLaunch(
+                        fallbackLevel,
+                        DateTime.Now);
+                    if (launch == null)
+                    {
+                        Debug.LogError("Cannot load today's Daily puzzle from the original banks.");
+                        return false;
+                    }
+                    directParameters = new Dictionary<string, object>(launch.Parameters);
+                }
+                level = 0;
+            }
+            else if (directEntry)
+            {
+                mode = GameplaySessionMode.Bank;
+                level = ReadParameterInt(parameters, "retry_level", 0);
+                directParameters = new Dictionary<string, object>(parameters);
+            }
+
+            LoadLevel(
+                level,
+                directParameters,
+                sessionMode: mode,
+                trackingStatus: ReadParameterString(
+                    parameters,
+                    "_tracker_status",
+                    string.Empty));
+            _pageOpen = _session != null;
+            return _pageOpen;
+        }
+
+        public void ClosePage()
+        {
+            if (!_pageOpen) return;
+            _idleToolHint?.Reset();
+            _session?.CancelHint();
+            HintPresentationClosed?.Invoke();
+            if (_snapshotContext != null && _snapshotContext.Level > 0)
+                FlushSnapshot();
+            if (_session != null &&
+                _session.State != GameSessionState.Leaving)
+                _session.BeginLeaving();
+            GameStateRuntime.FlushPendingWrites();
+            _pageOpen = false;
+            _entryAdPending = false;
+        }
+
+        private void InitializeIfNeeded()
+        {
+            if (_initialized) return;
+            if (boardView == null)
+            {
+                Debug.LogError("GameplayManager requires a BoardView reference.");
+                return;
+            }
             _doubleTapProtectConfig = new DoubleTapProtectConfig();
             _swipeProtectConfig = new SwipeProtectConfig();
             _regionColorConfig = new RegionColorConfig();
@@ -96,19 +302,53 @@ namespace Meowdoku.Gameplay
             boardView.OnGesturePointerStarted += HandleGestureStarted;
             boardView.OnGesturePointerMoved += HandleGestureMoved;
             boardView.OnGestureEnded += HandleGestureEnded;
-            LoadLevel(startingLevel);
+            _initialized = true;
         }
 
         private void OnDestroy()
         {
+            BindAdService(null);
             _idleToolHint?.Reset();
             FlushSnapshot();
             GameStateRuntime.FlushPendingWrites();
             if (_session != null) _session.BeginLeaving();
-            if (boardView == null) return;
+            if (!_initialized || boardView == null) return;
             boardView.OnGesturePointerStarted -= HandleGestureStarted;
             boardView.OnGesturePointerMoved -= HandleGestureMoved;
             boardView.OnGestureEnded -= HandleGestureEnded;
+        }
+
+        private void HandleAdShown(string placementId)
+        {
+            soundService?.NotifyAdShown(placementId);
+            if (!IsDailySession ||
+                placementId != TrackerCatalog.Placement.Reward ||
+                _activePlayStartedAt <= 0.0)
+                return;
+            StopGameplayClock();
+            _dailyClockPausedForAd = true;
+        }
+
+        private void HandleAdClosed(string placementId)
+        {
+            soundService?.NotifyAdClosed(placementId);
+            if (placementId == TrackerCatalog.Placement.Interstitial)
+                FinishPendingEntryAd();
+            if (!_dailyClockPausedForAd ||
+                placementId != TrackerCatalog.Placement.Reward)
+                return;
+            _dailyClockPausedForAd = false;
+            if (_pageOpen && _session != null &&
+                _session.State != GameSessionState.Won &&
+                _session.State != GameSessionState.Failed &&
+                _session.State != GameSessionState.Leaving)
+                StartGameplayClock();
+        }
+
+        private void HandleAdError(string placementId, string message)
+        {
+            if (placementId == TrackerCatalog.Placement.Interstitial)
+                FinishPendingEntryAd();
         }
 
         private void OnDisable()
@@ -119,7 +359,9 @@ namespace Meowdoku.Gameplay
         private void LoadLevel(
             int levelNumber,
             IDictionary<string, object> directRetryParameters = null,
-            int restartCount = 0)
+            int restartCount = 0,
+            GameplaySessionMode sessionMode = GameplaySessionMode.Unspecified,
+            string trackingStatus = "")
         {
             _idleToolHint?.Reset();
             _session?.CancelHint();
@@ -127,19 +369,46 @@ namespace Meowdoku.Gameplay
             _activeHint = null;
             _snapshotDirty = false;
             _dragInProgress = false;
+            _gestureHistoryCount = -1;
             _wrongResolutionDeadline = 0;
             _hintCooldownDeadline = 0;
             _winSettlementDeadline = 0;
             _winSettlementPending = false;
             _inputLocked = true;
+            _entryAdPending = false;
+            _gameplayEntryStarted = false;
+            _elapsedPlaySeconds = 0.0;
+            _activePlayStartedAt = 0.0;
+            _toolsUsed = 0;
+
+            if (sessionMode == GameplaySessionMode.Unspecified)
+                sessionMode = directRetryParameters == null
+                    ? GameplaySessionMode.Main
+                    : GameplaySessionMode.Bank;
+            _sessionMode = sessionMode;
 
             GameStateService state = GameStateRuntime.Current;
             _gameState = state;
             EnsureToolFlow(state);
+            bool dailyAlreadyStarted = false;
+            if (sessionMode == GameplaySessionMode.Daily)
+            {
+                string date = ReadParameterString(
+                    directRetryParameters,
+                    "daily_date",
+                    DailyEntryStateContract.DateKey(DateTime.Now));
+                dailyAlreadyStarted = string.Equals(
+                    state.DailyStartedDate,
+                    date,
+                    StringComparison.Ordinal);
+                if (!dailyAlreadyStarted)
+                    state.SetDailyStartedDate(date);
+            }
             GameSessionSnapshotRestore snapshotRestore = null;
             IDictionary<string, object> retryParameters = null;
             bool isDirectRetry = directRetryParameters != null;
-            if (!isDirectRetry && _dailyFirstDifficultyConfig.IsEnabled())
+            if (sessionMode == GameplaySessionMode.Main &&
+                !isDirectRetry && _dailyFirstDifficultyConfig.IsEnabled())
             {
                 state.EvaluateDailyFirstEasy();
                 if (state.IsDailyFirstEasyAvailable &&
@@ -147,7 +416,8 @@ namespace Meowdoku.Gameplay
                     state.ConsumeDailyFirstEasy();
             }
 
-            if (directRetryParameters == null)
+            if (sessionMode == GameplaySessionMode.Main &&
+                directRetryParameters == null)
             {
                 Dictionary<string, object> persistedSnapshot = state.GetEndgameSnapshot();
                 if (persistedSnapshot.Count > 0 &&
@@ -165,10 +435,12 @@ namespace Meowdoku.Gameplay
             LevelEntry entry = snapshotRestore?.Entry;
             if (entry == null)
             {
-                retryParameters = directRetryParameters ?? state.GetRetryPuzzle(levelNumber);
+                retryParameters = sessionMode == GameplaySessionMode.Main
+                    ? directRetryParameters ?? state.GetRetryPuzzle(levelNumber)
+                    : directRetryParameters;
                 entry = TryReadCachedRetry(retryParameters);
             }
-            if (entry == null)
+            if (entry == null && sessionMode == GameplaySessionMode.Main)
                 entry = LevelData.GetLevelEntry(levelNumber, gameState: state);
             if (entry == null)
             {
@@ -176,7 +448,8 @@ namespace Meowdoku.Gameplay
                 _inputLocked = true;
                 return;
             }
-            if (!isDirectRetry &&
+            if (sessionMode == GameplaySessionMode.Main &&
+                !isDirectRetry &&
                 _dailyFirstDifficultyConfig.IsEnabled() &&
                 state.IsDailyFirstEasyAvailable)
                 state.ConsumeDailyFirstEasy();
@@ -194,7 +467,7 @@ namespace Meowdoku.Gameplay
                 entry.Rank,
                 _scoreEncourageConfig,
                 sessionRestore);
-            _inputLocked = false;
+            _inputLocked = true;
             _gestureRecognizer.Reset();
 
             int[] colorMap = entry.ColorMap != null && entry.ColorMap.Length == _currentPuzzleSize
@@ -217,6 +490,18 @@ namespace Meowdoku.Gameplay
                 Level = levelNumber,
                 BankIndex = entry.BankIndex > 0 ? entry.BankIndex : levelNumber,
                 Entry = entry,
+                Mode = sessionMode,
+                DailyDate = ReadParameterString(
+                    directRetryParameters,
+                    "daily_date",
+                    string.Empty),
+                DailyIndex = ReadParameterInt(
+                    directRetryParameters,
+                    "daily_index",
+                    0),
+                LaunchParameters = directRetryParameters != null
+                    ? new Dictionary<string, object>(directRetryParameters)
+                    : new Dictionary<string, object>(),
                 PreType = snapshotRestore?.PreType ?? PreCatDecider.PreTypeNone
             };
             if (snapshotRestore != null)
@@ -228,33 +513,137 @@ namespace Meowdoku.Gameplay
             else
             {
                 ApplyInitialPrefills(retryParameters);
-                ResolvePreCat(levelNumber, entry, state);
-                bool hasRetry = retryParameters != null && retryParameters.Count > 0;
-                if (!hasRetry)
+                if (sessionMode == GameplaySessionMode.Main)
                 {
-                    state.SetRetryPuzzle(
-                        levelNumber,
-                        GameRetryParameters.BuildInitial(_snapshotContext));
-                    state.ClearCurrentLevelDirty();
-                }
-                else if (directRetryParameters == null)
-                {
-                    state.ClearCurrentLevelDirty();
+                    ResolvePreCat(levelNumber, entry, state);
+                    bool hasRetry = retryParameters != null && retryParameters.Count > 0;
+                    if (!hasRetry)
+                    {
+                        state.SetRetryPuzzle(
+                            levelNumber,
+                            GameRetryParameters.BuildInitial(_snapshotContext));
+                        state.ClearCurrentLevelDirty();
+                    }
+                    else if (directRetryParameters == null)
+                    {
+                        state.ClearCurrentLevelDirty();
+                    }
                 }
             }
-            _transitions = new MainGameTransitionCoordinator(state);
+            _transitions = sessionMode == GameplaySessionMode.Daily
+                ? new DailyGameTransitionCoordinator(state)
+                : new MainGameTransitionCoordinator(state);
             _lastTransition = null;
             gameplayFeedbackPresenter?.ResetPresenter(_session.Score.Score);
             gameplayLifeHudPresenter?.ResetLives(_session.Lives);
             PublishHudState();
-            _session.FinishEntering();
-            soundService?.Play(SoundKind.BoardEnter);
-            boardView.PlayGridIntro();
+            SessionPresentationChanged?.Invoke(
+                sessionMode,
+                ReadParameterBool(
+                    _snapshotContext.LaunchParameters,
+                    "from_bank_browser"));
             _gestureRecognizer.ConfigureBoard(
                 boardView.PuzzleSize,
                 boardView.GridSlotPixels,
                 boardView.GridPaddingPixels,
                 boardView.CellPixels);
+            _rankActivityRuntime?.Manager?.NotifyLevelStart();
+            string resolvedTrackingStatus = ResolveTrackingStatus(
+                trackingStatus,
+                sessionMode,
+                restartCount,
+                dailyAlreadyStarted,
+                snapshotRestore != null,
+                retryParameters,
+                directRetryParameters);
+            _trackingStartData = GameplayTrackingContract.BuildStart(
+                _snapshotContext,
+                resolvedTrackingStatus,
+                state.CurrentLevel,
+                LevelData.IsHardLevel(state.CurrentLevel),
+                _rankActivityRuntime?.Manager?.IsRunning == true &&
+                _rankActivityRuntime.Manager.IsJoined);
+            GameTrackingStarted?.Invoke(_trackingStartData);
+            if (!TryStartEntryInterstitial(
+                    resolvedTrackingStatus,
+                    snapshotRestore != null))
+                BeginGameplayEntry();
+        }
+
+        private bool TryStartEntryInterstitial(
+            string trackingStatus,
+            bool endgameRestore)
+        {
+            if (_adService == null || _gameState == null) return false;
+            string position = trackingStatus == TrackerCatalog.GameStatus.Restart
+                ? TrackerCatalog.AdPosition.NormalRestart
+                : trackingStatus == TrackerCatalog.GameStatus.Continue
+                    ? TrackerCatalog.AdPosition.NormalContinue
+                    : TrackerCatalog.AdPosition.NormalStart;
+            _entryAdPending = true;
+            var policy = new InterstitialPolicy(
+                _gameState,
+                _adService,
+                level: _abConfigRuntime?.Ads.InterUnlockLevel,
+                session: _abConfigRuntime?.Ads.InterUnlockSession,
+                memory: _abConfigRuntime?.Ads.InterUnlockMemory,
+                cooldown: _abConfigRuntime?.Ads.InterCooldown,
+                protection: _abConfigRuntime?.Ads.InterExtraProtection);
+            LivingDaysSegment segment =
+                _abConfigRuntime?.CurrentLivingDaysSegment() ??
+                new LivingDaysSegment(-1, 0, -1);
+            InterstitialPolicyResult result = policy.TryShow(
+                position,
+                new InterstitialContext(
+                    endgameRestore,
+                    SystemInfo.systemMemorySize,
+                    _adService.SessionActiveSeconds,
+                    _abConfigRuntime?.FirstOpenUnixMilliseconds ?? 0,
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    segment.Index,
+                    segment.Count));
+            if (result.Shown) return true;
+            _entryAdPending = false;
+            return false;
+        }
+
+        private void FinishPendingEntryAd()
+        {
+            if (!_entryAdPending) return;
+            _entryAdPending = false;
+            BeginGameplayEntry();
+        }
+
+        private void BeginGameplayEntry()
+        {
+            if (_gameplayEntryStarted || _session == null) return;
+            _gameplayEntryStarted = true;
+            _inputLocked = false;
+            _session.FinishEntering();
+            StartGameplayClock();
+            soundService?.Play(SoundKind.BoardEnter);
+            boardView?.PlayGridIntro();
+        }
+
+        public IReadOnlyDictionary<string, object> BuildTrackingEndParameters(
+            MainGameTransitionData transition,
+            string result,
+            TrackerService tracker)
+        {
+            if (transition == null || tracker == null || _gameState == null ||
+                _trackingStartData == null)
+                return null;
+            int timeSeconds = Math.Max(0, (int)transition.ElapsedSeconds);
+            _gameState.IncrementGameTotalStat(
+                _trackingStartData.GameType,
+                "time_total",
+                timeSeconds);
+            return GameplayTrackingContract.BuildEnd(
+                _trackingStartData,
+                transition,
+                result,
+                tracker,
+                _gameState);
         }
 
         private LevelEntry TryReadCachedRetry(IDictionary<string, object> cached)
@@ -362,6 +751,108 @@ namespace Meowdoku.Gameplay
             return data.TryGetValue(key, out object value) && value != null && (bool)value;
         }
 
+        private static bool ReadParameterBool(
+            IReadOnlyDictionary<string, object> data,
+            string key)
+        {
+            if (data == null || !data.TryGetValue(key, out object value) ||
+                value == null)
+                return false;
+            try
+            {
+                return Convert.ToBoolean(value);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private static int ReadParameterInt(
+            IReadOnlyDictionary<string, object> data,
+            string key,
+            int fallback)
+        {
+            if (data == null || !data.TryGetValue(key, out object value) ||
+                value == null)
+                return fallback;
+            try
+            {
+                return Convert.ToInt32(value);
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
+        }
+
+        private static int ReadParameterInt(
+            IDictionary<string, object> data,
+            string key,
+            int fallback)
+        {
+            if (data == null || !data.TryGetValue(key, out object value) ||
+                value == null)
+                return fallback;
+            try
+            {
+                return Convert.ToInt32(value);
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
+        }
+
+        private static string ReadParameterString(
+            IReadOnlyDictionary<string, object> data,
+            string key,
+            string fallback)
+        {
+            return data != null && data.TryGetValue(key, out object value) &&
+                   value != null
+                ? value.ToString()
+                : fallback;
+        }
+
+        private static string ReadParameterString(
+            IDictionary<string, object> data,
+            string key,
+            string fallback)
+        {
+            return data != null && data.TryGetValue(key, out object value) &&
+                   value != null
+                ? value.ToString()
+                : fallback;
+        }
+
+        private static string ResolveTrackingStatus(
+            string requested,
+            GameplaySessionMode mode,
+            int restartCount,
+            bool dailyAlreadyStarted,
+            bool restoredSnapshot,
+            IDictionary<string, object> retryParameters,
+            IDictionary<string, object> directParameters)
+        {
+            if (requested == TrackerCatalog.GameStatus.New ||
+                requested == TrackerCatalog.GameStatus.Continue ||
+                requested == TrackerCatalog.GameStatus.Restart)
+                return requested;
+            if (restartCount > 0)
+                return TrackerCatalog.GameStatus.Restart;
+            if (mode == GameplaySessionMode.Daily)
+                return dailyAlreadyStarted
+                    ? TrackerCatalog.GameStatus.Continue
+                    : TrackerCatalog.GameStatus.New;
+            if (restoredSnapshot)
+                return TrackerCatalog.GameStatus.Continue;
+            if (mode == GameplaySessionMode.Main && directParameters == null &&
+                retryParameters != null && retryParameters.Count > 0)
+                return TrackerCatalog.GameStatus.Continue;
+            return TrackerCatalog.GameStatus.New;
+        }
+
         private static bool IsSolutionPosition(Vector2Int position, LevelEntry entry)
         {
             return position.x >= 0 && position.x < entry.Size &&
@@ -385,6 +876,7 @@ namespace Meowdoku.Gameplay
         {
             _idleToolHint?.Reset();
             if (!CanAcceptInput()) return;
+            _gestureHistoryCount = _session.History.Count;
             ConsumeActions(_gestureRecognizer.OnDragStart(
                 position,
                 startCell,
@@ -406,7 +898,11 @@ namespace Meowdoku.Gameplay
                 Time.unscaledTimeAsDouble >= _wrongResolutionDeadline)
             {
                 GameSessionState resolved = _session.ResolveWrongGuess();
-                if (resolved == GameSessionState.Failed) TrySettleFail();
+                if (resolved == GameSessionState.Failed)
+                {
+                    StopGameplayClock();
+                    TrySettleFail();
+                }
             }
             if (_winSettlementPending &&
                 Time.unscaledTimeAsDouble >= _winSettlementDeadline)
@@ -442,7 +938,14 @@ namespace Meowdoku.Gameplay
             _dragInProgress = false;
             if (_gestureRecognizer == null) return;
             _gestureRecognizer.OnDragEnd();
-            if (_session != null) _session.CommitCurrentStep();
+            if (_session != null)
+            {
+                _session.CommitCurrentStep();
+                if (_gestureHistoryCount >= 0 &&
+                    _session.History.Count > _gestureHistoryCount)
+                    CountBoardStep();
+            }
+            _gestureHistoryCount = -1;
         }
 
         private void ConsumeActions(IReadOnlyList<CellAction> actions)
@@ -456,25 +959,32 @@ namespace Meowdoku.Gameplay
                     continue;
                 }
 
-                ApplyCellState(
+                bool applied = ApplyCellState(
                     action.Row,
                     action.Column,
                     action.State,
                     action.PlayAnimation,
                     action.Record);
+                if (applied && action.Before == CellStateType.MARK &&
+                    action.State == CellStateType.EMPTY)
+                    _tracker?.IncrementStat("erase_count");
             }
         }
 
-        private void ConsumeDoubleTap(int row, int column)
+        private SessionActionResult ConsumeDoubleTap(int row, int column)
         {
             SessionActionResult result = _session.DoubleTap(row, column);
-            if (!result.Accepted) return;
+            if (!result.Accepted) return result;
             ApplyActionResult(result, true);
             if (result.Kind == SessionActionKind.WrongGuess)
             {
+                _gameState?.IncrementGameTotalStat(
+                    CurrentTrackingGameType(),
+                    "invalid_sign_total");
                 double delay = result.LivesAfter <= 0 ? 0.6 : 0.4;
                 _wrongResolutionDeadline = Time.unscaledTimeAsDouble + delay;
             }
+            return result;
         }
 
         [ContextMenu("Undo Last Step")]
@@ -487,6 +997,12 @@ namespace Meowdoku.Gameplay
 
         public void ClearMarks()
         {
+            if (IsEntryBlocked()) return;
+            _tracker?.TrackButtonClick(TrackerCatalog.Button.Clear);
+            _tracker?.IncrementStat("clear_used");
+            _gameState?.IncrementGameTotalStat(
+                CurrentTrackingGameType(),
+                "clear_used_total");
             if (!CanAcceptInput()) return;
             SessionActionResult result = _session.ClearMarks();
             if (!result.Accepted) return;
@@ -506,6 +1022,7 @@ namespace Meowdoku.Gameplay
         {
             action = new SessionActionResult();
             if (IsEntryBlocked()) return ToolResourceDecision.Rejected;
+            _tracker?.TrackButtonClick(TrackerCatalog.Button.Locate);
             _idleToolHint?.Reset();
             if (!CanAcceptInput() || _toolResources == null || _gameState == null)
                 return ToolResourceDecision.Rejected;
@@ -514,6 +1031,7 @@ namespace Meowdoku.Gameplay
                 GameToolKind.Locate,
                 _gameState.CurrentLevel,
                 NowMilliseconds());
+            TrackToolConsumption(GameToolKind.Locate, decision);
             if (decision == ToolResourceDecision.RewardRequired)
                 ToolRewardRequested?.Invoke(GameToolKind.Locate);
 
@@ -523,7 +1041,16 @@ namespace Meowdoku.Gameplay
             _gameState.MarkDdaToolOrReviveUsed();
             if (!IsAuthorized(decision)) return decision;
 
+            _tracker?.IncrementStat("locate_used");
+            _gameState.IncrementGameTotalStat(
+                CurrentTrackingGameType(),
+                "locate_used_total");
             action = ApplyAuthorizedLocate();
+            if (action.Accepted)
+            {
+                _toolsUsed++;
+                CountBoardStep();
+            }
             return action.Accepted ? decision : ToolResourceDecision.NoAction;
         }
 
@@ -547,6 +1074,7 @@ namespace Meowdoku.Gameplay
             request = null;
             if (IsEntryBlocked() || Time.unscaledTimeAsDouble < _hintCooldownDeadline)
                 return ToolResourceDecision.Rejected;
+            _tracker?.TrackButtonClick(TrackerCatalog.Button.Hint);
             _idleToolHint?.Reset();
             if (!CanAcceptInput() || _toolResources == null || _gameState == null)
                 return ToolResourceDecision.Rejected;
@@ -559,6 +1087,10 @@ namespace Meowdoku.Gameplay
                 ToolRewardRequested?.Invoke(GameToolKind.Hint);
             if (!IsAvailable(availability)) return availability;
 
+            _tracker?.IncrementStat("hint_used");
+            _gameState.IncrementGameTotalStat(
+                CurrentTrackingGameType(),
+                "hint_used_total");
             if (!TryRequestAuthorizedHint(allowLocateFallback, out request))
             {
                 if (request != null && request.RequiresLocateFallback)
@@ -570,6 +1102,7 @@ namespace Meowdoku.Gameplay
                 GameToolKind.Hint,
                 _gameState.CurrentLevel,
                 NowMilliseconds());
+            TrackToolConsumption(GameToolKind.Hint, consumed);
             if (!IsAuthorized(consumed))
             {
                 CancelRequestedHint();
@@ -593,9 +1126,22 @@ namespace Meowdoku.Gameplay
         public SessionActionResult ApplyRequestedHint()
         {
             if (_activeHint == null) return new SessionActionResult();
+            _tracker?.TrackButtonClick(TrackerCatalog.Button.HintApply);
+            _tracker?.IncrementStat("hint_apply_used");
             SessionHintRequest appliedRequest = _activeHint;
             SessionActionResult result = _session.ApplyHint();
-            if (result.Accepted) ApplyActionResult(result, true);
+            if (result.Accepted)
+            {
+                _toolsUsed++;
+                int hintCrossCount = 0;
+                for (int index = 0; index < result.Changes.Count; index++)
+                    if (CellState.IsCross(result.Changes[index].After))
+                        hintCrossCount++;
+                if (hintCrossCount > 0)
+                    _tracker?.IncrementStat("hint_cross_count", hintCrossCount);
+                ApplyActionResult(result, true);
+                CountBoardStep();
+            }
             string strategy = appliedRequest.Hint != null
                 ? appliedRequest.Hint.Strategy
                 : string.Empty;
@@ -612,6 +1158,23 @@ namespace Meowdoku.Gameplay
             _activeHint = null;
             if (_session != null) _session.CancelHint();
             HintPresentationClosed?.Invoke();
+        }
+
+        public void DismissRequestedHint()
+        {
+            if (_activeHint == null) return;
+            _tracker?.TrackButtonClick(TrackerCatalog.Button.HintStop);
+            _tracker?.IncrementStat("hint_stop_used");
+            CancelRequestedHint();
+        }
+
+        public void NotifyHintDetailRequested()
+        {
+            HintChainDetail chain = _activeHint?.Hint?.Chain;
+            if (chain == null || chain.Steps == null || chain.Steps.Count == 0)
+                return;
+            _tracker?.TrackButtonClick(TrackerCatalog.Button.HintDetail);
+            _tracker?.IncrementStat("hint_detail_used");
         }
 
         public SessionActionResult RunAutoComplete()
@@ -636,6 +1199,7 @@ namespace Meowdoku.Gameplay
                 _session.Lives,
                 livesToRestore >= 3);
             PublishTransition(transition);
+            StartGameplayClock();
             return true;
         }
 
@@ -643,14 +1207,21 @@ namespace Meowdoku.Gameplay
         {
             if (_session != null &&
                 _session.State == GameSessionState.Failed &&
-                _lastTransition != null &&
-                _lastTransition.Kind == MainGameTransitionKind.Failed &&
-                _lastTransition.RetryParameters.Count > 0)
+                _transitions != null &&
+                _transitions.TryRestartAfterFail(
+                    _session,
+                    _snapshotContext,
+                    out MainGameTransitionData failedRestart))
             {
-                int level = _lastTransition.Level;
-                var retry = new Dictionary<string, object>(_lastTransition.RetryParameters);
+                StopGameplayClock();
+                _rankActivityRuntime?.Manager?.NotifyLevelRestart();
+                PublishTransition(failedRestart);
                 _session.BeginLeaving();
-                LoadLevel(level, retry);
+                LoadLevel(
+                    failedRestart.Level,
+                    failedRestart.RetryParameters,
+                    failedRestart.RestartCount,
+                    _sessionMode);
                 return true;
             }
 
@@ -660,12 +1231,15 @@ namespace Meowdoku.Gameplay
                     out MainGameTransitionData transition))
                 return false;
 
+            StopGameplayClock();
+            _rankActivityRuntime?.Manager?.NotifyLevelRestart();
             PublishTransition(transition);
             _session.BeginLeaving();
             LoadLevel(
                 transition.Level,
                 transition.RetryParameters,
-                transition.RestartCount);
+                transition.RestartCount,
+                _sessionMode);
             return true;
         }
 
@@ -678,6 +1252,8 @@ namespace Meowdoku.Gameplay
                 return false;
 
             _snapshotDirty = false;
+            StopGameplayClock();
+            _rankActivityRuntime?.Manager?.NotifyLevelExit();
             PublishTransition(transition);
             _session.BeginLeaving();
             GameStateRuntime.FlushPendingWrites();
@@ -691,10 +1267,36 @@ namespace Meowdoku.Gameplay
                 _gameState == null)
                 return false;
 
-            int nextLevel = _gameState.CurrentLevel;
-            _session.BeginLeaving();
-            LoadLevel(nextLevel);
+            if (_lastTransition.IsDailySession)
+            {
+                _session.BeginLeaving();
+                LoadLevel(
+                    _gameState.CurrentLevel,
+                    sessionMode: GameplaySessionMode.Main);
+            }
+            else if (_lastTransition.IsBankSession)
+            {
+                if (!TryCreateNextBankLaunch(out BankLaunchRequest request))
+                    return false;
+                _session.BeginLeaving();
+                LoadLevel(
+                    0,
+                    new Dictionary<string, object>(request.Parameters),
+                    sessionMode: GameplaySessionMode.Bank);
+            }
+            else
+            {
+                _session.BeginLeaving();
+                LoadLevel(_gameState.CurrentLevel);
+            }
             return true;
+        }
+
+        private bool TryCreateNextBankLaunch(out BankLaunchRequest request)
+        {
+            return BankBrowserContract.TryCreateNextLaunch(
+                _snapshotContext?.Entry,
+                out request);
         }
 
         private void TrySettleFail()
@@ -703,7 +1305,10 @@ namespace Meowdoku.Gameplay
                     _session,
                     _snapshotContext,
                     out MainGameTransitionData transition))
+            {
+                _tracker?.IncrementStat("gamedie_count");
                 PublishTransition(transition);
+            }
         }
 
         private void TrySettleWin()
@@ -717,6 +1322,50 @@ namespace Meowdoku.Gameplay
 
         private void PublishTransition(MainGameTransitionData transition)
         {
+            if (transition != null)
+            {
+                transition.ElapsedSeconds = (float)Math.Max(
+                    0.0,
+                    CurrentGameplayElapsed());
+                transition.ToolsUsed = _toolsUsed;
+                bool dailyCommitted = false;
+                if (transition.IsDailySession &&
+                    transition.Kind == MainGameTransitionKind.Won &&
+                    _gameState != null)
+                {
+                    string date = string.IsNullOrEmpty(transition.DailyDate)
+                        ? DailyEntryStateContract.DateKey(DateTime.Now)
+                        : transition.DailyDate;
+                    transition.DailyDate = date;
+                    dailyCommitted = DailyWinSettlement.Commit(
+                        _gameState,
+                        transition,
+                        Math.Max(0, (int)transition.ElapsedSeconds),
+                        _snapshotContext?.Entry?.Rank ?? 4,
+                        _snapshotContext?.Entry?.Size ?? 12);
+                }
+                if (transition.Kind == MainGameTransitionKind.Won &&
+                    _rankActivityRuntime?.Manager != null)
+                {
+                    RankActivityManager rank = _rankActivityRuntime.Manager;
+                    rank.SetLevelCollect(RankActivityConfig.MapCollect(
+                        rank.Group,
+                        _currentPuzzleSize,
+                        _session?.Lives ?? 0));
+                    rank.NotifyLevelWin();
+                }
+                if (transition.Kind == MainGameTransitionKind.Won &&
+                    !transition.StreakSettlementCommitted &&
+                    _dailyMetaRuntime != null &&
+                    (!transition.IsDailySession || dailyCommitted))
+                {
+                    _dailyMetaRuntime.SettleWin(
+                        transition.IsDailySession
+                            ? StreakCheckinSource.Challenge
+                            : StreakCheckinSource.Main);
+                    transition.StreakSettlementCommitted = true;
+                }
+            }
             _lastTransition = transition;
             GameTransitioned?.Invoke(transition);
         }
@@ -774,6 +1423,7 @@ namespace Meowdoku.Gameplay
         {
             ApplyViewChanges(result.Changes, playAnimation, playSounds);
             PublishHudState();
+            if (result.IsComplete) StopGameplayClock();
             if (result.IsComplete && playSounds && soundService != null)
             {
                 soundService.Stop(SoundKind.MarkCat);
@@ -784,6 +1434,40 @@ namespace Meowdoku.Gameplay
             for (int index = 0; index < feedback.Count; index++)
                 GameplayFeedbackRequested?.Invoke(feedback[index]);
             RequestWinSettlement();
+        }
+
+        public void SetResultBgmPaused(bool paused)
+        {
+            soundService?.SetBgmPaused(paused);
+        }
+
+        public void PlayResultSound(SoundKind kind)
+        {
+            soundService?.Play(kind);
+        }
+
+        private void StartGameplayClock()
+        {
+            if (_activePlayStartedAt > 0.0) return;
+            _activePlayStartedAt = Time.unscaledTimeAsDouble;
+        }
+
+        private void StopGameplayClock()
+        {
+            if (_activePlayStartedAt <= 0.0) return;
+            _elapsedPlaySeconds += Math.Max(
+                0.0,
+                Time.unscaledTimeAsDouble - _activePlayStartedAt);
+            _activePlayStartedAt = 0.0;
+        }
+
+        private double CurrentGameplayElapsed()
+        {
+            return _activePlayStartedAt > 0.0
+                ? _elapsedPlaySeconds + Math.Max(
+                    0.0,
+                    Time.unscaledTimeAsDouble - _activePlayStartedAt)
+                : _elapsedPlaySeconds;
         }
 
         private void PublishHudState()
@@ -867,6 +1551,7 @@ namespace Meowdoku.Gameplay
         private void ScheduleSnapshot(IReadOnlyList<BoardStateChange> changes)
         {
             if (_session == null || _snapshotContext == null || changes == null || changes.Count == 0) return;
+            if (_snapshotContext.Level <= 0) return;
             if (_session.State == GameSessionState.Won)
             {
                 _snapshotDirty = false;
@@ -885,6 +1570,11 @@ namespace Meowdoku.Gameplay
         private void FlushSnapshot()
         {
             if (!_snapshotDirty || _session == null || _snapshotContext == null || _gameState == null) return;
+            if (_snapshotContext.Level <= 0)
+            {
+                _snapshotDirty = false;
+                return;
+            }
             if (_session.State == GameSessionState.Won)
             {
                 _snapshotDirty = false;
@@ -905,6 +1595,7 @@ namespace Meowdoku.Gameplay
         {
             if (hasFocus)
             {
+                FinishPendingEntryAd();
                 _idleToolHint?.ResetElapsed();
                 return;
             }
@@ -938,6 +1629,41 @@ namespace Meowdoku.Gameplay
         private static long NowMilliseconds()
         {
             return (long)(Time.unscaledTimeAsDouble * 1000.0);
+        }
+
+        private string CurrentTrackingGameType()
+        {
+            if (!string.IsNullOrEmpty(_trackingStartData?.GameType))
+                return _trackingStartData.GameType;
+            return _sessionMode == GameplaySessionMode.Daily
+                ? TrackerCatalog.GameType.Daily
+                : TrackerCatalog.GameType.Normal;
+        }
+
+        private void CountBoardStep()
+        {
+            _tracker?.IncrementStat("step_used");
+            _gameState?.IncrementGameTotalStat(
+                CurrentTrackingGameType(),
+                "step_total");
+        }
+
+        private void TrackToolConsumption(
+            GameToolKind kind,
+            ToolResourceDecision decision)
+        {
+            if (_tracker == null || _toolResources == null ||
+                decision != ToolResourceDecision.Consumed)
+                return;
+            string propName = kind == GameToolKind.Locate
+                ? TrackerCatalog.Prop.Locate
+                : TrackerCatalog.Prop.Hint;
+            _tracker.TrackProp(
+                false,
+                propName,
+                _tracker.CurrentSource,
+                1,
+                _toolResources.GetCount(kind));
         }
 
         private bool IsEntryBlocked()

@@ -14,7 +14,10 @@ namespace Meowdoku.Editor
 
         private static readonly Registration[] Registrations =
         {
+            new(UiName.Splash, "Assets/_Project/Prefabs/UI/SplashPage.prefab"),
             new(UiName.Home, "Assets/_Project/Prefabs/UI/HomePage.prefab"),
+            new(UiName.Game, "Assets/_Project/Prefabs/UI/GamePage.prefab"),
+            new(UiName.DailyGame, "Assets/_Project/Prefabs/UI/GamePage.prefab"),
             new(UiName.Tutorial, "Assets/_Project/Prefabs/UI/TutorialPage.prefab"),
             new(UiName.Setting, "Assets/_Project/Prefabs/UI/SettingsPage.prefab"),
             new(UiName.Language, "Assets/_Project/Prefabs/UI/LanguagePage.prefab"),
@@ -22,7 +25,33 @@ namespace Meowdoku.Editor
             new(UiName.HowToPlay,
                 "Assets/_Project/Prefabs/UI/HowToPlayPage.prefab"),
             new(UiName.HowToPlayPaged,
-                "Assets/_Project/Prefabs/UI/HowToPlayPagedPage.prefab")
+                "Assets/_Project/Prefabs/UI/HowToPlayPagedPage.prefab"),
+            new(UiName.Win, "Assets/_Project/Prefabs/UI/WinPage.prefab"),
+            new(UiName.DailyWin, "Assets/_Project/Prefabs/UI/WinPage.prefab"),
+            new(UiName.Fail, "Assets/_Project/Prefabs/UI/FailPage.prefab"),
+            new(UiName.DailyFail, "Assets/_Project/Prefabs/UI/FailPage.prefab"),
+            new(UiName.AdRewardRestored,
+                AdRewardRestoredPagePrefabInstaller.PrefabPath),
+            new(UiName.Award,
+                "Assets/_Project/Prefabs/UI/AwardPage.prefab"),
+            new(UiName.Streak,
+                "Assets/_Project/Prefabs/UI/StreakPage.prefab"),
+            new(UiName.StreakResume,
+                "Assets/_Project/Prefabs/UI/StreakResumePage.prefab"),
+            new(UiName.StreakBackfill,
+                "Assets/_Project/Prefabs/UI/StreakBackfillPage.prefab"),
+            new(UiName.AbSwitchPopup,
+                "Assets/_Project/Prefabs/UI/AbSwitchPopup.prefab"),
+            new(UiName.RankActivityOpenPopup,
+                RankActivityPagePrefabInstaller.OpenPopupPath),
+            new(UiName.RankActivityPage,
+                RankActivityPagePrefabInstaller.PagePath),
+            new(UiName.RankActivityHowToPlay,
+                RankActivityPagePrefabInstaller.HowToPlayPath),
+            new(UiName.RankActivityChange,
+                RankActivityPagePrefabInstaller.ChangePath),
+            new(UiName.Profile,
+                "Assets/_Project/Prefabs/UI/ProfilePage.prefab")
         };
 
         static UIRegistryAssetInstaller()

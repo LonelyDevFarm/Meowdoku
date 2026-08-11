@@ -113,12 +113,13 @@ namespace Meowdoku.Gameplay
 
         private void Dismiss()
         {
-            gameplayManager?.CancelRequestedHint();
+            gameplayManager?.DismissRequestedHint();
         }
 
         private void ShowDetail()
         {
             if (_presentation == null || !_presentation.HasChainDetail) return;
+            gameplayManager?.NotifyHintDetailRequested();
             SetButtonVisible(detailButton, false);
             SetButtonVisible(dismissButton, true);
         }

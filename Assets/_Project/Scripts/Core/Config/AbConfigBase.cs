@@ -2,10 +2,23 @@ using System;
 
 namespace Meowdoku.Core.Config
 {
+    public interface IAbConfig
+    {
+        string Key { get; }
+        string Timing { get; }
+        bool IsValueLoaded { get; }
+        void ReloadValue(IAbValueProvider provider);
+    }
+
     public interface IAbValueProvider
     {
         int GetInt(string key, int defaultValue);
         string GetString(string key, string defaultValue);
+    }
+
+    public interface IAbDyeSink
+    {
+        void Dye(string key);
     }
 
     public sealed class DefaultAbValueProvider : IAbValueProvider
@@ -18,7 +31,7 @@ namespace Meowdoku.Core.Config
         public string GetString(string key, string defaultValue) => defaultValue;
     }
 
-    public abstract class AbConfigBase<T>
+    public abstract class AbConfigBase<T> : IAbConfig
     {
         private T _value;
         private bool _valueLoaded;
@@ -51,8 +64,11 @@ namespace Meowdoku.Core.Config
 
         public void ReloadValue(IAbValueProvider provider)
         {
-            _value = Read(provider ?? DefaultAbValueProvider.Instance);
+            IAbValueProvider resolved = provider ?? DefaultAbValueProvider.Instance;
+            _value = Read(resolved);
             _valueLoaded = true;
+            if (resolved is IAbDyeSink dyeSink)
+                dyeSink.Dye(Key);
         }
 
         public T PeekValue(IAbValueProvider provider = null)

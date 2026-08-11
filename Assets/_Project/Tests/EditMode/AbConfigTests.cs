@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using Meowdoku.Core;
 using Meowdoku.Core.Config;
 using NUnit.Framework;
 
@@ -9,9 +12,11 @@ namespace Meowdoku.Tests.EditMode
         [Test]
         public void DefaultProfile_ContainsAllPortedSourceConfigs()
         {
-            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(37));
+            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(56));
             Assert.That(DefaultConfigProfile.All.Select(item => item.Key), Is.Unique);
-            Assert.That(DefaultConfigProfile.All.Count(item => item.RegisteredBySource), Is.EqualTo(33));
+            Assert.That(
+                DefaultConfigProfile.All.Count(item => item.RegisteredBySource),
+                Is.EqualTo(50));
         }
 
         [TestCase("region_color", 2, AbConfigTiming.AppStart, true)]
@@ -36,6 +41,15 @@ namespace Meowdoku.Tests.EditMode
         [TestCase("hard_button", 0, AbConfigTiming.AppStart, true)]
         [TestCase("settings_language", 0, AbConfigTiming.OpenSetting, true)]
         [TestCase("blind_mod", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("revive_life", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("revive_free_logic", 0, AbConfigTiming.AppStart, true)]
+        [TestCase("pass_page", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("pass_text", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("fail_text", 0, AbConfigTiming.GameEnd, true)]
+        [TestCase("win_toast", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("dc_level", 0, AbConfigTiming.GameStartDaily, true)]
+        [TestCase("no_dc", 0, AbConfigTiming.AppStart, false)]
+        [TestCase("dc_tag_ui", 0, AbConfigTiming.AppStart, false)]
         public void DefaultProfile_MatchesSource(
             string key,
             int expectedDefault,
@@ -74,6 +88,105 @@ namespace Meowdoku.Tests.EditMode
 
             config.ClearDebugOverride();
             Assert.That(config.Value, Is.EqualTo(SwipeProtectConfig.ValueHotzone10));
+        }
+
+        [Test]
+        public void LivingDays_UsesSourceExclusiveLocalCalendarSegments()
+        {
+            const int biasMinutes = 420;
+            long first = (100L * 86400L - biasMinutes * 60L + 3600L) * 1000L;
+            long current = (102L * 86400L - biasMinutes * 60L) * 1000L;
+            var config = new LivingDaysConfig();
+
+            LivingDaysSegment segment = config.Resolve(
+                first,
+                current,
+                biasMinutes);
+
+            Assert.That(segment.DaysSinceFirstOpen, Is.EqualTo(2));
+            Assert.That(segment.Index, Is.EqualTo(1));
+            Assert.That(segment.Count, Is.EqualTo(4));
+            Assert.That(
+                LivingDaysConfig.DaysSinceFirstOpen(0, current, biasMinutes),
+                Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void GameStartReload_DyesOnceAndFeedsLivingDaysAdSegments()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true
+            };
+            provider.StringValues["living_days"] =
+                "{0,2},{2,7},{7,14},{14,31},{31,inf}";
+            provider.StringValues["inter_cd_lc"] =
+                "{120},{100},{90},{80},{60}";
+            var configs = new AdConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+            Assert.That(service.IsAppStartFinalized, Is.True);
+            Assert.That(provider.DyedKeys, Is.Empty);
+
+            service.ReloadTiming(AbConfigTiming.GameStart);
+
+            Assert.That(provider.DyedKeys.Count, Is.EqualTo(configs.All.Count));
+            Assert.That(configs.LivingDays.SegmentCount, Is.EqualTo(5));
+            Assert.That(
+                configs.InterCooldown.GetSeconds(2, 5),
+                Is.EqualTo(90));
+            Assert.That(
+                configs.InterCooldown.GetSeconds(2, 4),
+                Is.EqualTo(120));
+        }
+
+        [Test]
+        public void AppStartFinalization_ReloadsOnlyMatchingTimingOnce()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true,
+                IsRemoteReadyValue = true
+            };
+            provider.IntValues["daily_streak"] = DailyStreakConfig.ValueNoReward;
+            provider.IntValues["swipe_protect"] =
+                SwipeProtectConfig.ValueHotzone20;
+            var appStart = new DailyStreakConfig();
+            var gameStart = new SwipeProtectConfig();
+            using var service = new AbConfigService(
+                provider,
+                new IAbConfig[] { appStart, gameStart });
+
+            service.Initialize();
+            provider.RaiseInitialized();
+            provider.RaiseRemoteReady();
+
+            Assert.That(appStart.Value,
+                Is.EqualTo(DailyStreakConfig.ValueNoReward));
+            Assert.That(gameStart.IsValueLoaded, Is.False);
+            Assert.That(
+                provider.DyedKeys.Count(key => key == "daily_streak"),
+                Is.EqualTo(1));
+
+            service.ReloadTiming(AbConfigTiming.GameStart);
+            Assert.That(gameStart.Value,
+                Is.EqualTo(SwipeProtectConfig.ValueHotzone20));
+        }
+
+        [Test]
+        public void FirstOpenTime_PersistsSourceKeyAndCannotBeOverwritten()
+        {
+            var data = new GameStateData();
+            var state = new GameStateService(data);
+            state.EnsureFirstOpenTime(123456789L, 999L);
+            state.EnsureFirstOpenTime(222L, 333L);
+
+            Dictionary<string, object> document = data.ToPlayerDocument();
+            GameStateData restored = GameStateData.FromDocuments(document, null);
+
+            Assert.That(data.FirstOpenTimeMs, Is.EqualTo(123456789L));
+            Assert.That(restored.FirstOpenTimeMs, Is.EqualTo(123456789L));
         }
 
         [TestCase(SwipeProtectConfig.ValueControl, false, 0.0, 4)]
@@ -160,6 +273,148 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(leaderboard.IsEnabled(), Is.False);
             Assert.That(leaderboard.GetGroup(), Is.EqualTo(LeaderboardFuncConfig.ValueControl));
             Assert.That(hardButton.EffectVariant(), Is.EqualTo(HardButtonConfig.ValueDefault));
+        }
+
+        [Test]
+        public void ResultConfigs_UseOfflineSourceDefaultsAndVariants()
+        {
+            var passPage = new PassPageConfig();
+            var passText = new PassTextConfig();
+            var reviveLife = new ReviveLifeConfig();
+            var reviveFree = new ReviveFreeLogicConfig();
+            var failText = new FailTextConfig();
+
+            Assert.That(passPage.IsG1(), Is.False);
+            Assert.That(passPage.IsG2(), Is.False);
+            Assert.That(passPage.IsG4(), Is.False);
+            Assert.That(passText.ShouldShowBeatPercent(), Is.False);
+            Assert.That(reviveLife.LivesToRestore(), Is.EqualTo(1));
+            Assert.That(reviveFree.ShouldFreeRevive(1, false), Is.False);
+            Assert.That(failText.ShouldShowEncourage(), Is.False);
+
+            reviveLife.SetDebugOverride(ReviveLifeConfig.ValueGroup2);
+            reviveFree.SetDebugOverride(
+                ReviveFreeLogicConfig.ValueFirstEverOnce);
+            Assert.That(reviveLife.LivesToRestore(), Is.EqualTo(3));
+            Assert.That(reviveLife.IsTwoLineButton(), Is.True);
+            Assert.That(reviveFree.ShouldFreeRevive(20, false), Is.True);
+            Assert.That(reviveFree.ShouldFreeRevive(20, true), Is.False);
+        }
+
+        [Test]
+        public void PassTextStats_MatchSourceP90CurvesAndRounding()
+        {
+            Assert.That(
+                PassTextStatsContract.BeatPercent(44, 4),
+                Is.EqualTo(51.0).Within(0.0001));
+            Assert.That(
+                PassTextStatsContract.BeatPercent(0, 4),
+                Is.EqualTo(99.0).Within(0.0001));
+            Assert.That(
+                PassTextStatsContract.BeatPercentGroup2(0, 4),
+                Is.EqualTo(99.0).Within(0.0001));
+            Assert.That(
+                PassTextStatsContract.RoundNonZeroDecimal(83.0),
+                Is.EqualTo(83.1).Within(0.0001));
+        }
+
+        [Test]
+        public void WinToast_DefaultIsOffAndTierCoverageMatchesSource()
+        {
+            var config = new WinToastConfig();
+            Assert.That(config.IsEnabled(), Is.False);
+            Assert.That(config.CoversTier(0), Is.False);
+
+            config.SetDebugOverride(WinToastConfig.ValueP10);
+            Assert.That(config.IsEnabled(), Is.True);
+            Assert.That(config.CoversTier(0), Is.True);
+            Assert.That(config.CoversTier(1), Is.True);
+            Assert.That(config.CoversTier(2), Is.True);
+            Assert.That(config.CoversTier(3), Is.False);
+        }
+
+        [TestCase(6, 6, WinToastTierContract.TierPerfect)]
+        [TestCase(6, 16, WinToastTierContract.TierP5)]
+        [TestCase(6, 20, WinToastTierContract.TierP10)]
+        [TestCase(6, 30, WinToastTierContract.TierP20)]
+        [TestCase(6, 31, WinToastTierContract.TierNone)]
+        [TestCase(5, 5, WinToastTierContract.TierNone)]
+        [TestCase(10, 29, WinToastTierContract.TierP5)]
+        public void WinToastTier_MatchesSourceThresholds(
+            int size,
+            int steps,
+            int expectedTier)
+        {
+            Assert.That(
+                WinToastTierContract.DetermineTier(size, steps),
+                Is.EqualTo(expectedTier));
+        }
+
+        [Test]
+        public void WinToastMessageKey_UsesSourcePoolsAndPadding()
+        {
+            Assert.That(
+                WinToastTierContract.MessageKey(
+                    WinToastTierContract.TierPerfect,
+                    8),
+                Is.EqualTo("WIN_TOAST_PERFECT_09"));
+            Assert.That(
+                WinToastTierContract.MessageKey(
+                    WinToastTierContract.TierP20,
+                    7),
+                Is.EqualTo("WIN_TOAST_P20_01"));
+            Assert.That(
+                WinToastTierContract.MessageKey(
+                    WinToastTierContract.TierNone,
+                    0),
+                Is.Empty);
+        }
+
+        [Test]
+        public void PassTextStrategy_SelectsSourceBranchesDeterministically()
+        {
+            var input = new PassTextStrategyInput
+            {
+                Level = 20,
+                Size = 4,
+                ElapsedSeconds = 44,
+                IsHard = true
+            };
+            PassTextStrategySelection hard = PassTextStrategyContract.Select(
+                PassTextConfig.ValueV2,
+                input,
+                4,
+                0.0);
+            Assert.That(hard.TitleKey, Is.EqualTo("WIN_V2_HARD_FIRST_TITLE_4"));
+            Assert.That(hard.ShownPercent, Is.EqualTo(-1.0));
+
+            input.IsHard = false;
+            input.Level = 21;
+            PassTextStrategySelection perfect = PassTextStrategyContract.Select(
+                PassTextConfig.ValueV3G1,
+                input,
+                13,
+                0.0);
+            Assert.That(perfect.TitleKey, Is.EqualTo("WIN_V3_PERFECT_TITLE_13"));
+
+            input.MistakeCount = 1;
+            input.ElapsedSeconds = 0;
+            input.LastWinBeatPercent = 80.0;
+            PassTextStrategySelection improved = PassTextStrategyContract.Select(
+                PassTextConfig.ValueV2,
+                input,
+                0,
+                0.0);
+            Assert.That(improved.TitleKey, Is.EqualTo("WIN_V2_AWESOME_TITLE"));
+            Assert.That(improved.ShownPercent, Is.EqualTo(99.1).Within(0.0001));
+            Assert.That(improved.DifferencePercent, Is.EqualTo(19.1).Within(0.0001));
+
+            input.IsDaily = true;
+            Assert.That(
+                PassTextStrategyContract.Select(
+                    PassTextConfig.ValueBeatPercent,
+                    input),
+                Is.SameAs(PassTextStrategySelection.Empty));
         }
 
         [Test]
@@ -301,6 +556,52 @@ namespace Meowdoku.Tests.EditMode
 
             public int GetInt(string key, int defaultValue) => _value;
             public string GetString(string key, string defaultValue) => defaultValue;
+        }
+
+        private sealed class RecordingRuntimeProvider : IAbRuntimeProvider
+        {
+            public readonly Dictionary<string, int> IntValues = new();
+            public readonly Dictionary<string, string> StringValues = new();
+            public readonly List<string> DyedKeys = new();
+
+            public event Action Initialized;
+            public event Action RemoteReady;
+            public event Action<string> ParamsUpdated;
+            public bool IsInitializedValue;
+            public bool IsRemoteReadyValue;
+            public bool IsInitialized => IsInitializedValue;
+            public bool IsRemoteReady => IsRemoteReadyValue;
+            public long FirstOpenUnixMilliseconds { get; set; }
+
+            public int GetInt(string key, int defaultValue) =>
+                IntValues.TryGetValue(key, out int value) ? value : defaultValue;
+
+            public string GetString(string key, string defaultValue) =>
+                StringValues.TryGetValue(key, out string value)
+                    ? value
+                    : defaultValue;
+
+            public void Dye(string key)
+            {
+                DyedKeys.Add(key);
+            }
+
+            public void RaiseInitialized()
+            {
+                IsInitializedValue = true;
+                Initialized?.Invoke();
+            }
+
+            public void RaiseRemoteReady()
+            {
+                IsRemoteReadyValue = true;
+                RemoteReady?.Invoke();
+            }
+
+            public void RaiseParamsUpdated(string updateType)
+            {
+                ParamsUpdated?.Invoke(updateType);
+            }
         }
     }
 }

@@ -171,6 +171,38 @@ namespace Meowdoku.Core.UI
             }
         }
 
+        public static AbSwitchPopupRule FindSwitchRule(
+            IReadOnlyList<AbSwitchPopupRule> rules,
+            string key,
+            int occurrence)
+        {
+            if (rules == null || string.IsNullOrEmpty(key) ||
+                occurrence <= 0)
+                return null;
+            int matched = 0;
+            for (int index = 0; index < rules.Count; index++)
+            {
+                AbSwitchPopupRule rule = rules[index];
+                if (rule == null ||
+                    !rule.Trigger.TryGetValue(
+                        "trigger",
+                        out object trigger) ||
+                    !string.Equals(
+                        Convert.ToString(trigger),
+                        "abtest_switch",
+                        StringComparison.Ordinal) ||
+                    !rule.Trigger.TryGetValue("key", out object ruleKey) ||
+                    !string.Equals(
+                        Convert.ToString(ruleKey),
+                        key,
+                        StringComparison.Ordinal))
+                    continue;
+                matched++;
+                if (matched == occurrence) return rule;
+            }
+            return null;
+        }
+
         private static List<string> SplitOutsideBraces(string value)
         {
             var result = new List<string>();

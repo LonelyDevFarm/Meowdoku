@@ -143,7 +143,14 @@ namespace Meowdoku.Editor
             SerializedObject data = new(presenter);
             SerializedProperty version =
                 data.FindProperty("versionLocalizedText");
-            return version == null || version.objectReferenceValue == null;
+            LanguageSwitchWidget widget =
+                prefab.GetComponentInChildren<LanguageSwitchWidget>(true);
+            SerializedObject widgetData = new(widget);
+            SerializedProperty outsideBlocker =
+                widgetData.FindProperty("outsideBlocker");
+            return version == null || version.objectReferenceValue == null ||
+                   outsideBlocker == null ||
+                   outsideBlocker.objectReferenceValue == null;
         }
 
         private static void HandlePlayModeChanged(
@@ -588,9 +595,12 @@ namespace Meowdoku.Editor
             root.sizeDelta = new Vector2(804f, 120f);
             SetPreferred(root.gameObject, 804f, 120f);
 
-            Button blocker = CreateTransparentButton("OutsideBlocker", root);
+            RectTransform blockerRect = CreateRect("OutsideBlocker", root);
+            Image blocker = blockerRect.gameObject.AddComponent<Image>();
+            blocker.color = Color.clear;
+            blocker.raycastTarget = true;
             SetAnchored(
-                (RectTransform)blocker.transform,
+                blockerRect,
                 new Vector2(0.5f, 0.5f),
                 new Vector2(0f, -500f),
                 new Vector2(1600f, 3000f),

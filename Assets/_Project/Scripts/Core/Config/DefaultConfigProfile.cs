@@ -13,6 +13,7 @@ namespace Meowdoku.Core.Config
         public const string GameStartNormal21 = "game_start_normal_21";
         public const string GameStartDaily = "game_start_dc";
         public const string GameEnd = "game_end";
+        public const string GameEndNormal20 = "game_end_normal_20";
     }
 
     public sealed class AbConfigDefinition
@@ -88,6 +89,9 @@ namespace Meowdoku.Core.Config
             new AbConfigDefinition("dc_level", 0, AbConfigTiming.GameStartDaily),
             new AbConfigDefinition("no_dc", 0, AbConfigTiming.AppStart, false),
             new AbConfigDefinition("dc_tag_ui", 0, AbConfigTiming.AppStart, false)
+            ,new AbConfigDefinition("att_dlg_logic", 0, AbConfigTiming.AppStart)
+            ,new AbConfigDefinition("push_permission", 0, AbConfigTiming.GameEndNormal20)
+            ,new AbConfigDefinition("push_local_text", 0, AbConfigTiming.AppStart)
             ,new AbConfigDefinition("inter_unlock_level", 11, AbConfigTiming.GameStart)
             ,new AbConfigDefinition("inter_unlock_session", 2, AbConfigTiming.GameStart)
             ,new AbConfigDefinition("inter_unlock_memory", 300, AbConfigTiming.GameStart)

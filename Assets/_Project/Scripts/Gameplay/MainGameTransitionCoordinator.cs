@@ -118,8 +118,9 @@ namespace Meowdoku.Gameplay
                 { "bank_tier", entry.BankTier ?? string.Empty }
             };
 
-            if (!entry.FromBankBrowser) return result;
-            result["from_bank_browser"] = true;
+            if (context.ResolvedMode != GameplaySessionMode.Bank) return result;
+            if (entry.FromBankBrowser)
+                result["from_bank_browser"] = true;
             result["bank_total"] = entry.BankTotal;
             if (entry.BankLk)
             {

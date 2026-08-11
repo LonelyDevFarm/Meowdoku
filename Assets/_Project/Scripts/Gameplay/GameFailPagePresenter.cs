@@ -142,11 +142,13 @@ namespace Meowdoku.Gameplay
                     state,
                     showRevive));
 
-            SetButtons(false);
+            SetButtons(true);
+            Owner?.BlockInputBriefly(
+                transform as RectTransform,
+                InputBlockSeconds);
             _gameplayManager?.SetResultBgmPaused(true);
             _gameplayManager?.PlayResultSound(SoundKind.LevelFail);
             PlayOpenAnimation();
-            StartManagedCoroutine(UnlockInputAfterDelay());
         }
 
         protected override IEnumerator OnHide()
@@ -167,12 +169,6 @@ namespace Meowdoku.Gameplay
             if (reviveButton != null) reviveButton.onClick.RemoveListener(Revive);
             if (restartButton != null) restartButton.onClick.RemoveListener(Restart);
             base.OnDestroyWindow();
-        }
-
-        private IEnumerator UnlockInputAfterDelay()
-        {
-            yield return new WaitForSecondsRealtime(InputBlockSeconds);
-            SetButtons(true);
         }
 
         private void Revive()

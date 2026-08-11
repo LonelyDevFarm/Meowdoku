@@ -20,6 +20,13 @@ namespace Meowdoku.Gameplay
         [SerializeField] private GameObject chest;
         [SerializeField] private LocalizationCatalog localization;
 
+#if UNITY_INCLUDE_TESTS
+        internal bool IsCheckedForTests =>
+            checkedDot != null && checkedDot.activeSelf;
+        internal bool IsChestForTests =>
+            chest != null && chest.activeSelf;
+#endif
+
         public void BindLocalization(LocalizationCatalog catalog)
         {
             localization = catalog;

@@ -34,6 +34,10 @@ namespace Meowdoku.Gameplay
         private double _nextRefreshAt;
         private ClockTicker _clockTicker;
 
+#if UNITY_INCLUDE_TESTS
+        internal DailyEntryState StateForTests => _state;
+#endif
+
         private void Awake()
         {
             if (clickButton != null)

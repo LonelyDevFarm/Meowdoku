@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
+using Meowdoku.Core.Online;
+using Meowdoku.Core.Platform;
 using Meowdoku.Core.UI;
 using Meowdoku.Gameplay;
 using NUnit.Framework;
@@ -9,6 +11,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace Meowdoku.Tests.EditMode
@@ -35,10 +38,20 @@ namespace Meowdoku.Tests.EditMode
             "Assets/_Project/Prefabs/UI/BankPage.prefab";
         private const string GamePath =
             "Assets/_Project/Prefabs/UI/GamePage.prefab";
+        private const string CellPath =
+            "Assets/_Project/Prefabs/Cell.prefab";
         private const string WinPath =
             "Assets/_Project/Prefabs/UI/WinPage.prefab";
         private const string FailPath =
             "Assets/_Project/Prefabs/UI/FailPage.prefab";
+        private const string PrivacyPath =
+            "Assets/_Project/Prefabs/UI/PrivacyDialog.prefab";
+        private const string PreAttPath =
+            "Assets/_Project/Prefabs/UI/PreAttGuidePage.prefab";
+        private const string PreAttV2Path =
+            "Assets/_Project/Prefabs/UI/PreAttGuidePageV2.prefab";
+        private const string PrePushPath =
+            "Assets/_Project/Prefabs/UI/PrePushGuidePage.prefab";
         private const string AppScenePath =
             "Assets/_Project/Scenes/AppScene.unity";
 
@@ -99,6 +112,84 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void Registry_ContainsEveryPlatformGuidePage()
+        {
+            UIRegistry registry =
+                AssetDatabase.LoadAssetAtPath<UIRegistry>(RegistryPath);
+            Assert.That(registry, Is.Not.Null);
+
+            AssertRegistryPage<PrivacyDialogPresenter>(
+                registry, UiName.Privacy, PrivacyPath);
+            AssertRegistryPage<PreAttGuidePresenter>(
+                registry, UiName.PreAttGuide, PreAttPath);
+            AssertRegistryPage<PreAttGuidePresenter>(
+                registry, UiName.PreAttGuideV2, PreAttV2Path);
+            AssertRegistryPage<PrePushGuidePresenter>(
+                registry, UiName.PrePushGuide, PrePushPath);
+        }
+
+        [Test]
+        public void PlatformGuidePrefabs_HaveRequiredBindingsAndHierarchy()
+        {
+            AssertBindings<PrivacyDialogPresenter>(
+                PrivacyPath,
+                "popupAnimator",
+                "titleText",
+                "contentText",
+                "acceptText",
+                "acceptButton",
+                "termsButton",
+                "privacyButton",
+                "localization");
+            AssertBindings<PreAttGuidePresenter>(
+                PreAttPath,
+                "popupAnimator",
+                "titleText",
+                "descriptionText",
+                "continueText",
+                "continueButton",
+                "localization");
+            AssertBindings<PreAttGuidePresenter>(
+                PreAttV2Path,
+                "popupAnimator",
+                "titleText",
+                "descriptionText",
+                "continueText",
+                "continueButton",
+                "guideCloseButton",
+                "localization");
+            AssertBindings<PrePushGuidePresenter>(
+                PrePushPath,
+                "popupAnimator",
+                "titleText",
+                "descriptionText",
+                "allowText",
+                "allowButton",
+                "guideCloseButton",
+                "localization");
+
+            GameObject privacy =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PrivacyPath);
+            GameObject preAtt =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PreAttPath);
+            GameObject preAttV2 =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PreAttV2Path);
+            GameObject prePush =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PrePushPath);
+            Assert.That(privacy.transform.Find("Root/Content/Panel/AcceptButton"),
+                Is.Not.Null);
+            Assert.That(preAtt.transform.Find("Root/Content/ContinueButton"),
+                Is.Not.Null);
+            Assert.That(
+                preAttV2.transform.Find("Root/Content/Panel/CloseButton"),
+                Is.Not.Null);
+            Assert.That(prePush.transform.Find("Popup/Cat/Group957Img"),
+                Is.Not.Null);
+            Assert.That(prePush.transform.Find("Popup/AllowButton"),
+                Is.Not.Null);
+        }
+
+        [Test]
         public void PrimaryNavigationPresenters_HaveRequiredBindings()
         {
             AssertBindings<HomePagePresenter>(
@@ -126,6 +217,22 @@ namespace Meowdoku.Tests.EditMode
                 "peopleToggle",
                 "languageButton",
                 "howToPlayButton");
+            GameObject settingsPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(SettingPath);
+            LanguageSwitchWidget languageSwitch =
+                settingsPrefab.GetComponentInChildren<LanguageSwitchWidget>(true);
+            Assert.That(languageSwitch, Is.Not.Null);
+            var languageSwitchData = new SerializedObject(languageSwitch);
+            SerializedProperty outsideBlocker =
+                languageSwitchData.FindProperty("outsideBlocker");
+            Assert.That(outsideBlocker, Is.Not.Null);
+            Graphic outsideGraphic =
+                outsideBlocker.objectReferenceValue as Graphic;
+            Assert.That(outsideGraphic, Is.Not.Null,
+                "Language outside blocker must be a pointer-down Graphic.");
+            Assert.That(outsideGraphic.raycastTarget, Is.True);
+            Assert.That(outsideGraphic.GetComponent<Button>(), Is.Null,
+                "A Button would close on release instead of source pointer-down.");
             AssertBindings<LanguagePagePresenter>(
                 LanguagePath,
                 "popupAnimator",
@@ -175,6 +282,29 @@ namespace Meowdoku.Tests.EditMode
                 "infoButton",
                 "returnBankButton",
                 "winToast");
+        }
+
+        [Test]
+        public void GameplayPatternAssets_AreSerializedFromTheSourcePalette()
+        {
+            AssertBindings<CellView>(CellPath, "patternImage");
+
+            GameObject game =
+                AssetDatabase.LoadAssetAtPath<GameObject>(GamePath);
+            Assert.That(game, Is.Not.Null, GamePath);
+            BoardView board = game.GetComponentInChildren<BoardView>(true);
+            Assert.That(board, Is.Not.Null, "GamePage is missing BoardView.");
+            var serialized = new SerializedObject(board);
+            SerializedProperty icons = serialized.FindProperty("patternIcons");
+            Assert.That(icons, Is.Not.Null);
+            Assert.That(icons.arraySize, Is.EqualTo(12));
+            for (int index = 0; index < icons.arraySize; index++)
+            {
+                Assert.That(
+                    icons.GetArrayElementAtIndex(index).objectReferenceValue,
+                    Is.Not.Null,
+                    "patternIcons[" + index + "] is not assigned.");
+            }
         }
 
         [Test]
@@ -244,10 +374,65 @@ namespace Meowdoku.Tests.EditMode
                 UIManager manager = Find<UIManager>(scene);
                 AdRuntime adRuntime = Find<AdRuntime>(scene);
                 AbConfigRuntime abRuntime = Find<AbConfigRuntime>(scene);
+                AuthRuntime authRuntime = Find<AuthRuntime>(scene);
+                DataSyncHttpApi dataSyncApi = Find<DataSyncHttpApi>(scene);
+                DataSyncRuntime dataSyncRuntime = Find<DataSyncRuntime>(scene);
+                PrivacyPermissionRuntime platformRuntime =
+                    Find<PrivacyPermissionRuntime>(scene);
                 Assert.That(bootstrap, Is.Not.Null);
                 Assert.That(manager, Is.Not.Null);
                 Assert.That(adRuntime, Is.Not.Null);
                 Assert.That(abRuntime, Is.Not.Null);
+                Assert.That(authRuntime, Is.Not.Null);
+                Assert.That(dataSyncApi, Is.Not.Null);
+                Assert.That(dataSyncRuntime, Is.Not.Null);
+                Assert.That(platformRuntime, Is.Not.Null);
+                Assert.That(platformRuntime.transform.parent.name,
+                    Is.EqualTo("App"));
+                Assert.That(platformRuntime.transform.name,
+                    Is.EqualTo("Systems"));
+                var bootstrapData = new SerializedObject(bootstrap);
+                Assert.That(
+                    bootstrapData.FindProperty("dataSyncRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(dataSyncRuntime));
+                Assert.That(
+                    bootstrapData.FindProperty("platformRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(platformRuntime));
+                var syncData = new SerializedObject(dataSyncRuntime);
+                Assert.That(
+                    syncData.FindProperty("authRuntime").objectReferenceValue,
+                    Is.SameAs(authRuntime));
+                Assert.That(
+                    syncData.FindProperty("apiAdapter").objectReferenceValue,
+                    Is.SameAs(dataSyncApi));
+                var managerData = new SerializedObject(manager);
+                Assert.That(
+                    managerData.FindProperty("dataSyncRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(dataSyncRuntime));
+                Assert.That(
+                    managerData.FindProperty("platformRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(platformRuntime));
+                var platformData = new SerializedObject(platformRuntime);
+                Assert.That(
+                    platformData.FindProperty("uiManager")
+                        .objectReferenceValue,
+                    Is.SameAs(manager));
+                Assert.That(
+                    platformData.FindProperty("localization")
+                        .objectReferenceValue,
+                    Is.Not.Null);
+                Assert.That(
+                    platformData.FindProperty("abConfigRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(abRuntime));
+                Assert.That(
+                    platformData.FindProperty("trackingRuntime")
+                        .objectReferenceValue,
+                    Is.Not.Null);
                 Assert.That(FindRoot(scene, "App"), Is.Not.Null);
                 Assert.That(FindRoot(scene, "EventSystem"), Is.Not.Null);
             }
@@ -348,6 +533,25 @@ namespace Meowdoku.Tests.EditMode
                     typeof(T).Name + "." + propertyName +
                     " is not assigned in " + prefabPath + ".");
             }
+        }
+
+        private static void AssertRegistryPage<T>(
+            UIRegistry registry,
+            UiName name,
+            string expectedPath)
+            where T : Component
+        {
+            Assert.That(
+                registry.TryGetPrefab(name, out UIFrameWindow window),
+                Is.True,
+                name + " is missing from UIRegistry.");
+            Assert.That(AssetDatabase.GetAssetPath(window),
+                Is.EqualTo(expectedPath));
+            Assert.That(window.GetComponent<T>(), Is.Not.Null);
+            Assert.That(
+                GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(
+                    window.gameObject),
+                Is.Zero);
         }
 
         private static void AssertArraySize<T>(

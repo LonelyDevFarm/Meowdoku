@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.Daily;
+using Meowdoku.Core.Online;
+using Meowdoku.Core.Platform;
 using Meowdoku.Core.Profile;
 using Meowdoku.Core.Rank;
 using Meowdoku.Core.Tracking;
@@ -22,6 +24,8 @@ namespace Meowdoku.Core.UI
     {
         private static readonly IReadOnlyDictionary<string, object>
             EmptyParameters = new Dictionary<string, object>(0);
+        private const string TimedInputBlockerName = "_InputBlocker";
+        private const int TimedInputBlockerSortingOrder = 4095;
 
         [Header("Registry and ownership")]
         [SerializeField] private UIRegistry registry;
@@ -33,6 +37,8 @@ namespace Meowdoku.Core.UI
         [SerializeField] private TrackingRuntime trackingRuntime;
         [SerializeField] private AdRuntime adRuntime;
         [SerializeField] private AbConfigRuntime abConfigRuntime;
+        [SerializeField] private DataSyncRuntime dataSyncRuntime;
+        [SerializeField] private PrivacyPermissionRuntime platformRuntime;
 
         [Header("Shared mask")]
         [SerializeField] private Canvas maskCanvas;
@@ -49,10 +55,15 @@ namespace Meowdoku.Core.UI
         private readonly Dictionary<UiName, Coroutine> _closing = new();
         private readonly HashSet<UiName> _loading = new();
         private readonly Dictionary<int, int> _heldButtonGenerations = new();
+        private readonly Dictionary<int, TimedInputBlock> _timedInputBlocks =
+            new();
 
         private int _maskReferenceCount;
         private bool _guardActive;
+        private Coroutine _maskFade;
         private UITrackerObserver _trackerObserver;
+        private ISettingsExternalServices _settingsExternalServices =
+            OfflineSettingsExternalServices.Instance;
 
         public UIEvents Events { get; } = new();
         public bool IsAnyLoading => _loading.Count > 0;
@@ -60,9 +71,34 @@ namespace Meowdoku.Core.UI
         public int MaskReferenceCount => _maskReferenceCount;
         public bool IsInputGuardActive => _guardActive;
 
+        /// <summary>
+        /// Source-equivalent early mask fade used while a reward visual flies
+        /// into an already-visible Home page. Ownership/ref-count is unchanged;
+        /// a later stack update restores the correct mask for the new top page.
+        /// </summary>
+        public void FadeOutMaskEarly(float durationSeconds)
+        {
+            StopMaskFade();
+            if (maskGroup == null) return;
+            if (durationSeconds <= 0f)
+            {
+                maskGroup.alpha = 0f;
+                return;
+            }
+            _maskFade = StartCoroutine(FadeMaskRoutine(durationSeconds));
+        }
+
+        private sealed class TimedInputBlock
+        {
+            public GameObject Blocker;
+            public Coroutine Lifetime;
+        }
+
         private void Awake()
         {
             if (windowRoot == null) windowRoot = transform as RectTransform;
+            dailyMetaRuntime?.BindAbConfigRuntime(abConfigRuntime);
+            rankActivityRuntime?.BindAbConfigRuntime(abConfigRuntime);
             ResetTrackerObserver();
             SetMaskVisible(false, 0f, 0);
             SetInputGuard(false);
@@ -71,6 +107,19 @@ namespace Meowdoku.Core.UI
         internal TrackerService Tracker => trackingRuntime != null
             ? trackingRuntime.Tracker
             : null;
+
+        public void BindSettingsExternalServices(
+            ISettingsExternalServices services)
+        {
+            _settingsExternalServices = services ??
+                OfflineSettingsExternalServices.Instance;
+            foreach (UIFrameWindow window in _cache.Values)
+            {
+                if (window is ISettingsExternalServicesConsumer consumer)
+                    consumer.BindSettingsExternalServices(
+                        _settingsExternalServices);
+            }
+        }
 
         public UIFrameWindow Show(
             UiName name,
@@ -186,6 +235,70 @@ namespace Meowdoku.Core.UI
                 if (Contains(exceptions, name)) continue;
                 Hide(name);
             }
+        }
+
+        /// <summary>
+        /// Port of Godot UIManager.block_input_briefly. The transparent local
+        /// canvas consumes pointer input without changing the enabled or tint
+        /// state of the target window's buttons.
+        /// </summary>
+        public void BlockInputBriefly(
+            RectTransform target,
+            float durationSeconds = 1.5f)
+        {
+            if (target == null || durationSeconds <= 0f) return;
+
+            int targetId = target.GetInstanceID();
+            if (_timedInputBlocks.TryGetValue(
+                    targetId,
+                    out TimedInputBlock existing))
+            {
+                if (existing.Lifetime != null)
+                    StopCoroutine(existing.Lifetime);
+                if (existing.Blocker != null)
+                    Destroy(existing.Blocker);
+                _timedInputBlocks.Remove(targetId);
+            }
+
+            var blocker = new GameObject(
+                TimedInputBlockerName,
+                typeof(RectTransform),
+                typeof(Canvas),
+                typeof(GraphicRaycaster),
+                typeof(Image));
+            blocker.layer = target.gameObject.layer;
+            RectTransform blockerRect =
+                blocker.GetComponent<RectTransform>();
+            blockerRect.SetParent(target, false);
+            blockerRect.anchorMin = Vector2.zero;
+            blockerRect.anchorMax = Vector2.one;
+            blockerRect.offsetMin = Vector2.zero;
+            blockerRect.offsetMax = Vector2.zero;
+            blockerRect.SetAsLastSibling();
+
+            Canvas blockerCanvas = blocker.GetComponent<Canvas>();
+            blockerCanvas.overrideSorting = true;
+            blockerCanvas.sortingOrder = TimedInputBlockerSortingOrder;
+            Image blockerImage = blocker.GetComponent<Image>();
+            blockerImage.color = Color.clear;
+            blockerImage.raycastTarget = true;
+
+            var entry = new TimedInputBlock { Blocker = blocker };
+            _timedInputBlocks.Add(targetId, entry);
+            entry.Lifetime = StartCoroutine(RemoveTimedInputBlock(
+                targetId,
+                blocker,
+                durationSeconds));
+        }
+
+        internal bool IsInputBrieflyBlocked(RectTransform target)
+        {
+            if (target == null) return false;
+            return _timedInputBlocks.TryGetValue(
+                       target.GetInstanceID(),
+                       out TimedInputBlock entry) &&
+                   entry.Blocker != null &&
+                   entry.Blocker.activeSelf;
         }
 
         public UIFrameWindow WarmPool(UiName name)
@@ -347,6 +460,13 @@ namespace Meowdoku.Core.UI
                     : null);
             if (window is IAbConfigRuntimeConsumer abConsumer)
                 abConsumer.BindAbConfigRuntime(abConfigRuntime);
+            if (window is IDataSyncConsumer dataSyncConsumer)
+                dataSyncConsumer.BindDataSyncRuntime(dataSyncRuntime);
+            if (window is IPlatformPermissionRuntimeConsumer platformConsumer)
+                platformConsumer.BindPlatformPermissionRuntime(platformRuntime);
+            if (window is ISettingsExternalServicesConsumer settingsConsumer)
+                settingsConsumer.BindSettingsExternalServices(
+                    _settingsExternalServices);
             window.InitializeFrame(this, name);
             Events.RaiseCreated(name, window);
             return window;
@@ -474,6 +594,7 @@ namespace Meowdoku.Core.UI
 
         private void UpdateMask()
         {
+            StopMaskFade();
             UIFrameWindow top = null;
             foreach (UIFrameWindow window in OrderedWindows())
             {
@@ -521,6 +642,45 @@ namespace Meowdoku.Core.UI
             }
         }
 
+        private IEnumerator FadeMaskRoutine(float durationSeconds)
+        {
+            float from = maskGroup != null ? maskGroup.alpha : 0f;
+            float elapsed = 0f;
+            while (maskGroup != null && elapsed < durationSeconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                maskGroup.alpha = Mathf.Lerp(
+                    from,
+                    0f,
+                    Mathf.Clamp01(elapsed / durationSeconds));
+                yield return null;
+            }
+            if (maskGroup != null) maskGroup.alpha = 0f;
+            _maskFade = null;
+        }
+
+        private void StopMaskFade()
+        {
+            if (_maskFade != null) StopCoroutine(_maskFade);
+            _maskFade = null;
+        }
+
+        private IEnumerator RemoveTimedInputBlock(
+            int targetId,
+            GameObject blocker,
+            float durationSeconds)
+        {
+            yield return new WaitForSecondsRealtime(durationSeconds);
+            if (!_timedInputBlocks.TryGetValue(
+                    targetId,
+                    out TimedInputBlock entry) ||
+                entry.Blocker != blocker)
+                yield break;
+
+            _timedInputBlocks.Remove(targetId);
+            if (blocker != null) Destroy(blocker);
+        }
+
         private void SetInputGuard(bool active)
         {
             if (inputBlockerCanvas != null)
@@ -538,6 +698,7 @@ namespace Meowdoku.Core.UI
 
         private void OnDestroy()
         {
+            StopMaskFade();
             _trackerObserver?.Dispose();
             _trackerObserver = null;
             foreach (UIFrameWindow window in _cache.Values)
@@ -550,6 +711,11 @@ namespace Meowdoku.Core.UI
             _closing.Clear();
             _loading.Clear();
             _heldButtonGenerations.Clear();
+            foreach (TimedInputBlock entry in _timedInputBlocks.Values)
+            {
+                if (entry.Blocker != null) Destroy(entry.Blocker);
+            }
+            _timedInputBlocks.Clear();
             Events.Clear();
         }
 

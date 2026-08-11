@@ -7,6 +7,7 @@ using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
+using Meowdoku.Core.Online;
 using Meowdoku.Core.Profile;
 using Meowdoku.Core.Rank;
 using Meowdoku.Core.Tracking;
@@ -22,7 +23,9 @@ namespace Meowdoku.Gameplay
         IClockTickConsumer,
         IDailyMetaConsumer,
         IProfileConsumer,
-        IRankActivityConsumer
+        IRankActivityConsumer,
+        IAbConfigRuntimeConsumer,
+        IDataSyncConsumer
     {
         public override string GetTrackingScreenName() =>
             TrackerCatalog.Screen.Home;
@@ -66,6 +69,7 @@ namespace Meowdoku.Gameplay
         private readonly UIPopupQueue _popupQueue = new();
 
         private Sequence _transition;
+        private Sequence _profileShake;
         private Vector3 _logoBaseScale = Vector3.one;
         private Vector2 _logoBasePosition;
         private UIFrameWindow _newPage;
@@ -73,12 +77,19 @@ namespace Meowdoku.Gameplay
         private DailyMetaRuntime _dailyMetaRuntime;
         private ProfileRuntime _profileRuntime;
         private RankActivityRuntime _rankActivityRuntime;
+        private AbConfigRuntime _abConfigRuntime;
+        private DataSyncRuntime _dataSyncRuntime;
+        private ClockTicker _clockTicker;
         private bool _rankPopupPending;
 
         public bool IsExiting => _isExiting;
         public float SettingsButtonCenterY => settingsButton != null
             ? ((RectTransform)settingsButton.transform).position.y
             : 0f;
+        public RectTransform ProfileEntryRect =>
+            profileEntry != null
+                ? profileEntry.transform as RectTransform
+                : null;
 
         protected override void OnCreate()
         {
@@ -109,12 +120,17 @@ namespace Meowdoku.Gameplay
         {
             _isExiting = false;
             _newPage = null;
+            SettingsLanguageConfig languageConfig =
+                _abConfigRuntime != null
+                    ? _abConfigRuntime.Settings.Language
+                    : new SettingsLanguageConfig();
             localization?.ApplySystemLocale(
                 GameStateRuntime.Current,
-                new SettingsLanguageConfig().IsLanguageSwitchEnabledPeek());
+                languageConfig.IsLanguageSwitchEnabledPeek(
+                    _abConfigRuntime?.ValueProvider));
             soundService?.StartBgm();
             GameStateRuntime.Current.AdvanceMaxDailyDate(
-                DailyEntryStateContract.DateKey(DateTime.Now));
+                DailyEntryStateContract.DateKey(CurrentLocalNow));
             RefreshPresentation();
             dailyEntry?.Show();
             streakEntry?.Show();
@@ -128,6 +144,7 @@ namespace Meowdoku.Gameplay
         protected override IEnumerator OnHide()
         {
             KillTransition();
+            KillProfileShake();
             _popupQueue.Abort();
             _isExiting = false;
             _newPage = null;
@@ -155,6 +172,7 @@ namespace Meowdoku.Gameplay
         protected override void OnDestroyWindow()
         {
             KillTransition();
+            KillProfileShake();
             if (startButton != null) startButton.onClick.RemoveListener(StartGame);
             if (settingsButton != null)
                 settingsButton.onClick.RemoveListener(OpenSettings);
@@ -168,6 +186,7 @@ namespace Meowdoku.Gameplay
                 rankEntry.OpenRequested -= OpenRankEntry;
             if (localization != null)
                 localization.LocaleChanged -= RefreshPresentation;
+            BindDataSyncRuntime(null);
             base.OnDestroyWindow();
         }
 
@@ -178,8 +197,13 @@ namespace Meowdoku.Gameplay
 
         public void BindClockTicker(ClockTicker ticker)
         {
+            _clockTicker = ticker;
             dailyEntry?.BindClockTicker(ticker);
         }
+
+        private DateTime CurrentLocalNow => _clockTicker != null
+            ? _clockTicker.LocalNow
+            : DateTime.Now;
 
         public void BindDailyMetaRuntime(DailyMetaRuntime runtime)
         {
@@ -192,10 +216,33 @@ namespace Meowdoku.Gameplay
             _profileRuntime = runtime;
         }
 
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _abConfigRuntime = runtime;
+            if (IsShowing) RefreshPresentation();
+        }
+
         public void BindRankActivityRuntime(RankActivityRuntime runtime)
         {
             _rankActivityRuntime = runtime;
             rankEntry?.BindRankActivityRuntime(runtime);
+        }
+
+        public void BindDataSyncRuntime(DataSyncRuntime runtime)
+        {
+            if (_dataSyncRuntime == runtime) return;
+            if (_dataSyncRuntime != null)
+                _dataSyncRuntime.DataSyncCompleted -=
+                    HandleDataSyncCompleted;
+            _dataSyncRuntime = runtime;
+            if (_dataSyncRuntime != null)
+                _dataSyncRuntime.DataSyncCompleted +=
+                    HandleDataSyncCompleted;
+        }
+
+        private void HandleDataSyncCompleted(bool changed)
+        {
+            if (changed && IsShowing) RefreshPresentation();
         }
 
         public void BindLocalization(LocalizationCatalog catalog)
@@ -215,9 +262,9 @@ namespace Meowdoku.Gameplay
         {
             HomePresentationState state = HomePageContract.Resolve(
                 GameStateRuntime.Current.CurrentLevel,
-                _dailyStreak,
-                _leaderboard,
-                _hardButton);
+                CurrentDailyStreakConfig,
+                CurrentLeaderboardConfig,
+                CurrentHardButtonConfig);
             if (levelText != null)
             {
                 if (levelLocalizedText != null)
@@ -240,6 +287,24 @@ namespace Meowdoku.Gameplay
             streakEntry?.RefreshNow();
             if (profileEntry != null)
                 profileEntry.SetActive(state.ShowProfile);
+        }
+
+        public void PlayProfileShake()
+        {
+            RectTransform target = ProfileEntryRect;
+            if (target == null) return;
+            KillProfileShake();
+            target.localScale = Vector3.one;
+            _profileShake = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(target.gameObject, LinkBehaviour.KillOnDisable);
+            _profileShake.Append(
+                target.DOScale(1.15f, 0.06666667f)
+                    .SetEase(Ease.OutQuad));
+            _profileShake.Append(
+                target.DOScale(1f, 0.13333335f)
+                    .SetEase(Ease.InOutQuad));
+            _profileShake.OnComplete(() => _profileShake = null);
         }
 
         private void StartGame()
@@ -312,7 +377,7 @@ namespace Meowdoku.Gameplay
             _popupQueue.Clear();
             if (_dailyMetaRuntime != null)
                 _dailyMetaRuntime.Streak.NotifyGroupDyed(
-                    _dailyStreak.Value);
+                    CurrentDailyStreakConfig.Value);
             var handlers =
                 new Dictionary<string, Func<IEnumerator>>(
                     StringComparer.Ordinal)
@@ -540,6 +605,21 @@ namespace Meowdoku.Gameplay
             }
         }
 
+        private DailyStreakConfig CurrentDailyStreakConfig =>
+            _abConfigRuntime != null
+                ? _abConfigRuntime.Home.DailyStreak
+                : _dailyStreak;
+
+        private LeaderboardFuncConfig CurrentLeaderboardConfig =>
+            _abConfigRuntime != null
+                ? _abConfigRuntime.Home.Leaderboard
+                : _leaderboard;
+
+        private HardButtonConfig CurrentHardButtonConfig =>
+            _abConfigRuntime != null
+                ? _abConfigRuntime.Home.HardButton
+                : _hardButton;
+
         private void PlayAppear()
         {
             KillTransition();
@@ -652,6 +732,15 @@ namespace Meowdoku.Gameplay
             if (_transition == null) return;
             _transition.Kill(false);
             _transition = null;
+        }
+
+        private void KillProfileShake()
+        {
+            if (_profileShake != null && _profileShake.IsActive())
+                _profileShake.Kill(false);
+            _profileShake = null;
+            if (ProfileEntryRect != null)
+                ProfileEntryRect.localScale = Vector3.one;
         }
 
         private void SetButtonsInteractable(bool interactable)

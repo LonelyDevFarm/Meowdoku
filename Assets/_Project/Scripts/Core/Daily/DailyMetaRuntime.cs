@@ -1,4 +1,5 @@
 using Meowdoku.Core.UI;
+using Meowdoku.Core.Config;
 using UnityEngine;
 
 namespace Meowdoku.Core.Daily
@@ -23,6 +24,7 @@ namespace Meowdoku.Core.Daily
         private AwardManager _awards;
         private bool _subscribed;
         private bool _awardSubscribed;
+        private AbConfigRuntime _abConfigRuntime;
 
         public StreakFeature Streak
         {
@@ -72,6 +74,12 @@ namespace Meowdoku.Core.Daily
             uiManager = manager;
         }
 
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _abConfigRuntime = runtime;
+            _streak?.BindConfig(CurrentStreakConfig);
+        }
+
         public void SettleWin(StreakCheckinSource source)
         {
             EnsureInitialized();
@@ -100,9 +108,15 @@ namespace Meowdoku.Core.Daily
             if (_streak == null)
                 _streak = new StreakFeature(
                     StreakRepository.CreateDefault(),
+                    streakConfig: CurrentStreakConfig,
                     rewardBoundary: _awards);
             SubscribeAwards();
         }
+
+        private DailyStreakConfig CurrentStreakConfig =>
+            _abConfigRuntime != null
+                ? _abConfigRuntime.Home.DailyStreak
+                : null;
 
         private void SubscribeClock()
         {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
@@ -13,6 +14,8 @@ namespace Meowdoku.Gameplay
     [DisallowMultipleComponent]
     public sealed class HowToPlayPagedPagePresenter : UIFrameWindow
     {
+        public event Action Closed;
+
         [SerializeField] private GenericPopupAnimator popupAnimator;
         [SerializeField] private HowToPlayDemoBoardView[] boards;
         [SerializeField] private RectTransform[] boardRects;
@@ -28,6 +31,7 @@ namespace Meowdoku.Gameplay
         private Tween _slideTween;
         private int _demoToken;
         private int _page;
+        private bool _closedRaised;
 
         public int PageIndex => _page;
         public string FailureReason { get; private set; } = string.Empty;
@@ -47,6 +51,7 @@ namespace Meowdoku.Gameplay
             IReadOnlyDictionary<string, object> parameters)
         {
             StopDemo();
+            _closedRaised = false;
             FailureReason = string.Empty;
             if (!PrepareBoards())
             {
@@ -83,6 +88,7 @@ namespace Meowdoku.Gameplay
                 mainButton.onClick.RemoveListener(NextOrClose);
             if (localization != null)
                 localization.LocaleChanged -= RefreshText;
+            Closed = null;
             base.OnDestroyWindow();
         }
 
@@ -90,6 +96,11 @@ namespace Meowdoku.Gameplay
         {
             Close();
             return true;
+        }
+
+        protected override void OnCloseButtonPressed()
+        {
+            RaiseClosed();
         }
 
         public void BindLocalization(LocalizationCatalog catalog)
@@ -330,7 +341,15 @@ namespace Meowdoku.Gameplay
 
         private void Close()
         {
+            RaiseClosed();
             Owner?.Hide(UiName.HowToPlayPaged);
+        }
+
+        private void RaiseClosed()
+        {
+            if (_closedRaised) return;
+            _closedRaised = true;
+            Closed?.Invoke();
         }
 
         private readonly struct TimedEvent

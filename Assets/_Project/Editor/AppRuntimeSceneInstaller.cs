@@ -5,6 +5,8 @@ using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
+using Meowdoku.Core.Online;
+using Meowdoku.Core.Platform;
 using Meowdoku.Core.Profile;
 using Meowdoku.Core.Rank;
 using Meowdoku.Core.Robot;
@@ -78,7 +80,7 @@ namespace Meowdoku.Editor
                 AssetDatabase.LoadAssetAtPath<GameObject>(GamePagePath);
         }
 
-        private static void InstallIfReady()
+        internal static void InstallIfReady()
         {
             if (!CanEdit())
             {
@@ -89,6 +91,7 @@ namespace Meowdoku.Editor
 
             if (!File.Exists(GameplayScenePath)) return;
             if (SplashPagePrefabInstaller.InstallIfReady() == null) return;
+            if (!PlatformGuidePrefabInstaller.InstallIfReady()) return;
             GameObject gamePrefab =
                 AssetDatabase.LoadAssetAtPath<GameObject>(GamePagePath);
             if ((gamePrefab == null ||
@@ -131,6 +134,8 @@ namespace Meowdoku.Editor
                 GameplayManager manager =
                     systems.GetComponentInChildren<GameplayManager>(true);
                 if (canvas == null || manager == null) return false;
+                GameplayPresentationSceneInstaller.ConfigureBoardPatterns(
+                    manager.boardView);
 
                 canvasObject.name = "GamePage";
                 systems.transform.SetParent(canvasObject.transform, false);
@@ -409,6 +414,10 @@ namespace Meowdoku.Editor
                         Meowdoku.Core.Tracking.TrackingRuntime>();
                 AbConfigRuntime abConfigRuntime =
                     systems.AddComponent<AbConfigRuntime>();
+                PrivacyPermissionRuntime platformRuntime =
+                    systems.AddComponent<PrivacyPermissionRuntime>();
+                AuthRuntime authRuntime =
+                    systems.AddComponent<AuthRuntime>();
                 AdRuntime adRuntime = systems.AddComponent<AdRuntime>();
                 SerializedObject adData = new(adRuntime);
                 adData.FindProperty("trackingRuntime").objectReferenceValue =
@@ -436,6 +445,26 @@ namespace Meowdoku.Editor
                 rankData.FindProperty("dailyMetaRuntime").objectReferenceValue =
                     dailyMetaRuntime;
                 rankData.ApplyModifiedPropertiesWithoutUndo();
+                DataSyncHttpApi dataSyncApi =
+                    systems.AddComponent<DataSyncHttpApi>();
+                SerializedObject dataSyncApiData = new(dataSyncApi);
+                dataSyncApiData.FindProperty("authRuntime")
+                    .objectReferenceValue = authRuntime;
+                dataSyncApiData.ApplyModifiedPropertiesWithoutUndo();
+                DataSyncRuntime dataSyncRuntime =
+                    systems.AddComponent<DataSyncRuntime>();
+                SerializedObject dataSyncData = new(dataSyncRuntime);
+                dataSyncData.FindProperty("authRuntime")
+                    .objectReferenceValue = authRuntime;
+                dataSyncData.FindProperty("apiAdapter")
+                    .objectReferenceValue = dataSyncApi;
+                dataSyncData.FindProperty("dailyMetaRuntime")
+                    .objectReferenceValue = dailyMetaRuntime;
+                dataSyncData.FindProperty("profileRuntime")
+                    .objectReferenceValue = profileRuntime;
+                dataSyncData.FindProperty("rankActivityRuntime")
+                    .objectReferenceValue = rankRuntime;
+                dataSyncData.ApplyModifiedPropertiesWithoutUndo();
 
                 var uiObject = new GameObject(
                     "UI",
@@ -475,6 +504,16 @@ namespace Meowdoku.Editor
                     true);
 
                 UIManager uiManager = uiObject.GetComponent<UIManager>();
+                SerializedObject platformData = new(platformRuntime);
+                platformData.FindProperty("uiManager").objectReferenceValue =
+                    uiManager;
+                platformData.FindProperty("localization")
+                    .objectReferenceValue = localization;
+                platformData.FindProperty("abConfigRuntime")
+                    .objectReferenceValue = abConfigRuntime;
+                platformData.FindProperty("trackingRuntime")
+                    .objectReferenceValue = trackingRuntime;
+                platformData.ApplyModifiedPropertiesWithoutUndo();
                 dailyMetaData.FindProperty("uiManager")
                     .objectReferenceValue = uiManager;
                 dailyMetaData.ApplyModifiedPropertiesWithoutUndo();
@@ -496,6 +535,10 @@ namespace Meowdoku.Editor
                     .objectReferenceValue = adRuntime;
                 managerData.FindProperty("abConfigRuntime")
                     .objectReferenceValue = abConfigRuntime;
+                managerData.FindProperty("dataSyncRuntime")
+                    .objectReferenceValue = dataSyncRuntime;
+                managerData.FindProperty("platformRuntime")
+                    .objectReferenceValue = platformRuntime;
                 managerData.FindProperty("maskCanvas").objectReferenceValue =
                     maskCanvas;
                 managerData.FindProperty("maskGroup").objectReferenceValue =
@@ -514,6 +557,10 @@ namespace Meowdoku.Editor
                     .objectReferenceValue = localization;
                 bootstrapData.FindProperty("abConfigRuntime")
                     .objectReferenceValue = abConfigRuntime;
+                bootstrapData.FindProperty("dataSyncRuntime")
+                    .objectReferenceValue = dataSyncRuntime;
+                bootstrapData.FindProperty("platformRuntime")
+                    .objectReferenceValue = platformRuntime;
                 bootstrapData.FindProperty("runOnStart").boolValue = true;
                 bootstrapData.ApplyModifiedPropertiesWithoutUndo();
 
@@ -602,6 +649,24 @@ namespace Meowdoku.Editor
                     changed = true;
                 }
 
+                PrivacyPermissionRuntime platformRuntime =
+                    systems.GetComponent<PrivacyPermissionRuntime>();
+                if (platformRuntime == null)
+                {
+                    platformRuntime = systems.gameObject
+                        .AddComponent<PrivacyPermissionRuntime>();
+                    changed = true;
+                }
+
+                AuthRuntime authRuntime =
+                    systems.GetComponent<AuthRuntime>();
+                if (authRuntime == null)
+                {
+                    authRuntime = systems.gameObject
+                        .AddComponent<AuthRuntime>();
+                    changed = true;
+                }
+
                 AdRuntime adRuntime = systems.GetComponent<AdRuntime>();
                 if (adRuntime == null)
                 {
@@ -674,6 +739,71 @@ namespace Meowdoku.Editor
                     changed = true;
                 }
 
+                DataSyncHttpApi dataSyncApi =
+                    systems.GetComponent<DataSyncHttpApi>();
+                if (dataSyncApi == null)
+                {
+                    dataSyncApi = systems.gameObject
+                        .AddComponent<DataSyncHttpApi>();
+                    changed = true;
+                }
+                SerializedObject dataSyncApiData = new(dataSyncApi);
+                changed |= SetReference(
+                    dataSyncApiData,
+                    "authRuntime",
+                    authRuntime);
+                dataSyncApiData.ApplyModifiedPropertiesWithoutUndo();
+
+                DataSyncRuntime dataSyncRuntime =
+                    systems.GetComponent<DataSyncRuntime>();
+                if (dataSyncRuntime == null)
+                {
+                    dataSyncRuntime = systems.gameObject
+                        .AddComponent<DataSyncRuntime>();
+                    changed = true;
+                }
+                SerializedObject dataSyncData = new(dataSyncRuntime);
+                changed |= SetReference(
+                    dataSyncData,
+                    "authRuntime",
+                    authRuntime);
+                changed |= SetReference(
+                    dataSyncData,
+                    "apiAdapter",
+                    dataSyncApi);
+                changed |= SetReference(
+                    dataSyncData,
+                    "dailyMetaRuntime",
+                    dailyMeta);
+                changed |= SetReference(
+                    dataSyncData,
+                    "profileRuntime",
+                    profileRuntime);
+                changed |= SetReference(
+                    dataSyncData,
+                    "rankActivityRuntime",
+                    rankRuntime);
+                dataSyncData.ApplyModifiedPropertiesWithoutUndo();
+
+                SerializedObject platformData = new(platformRuntime);
+                changed |= SetReference(
+                    platformData,
+                    "uiManager",
+                    manager);
+                changed |= SetReference(
+                    platformData,
+                    "localization",
+                    LocalizationCatalogAssetInstaller.GetOrCreate());
+                changed |= SetReference(
+                    platformData,
+                    "abConfigRuntime",
+                    abConfigRuntime);
+                changed |= SetReference(
+                    platformData,
+                    "trackingRuntime",
+                    trackingRuntime);
+                platformData.ApplyModifiedPropertiesWithoutUndo();
+
                 SerializedObject managerData = new(manager);
                 SerializedProperty tickerProperty =
                     managerData.FindProperty("clockTicker");
@@ -733,6 +863,14 @@ namespace Meowdoku.Editor
                     managerData,
                     "abConfigRuntime",
                     abConfigRuntime);
+                changed |= SetReference(
+                    managerData,
+                    "dataSyncRuntime",
+                    dataSyncRuntime);
+                changed |= SetReference(
+                    managerData,
+                    "platformRuntime",
+                    platformRuntime);
                 managerData.ApplyModifiedPropertiesWithoutUndo();
 
                 AppBootstrap bootstrap =
@@ -751,6 +889,14 @@ namespace Meowdoku.Editor
                     bootstrapData,
                     "abConfigRuntime",
                     abConfigRuntime);
+                changed |= SetReference(
+                    bootstrapData,
+                    "dataSyncRuntime",
+                    dataSyncRuntime);
+                changed |= SetReference(
+                    bootstrapData,
+                    "platformRuntime",
+                    platformRuntime);
                 bootstrapData.ApplyModifiedPropertiesWithoutUndo();
 
                 SerializedProperty dailyUiProperty =
@@ -849,12 +995,25 @@ namespace Meowdoku.Editor
                 GameplayPagePresenter presenter =
                     root.GetComponent<GameplayPagePresenter>();
                 if (presenter == null) return;
+                GameplayManager gameplay =
+                    root.GetComponentInChildren<GameplayManager>(true);
+                bool patternChanged =
+                    GameplayPresentationSceneInstaller.ConfigureBoardPatterns(
+                        gameplay != null ? gameplay.boardView : null);
                 DailyPresentationRefs daily = EnsureDailyPresentation(
                     root.transform);
-                if (daily.DateRoot == null || daily.TimerRoot == null) return;
+                if (daily.DateRoot == null || daily.TimerRoot == null)
+                {
+                    if (patternChanged)
+                    {
+                        PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
+                        AssetDatabase.SaveAssets();
+                    }
+                    return;
+                }
 
                 SerializedObject data = new(presenter);
-                bool changed = daily.Created;
+                bool changed = daily.Created || patternChanged;
                 changed |= SetReference(data, "mainLevelDisplay", daily.MainLevel);
                 changed |= SetReference(data, "mainScoreDisplay", daily.MainScore);
                 changed |= SetReference(data, "dailyDateDisplay", daily.DateRoot);
@@ -867,6 +1026,26 @@ namespace Meowdoku.Editor
                     LocalizationCatalogAssetInstaller.GetOrCreate());
                 if (!changed) return;
                 data.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        internal static void UpgradeGamePagePatternAssets()
+        {
+            if (!CanEdit() || !File.Exists(GamePagePath)) return;
+            GameObject root = PrefabUtility.LoadPrefabContents(GamePagePath);
+            try
+            {
+                GameplayManager gameplay =
+                    root.GetComponentInChildren<GameplayManager>(true);
+                if (!GameplayPresentationSceneInstaller.ConfigureBoardPatterns(
+                        gameplay != null ? gameplay.boardView : null))
+                    return;
                 PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
                 AssetDatabase.SaveAssets();
             }

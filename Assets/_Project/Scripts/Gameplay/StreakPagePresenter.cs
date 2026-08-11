@@ -54,6 +54,13 @@ namespace Meowdoku.Gameplay
         private StreakDisplayState _state;
         private int _flowGeneration;
         private bool _litReady;
+        private bool _settleRevealComplete;
+
+#if UNITY_INCLUDE_TESTS
+        internal StreakDisplayState StateForTests => _state;
+        internal bool SettleRevealCompleteForTests =>
+            _settleRevealComplete;
+#endif
 
         protected override void OnCreate()
         {
@@ -72,6 +79,7 @@ namespace Meowdoku.Gameplay
             _flowGeneration++;
             _state = ReadState(parameters);
             _litReady = false;
+            _settleRevealComplete = false;
             Subscribe();
             Refresh();
 
@@ -88,6 +96,7 @@ namespace Meowdoku.Gameplay
         {
             _flowGeneration++;
             _litReady = false;
+            _settleRevealComplete = false;
             Unsubscribe();
             yield break;
         }
@@ -210,6 +219,7 @@ namespace Meowdoku.Gameplay
                 yield break;
             }
 
+            _settleRevealComplete = true;
             RefreshSlots(streak);
             int pendingUid = streak.PendingShowUid;
             if (pendingUid > 0)
@@ -225,9 +235,6 @@ namespace Meowdoku.Gameplay
                 streak.ConsumePendingShow();
             }
 
-            if (AddAfterCheckinSeconds > 0f)
-                yield return new WaitForSecondsRealtime(
-                    AddAfterCheckinSeconds);
             if (!IsCurrent(generation)) yield break;
             Refresh();
             if (continueButton != null)
@@ -239,6 +246,16 @@ namespace Meowdoku.Gameplay
             if (slots == null || slots.Length == 0 || streak == null)
                 return;
             IReadOnlyList<StreakWeekSlot> week = streak.GetWeekSlots();
+            int hiddenCheckinIndex = -1;
+            if (_state == StreakDisplayState.Settle &&
+                !_settleRevealComplete &&
+                streak.ReviveAnimation.Kind ==
+                StreakReviveAnimationKind.None)
+            {
+                for (int index = 0; index < week.Count; index++)
+                    if (week[index].IsChecked)
+                        hiddenCheckinIndex = index;
+            }
             for (int index = 0;
                  index < slots.Length && index < week.Count;
                  index++)
@@ -250,7 +267,8 @@ namespace Meowdoku.Gameplay
                              streak.HasReward;
                 view.ApplyStatic(
                     week[index].Weekday,
-                    week[index].IsChecked,
+                    week[index].IsChecked &&
+                    index != hiddenCheckinIndex,
                     chest);
             }
         }
@@ -259,6 +277,7 @@ namespace Meowdoku.Gameplay
         {
             if (!_litReady || _state != StreakDisplayState.Lit) return;
             _litReady = false;
+            _settleRevealComplete = false;
             _state = StreakDisplayState.Settle;
             Refresh();
             StartManagedCoroutine(RunSettle(

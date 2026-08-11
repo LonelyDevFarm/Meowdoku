@@ -79,6 +79,10 @@ namespace Meowdoku.Gameplay
         private IReadOnlyList<LevelEntry> _lkLevels = Array.Empty<LevelEntry>();
         private int _lkNumber = 1;
 
+        public BankBrowserState StateForTests => _state;
+        public int LkNumberForTests => _lkNumber;
+        public int LkCountForTests => _lkLevels.Count;
+
         private static readonly Color TextColor = Hex("333333");
         private static readonly Color Gray = Hex("888888");
         private static readonly Color Regular = Hex("2E8C47");

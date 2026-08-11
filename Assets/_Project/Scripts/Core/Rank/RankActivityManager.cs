@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Meowdoku.Core.Daily;
+using Meowdoku.Core.Online;
 using Meowdoku.Core.Profile;
 using Meowdoku.Core.Robot;
 
@@ -28,7 +29,7 @@ namespace Meowdoku.Core.Rank
     /// one-second ticker subscribe at the runtime boundary instead of being
     /// hidden global dependencies.
     /// </summary>
-    public sealed class RankActivityManager
+    public sealed class RankActivityManager : IDataSyncSavable
     {
         public const long ZeroScoreTieUnix = 253402300799L;
         public const string RewardReason = "challenge_get_dlg";
@@ -96,6 +97,12 @@ namespace Meowdoku.Core.Rank
         public int RemainingSeconds => RankActivityPeriod.RemainingSeconds(
             _time.UnixNow,
             _data.EndUnix);
+
+#if UNITY_INCLUDE_TESTS
+        internal int LevelCacheForTests => _data.LevelCache;
+        internal bool IsLevelCacheActiveForTests => _data.LevelCacheActive;
+        internal bool IsInLevelForTests => _inLevel;
+#endif
 
         public List<RobotRankEntry> GetRanking()
         {
@@ -339,7 +346,8 @@ namespace Meowdoku.Core.Rank
             {
                 ["top3_infos"] = top3,
                 ["place"] = place,
-                ["win_count"] = winCount
+                ["win_count"] = winCount,
+                ["group"] = _data.Group
             });
             _awards.ContinueWhenAwardEnd(uid, OnRewardAwardEnd);
             return uid;
@@ -386,6 +394,8 @@ namespace Meowdoku.Core.Rank
             StateChanged?.Invoke(_data.State);
         }
 
+        public string RemoteSaveId => "rank";
+
         public Dictionary<string, object> ExportRemote() => new()
         {
             ["period_count"] = _data.PeriodCount
@@ -399,6 +409,13 @@ namespace Meowdoku.Core.Rank
             _data.PeriodCount = RankValue.Int(remote, "period_count");
             Save();
             return true;
+        }
+
+        public bool MergeRemote(
+            IReadOnlyDictionary<string, object> remote,
+            DataSyncMergeContext context)
+        {
+            return MergeRemote(remote, context.RemoteAhead);
         }
 
         private void OpenPeriod(int group)

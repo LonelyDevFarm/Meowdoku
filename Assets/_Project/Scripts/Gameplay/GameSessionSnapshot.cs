@@ -27,6 +27,7 @@ namespace Meowdoku.Gameplay
         public Dictionary<string, object> LaunchParameters { get; set; } =
             new Dictionary<string, object>();
         public string PreType { get; set; } = PreCatDecider.PreTypeNone;
+        public double InGameSeconds { get; set; }
         public List<Vector2Int> PrefillPositions { get; } = new List<Vector2Int>();
         public Vector2Int PreCatPosition { get; set; } = new Vector2Int(-1, -1);
 
@@ -42,6 +43,7 @@ namespace Meowdoku.Gameplay
         public LevelEntry Entry { get; internal set; }
         public GameSessionRestoreData Session { get; internal set; }
         public string PreType { get; internal set; } = PreCatDecider.PreTypeNone;
+        public double InGameSeconds { get; internal set; }
         public List<Vector2Int> PrefillPositions { get; } = new List<Vector2Int>();
         public bool IsComplete { get; internal set; }
     }
@@ -70,6 +72,7 @@ namespace Meowdoku.Gameplay
             snapshot["bank_tier"] = entry.BankTier ?? string.Empty;
             snapshot["pre_type"] = context.PreType ?? PreCatDecider.PreTypeNone;
             snapshot["prefill_positions"] = ToPositions(context.PrefillPositions);
+            snapshot["in_game_sec"] = Math.Max(0.0, context.InGameSeconds);
             return snapshot;
         }
 
@@ -125,6 +128,7 @@ namespace Meowdoku.Gameplay
                     Entry = entry,
                     Session = session,
                     PreType = ReadString(snapshot, "pre_type", PreCatDecider.PreTypeNone),
+                    InGameSeconds = Math.Max(0.0, ReadDouble(snapshot, "in_game_sec")),
                     IsComplete = session.PlacedCats.Count == size
                 };
                 ReadPositions(snapshot, "prefill_positions", size, result.PrefillPositions, entry.Solution, true);
@@ -180,6 +184,19 @@ namespace Meowdoku.Gameplay
         private static int ReadInt(IDictionary<string, object> data, string key, int fallback = 0)
         {
             return data.TryGetValue(key, out object value) && value != null ? Convert.ToInt32(value) : fallback;
+        }
+
+        private static double ReadDouble(
+            IDictionary<string, object> data,
+            string key,
+            double fallback = 0.0)
+        {
+            if (!data.TryGetValue(key, out object value) || value == null)
+                return fallback;
+            double result = Convert.ToDouble(value);
+            return double.IsNaN(result) || double.IsInfinity(result)
+                ? fallback
+                : result;
         }
 
         private static bool ReadBool(IDictionary<string, object> data, string key)

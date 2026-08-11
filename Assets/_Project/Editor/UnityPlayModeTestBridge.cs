@@ -20,16 +20,29 @@ namespace Meowdoku.Editor
     {
         internal const string EventName =
             @"Local\Meowdoku.UnityPlayModeTests";
+        internal const string PlatformEventName =
+            @"Local\Meowdoku.UnityPlayModeTests.Platform";
+        internal const string ResetEventName =
+            @"Local\Meowdoku.UnityPlayModeTests.Reset";
         internal const string ResultPath =
             "Temp/MeowdokuPlayModeTestResult.txt";
         internal const string XmlResultPath =
             "Temp/MeowdokuPlayModeTestResult.xml";
+        internal const string PlatformResultPath =
+            "Temp/MeowdokuPlatformPlayModeTestResult.txt";
+        internal const string PlatformXmlResultPath =
+            "Temp/MeowdokuPlatformPlayModeTestResult.xml";
 
         private const string ActiveSessionKey =
             "Meowdoku.UnityPlayModeTestBridge.Active";
+        private const string PlatformSessionKey =
+            "Meowdoku.UnityPlayModeTestBridge.Platform";
 
         private static EventWaitHandle _runEvent;
+        private static EventWaitHandle _platformEvent;
+        private static EventWaitHandle _resetEvent;
         private static bool _runPending;
+        private static bool _platformPending;
         private static TestRunnerApi _runner;
         private static ResultCallbacks _callbacks;
 
@@ -48,10 +61,16 @@ namespace Meowdoku.Editor
                 EditorApplication.delayCall += RegisterCallbacks;
         }
 
-        [MenuItem("Tools/Meowdoku/Run PlayMode Tests")]
+        [MenuItem("Tools/Meowdoku/Run PlayMode Tests %#&p")]
         private static void RunFromMenu()
         {
-            QueueRun();
+            QueueRun(false);
+        }
+
+        [MenuItem("Tools/Meowdoku/Run Platform PlayMode Tests")]
+        private static void RunPlatformFromMenu()
+        {
+            QueueRun(true);
         }
 
         private static void TryCreateEvent()
@@ -62,10 +81,23 @@ namespace Meowdoku.Editor
                     false,
                     EventResetMode.AutoReset,
                     EventName);
+                _platformEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    PlatformEventName);
+                _resetEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    ResetEventName);
             }
             catch (Exception)
             {
+                _runEvent?.Dispose();
+                _platformEvent?.Dispose();
+                _resetEvent?.Dispose();
                 _runEvent = null;
+                _platformEvent = null;
+                _resetEvent = null;
             }
         }
 
@@ -73,21 +105,40 @@ namespace Meowdoku.Editor
         {
             try
             {
+                if (_resetEvent != null && _resetEvent.WaitOne(0))
+                    ResetOrphanedRun();
                 if (_runEvent != null && _runEvent.WaitOne(0))
-                    QueueRun();
+                    QueueRun(false);
+                if (_platformEvent != null && _platformEvent.WaitOne(0))
+                    QueueRun(true);
+                if (_runPending &&
+                    !SessionState.GetBool(ActiveSessionKey, false))
+                    RunWhenReady();
             }
             catch (ObjectDisposedException)
             {
                 _runEvent = null;
+                _platformEvent = null;
+                _resetEvent = null;
             }
         }
 
-        private static void QueueRun()
+        private static void ResetOrphanedRun()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            _runPending = false;
+            SessionState.EraseBool(ActiveSessionKey);
+            SessionState.EraseBool(PlatformSessionKey);
+            ReleaseCallbacks();
+            WriteResult("RESET", ResultPath);
+        }
+
+        private static void QueueRun(bool platformOnly)
         {
             if (_runPending || SessionState.GetBool(ActiveSessionKey, false))
                 return;
             _runPending = true;
-            EditorApplication.delayCall += RunWhenReady;
+            _platformPending = platformOnly;
         }
 
         private static void RunWhenReady()
@@ -95,28 +146,34 @@ namespace Meowdoku.Editor
             if (EditorApplication.isCompiling ||
                 EditorApplication.isUpdating ||
                 EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                EditorApplication.delayCall += RunWhenReady;
                 return;
-            }
 
             _runPending = false;
             SessionState.SetBool(ActiveSessionKey, true);
-            WriteResult("RUNNING");
+            SessionState.SetBool(PlatformSessionKey, _platformPending);
+            _platformPending = false;
+            WriteResult("RUNNING", ActiveResultPath);
             RegisterCallbacks();
             try
             {
-                _runner.Execute(new ExecutionSettings(new Filter
+                var filter = new Filter
                 {
                     testMode =
                         UnityEditor.TestTools.TestRunner.Api.TestMode.PlayMode,
                     assemblyNames = new[] { "Meowdoku.PlayModeTests" }
-                }));
+                };
+                if (SessionState.GetBool(PlatformSessionKey, false))
+                    filter.groupNames = new[]
+                    {
+                        @"^Meowdoku\.Tests\.PlayMode\.PrimaryNavigationPlayModeTests\.Platform"
+                    };
+                _runner.Execute(new ExecutionSettings(filter));
             }
             catch (Exception exception)
             {
-                WriteResult("BRIDGE_ERROR\n" + exception);
+                WriteResult("BRIDGE_ERROR\n" + exception, ActiveResultPath);
                 SessionState.EraseBool(ActiveSessionKey);
+                SessionState.EraseBool(PlatformSessionKey);
                 ReleaseCallbacks();
             }
         }
@@ -137,7 +194,7 @@ namespace Meowdoku.Editor
                 return;
             try
             {
-                TestRunnerApi.SaveResultToFile(result, XmlResultPath);
+                TestRunnerApi.SaveResultToFile(result, ActiveXmlResultPath);
                 var builder = new StringBuilder();
                 builder.Append("RESULT passed=")
                     .Append(result.PassCount)
@@ -160,15 +217,32 @@ namespace Meowdoku.Editor
                         .Append(": ")
                         .AppendLine(failure.Message);
                 }
-                WriteResult(builder.ToString());
+                WriteResult(builder.ToString(), ActiveResultPath);
             }
             catch (Exception exception)
             {
-                WriteResult("BRIDGE_ERROR\n" + exception);
+                WriteResult("BRIDGE_ERROR\n" + exception, ActiveResultPath);
             }
             finally
             {
                 SessionState.EraseBool(ActiveSessionKey);
+                SessionState.EraseBool(PlatformSessionKey);
+                ReleaseCallbacks();
+            }
+        }
+
+        private static void FailRun(string message)
+        {
+            try
+            {
+                WriteResult(
+                    "BRIDGE_ERROR\n" + (message ?? string.Empty),
+                    ActiveResultPath);
+            }
+            finally
+            {
+                SessionState.EraseBool(ActiveSessionKey);
+                SessionState.EraseBool(PlatformSessionKey);
                 ReleaseCallbacks();
             }
         }
@@ -188,12 +262,22 @@ namespace Meowdoku.Editor
                 CollectFailures(child, failures);
         }
 
-        private static void WriteResult(string value)
+        private static string ActiveResultPath =>
+            SessionState.GetBool(PlatformSessionKey, false)
+                ? PlatformResultPath
+                : ResultPath;
+
+        private static string ActiveXmlResultPath =>
+            SessionState.GetBool(PlatformSessionKey, false)
+                ? PlatformXmlResultPath
+                : XmlResultPath;
+
+        private static void WriteResult(string value, string resultPath)
         {
             string projectRoot = Directory.GetParent(Application.dataPath)
                 ?.FullName;
             if (string.IsNullOrEmpty(projectRoot)) return;
-            string path = Path.Combine(projectRoot, ResultPath);
+            string path = Path.Combine(projectRoot, resultPath);
             Directory.CreateDirectory(Path.GetDirectoryName(path) ??
                                       projectRoot);
             File.WriteAllText(path, value ?? string.Empty);
@@ -218,6 +302,10 @@ namespace Meowdoku.Editor
             EditorApplication.quitting -= DisposeForQuit;
             _runEvent?.Dispose();
             _runEvent = null;
+            _platformEvent?.Dispose();
+            _platformEvent = null;
+            _resetEvent?.Dispose();
+            _resetEvent = null;
             _callbacks = null;
             _runner = null;
         }
@@ -225,12 +313,17 @@ namespace Meowdoku.Editor
         private static void DisposeForQuit()
         {
             SessionState.EraseBool(ActiveSessionKey);
+            SessionState.EraseBool(PlatformSessionKey);
             ReleaseCallbacks();
             _runEvent?.Dispose();
             _runEvent = null;
+            _platformEvent?.Dispose();
+            _platformEvent = null;
+            _resetEvent?.Dispose();
+            _resetEvent = null;
         }
 
-        private sealed class ResultCallbacks : ScriptableObject, ICallbacks
+        private sealed class ResultCallbacks : ScriptableObject, IErrorCallbacks
         {
             public void RunStarted(ITestAdaptor testsToRun) { }
             public void TestStarted(ITestAdaptor test) { }
@@ -239,6 +332,11 @@ namespace Meowdoku.Editor
             public void RunFinished(ITestResultAdaptor result)
             {
                 CompleteRun(result);
+            }
+
+            public void OnError(string message)
+            {
+                FailRun(message);
             }
         }
     }

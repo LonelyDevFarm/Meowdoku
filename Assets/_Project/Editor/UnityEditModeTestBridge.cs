@@ -20,14 +20,23 @@ namespace Meowdoku.Editor
     {
         internal const string EventName =
             @"Local\Meowdoku.UnityEditModeTests";
+        internal const string PlatformEventName =
+            @"Local\Meowdoku.UnityEditModeTests.Platform";
         internal const string ResultPath =
             "Temp/MeowdokuEditModeTestResult.txt";
         internal const string XmlResultPath =
             "Temp/MeowdokuEditModeTestResult.xml";
+        internal const string PlatformResultPath =
+            "Temp/MeowdokuPlatformEditModeTestResult.txt";
+        internal const string PlatformXmlResultPath =
+            "Temp/MeowdokuPlatformEditModeTestResult.xml";
 
         private static EventWaitHandle _runEvent;
+        private static EventWaitHandle _platformEvent;
         private static bool _runPending;
         private static bool _runActive;
+        private static bool _platformPending;
+        private static bool _platformActive;
         private static TestRunnerApi _runner;
         private static ResultCallbacks _callbacks;
 
@@ -43,10 +52,16 @@ namespace Meowdoku.Editor
             EditorApplication.quitting += Dispose;
         }
 
-        [MenuItem("Tools/Meowdoku/Run EditMode Tests")]
+        [MenuItem("Tools/Meowdoku/Run EditMode Tests %#&e")]
         private static void RunFromMenu()
         {
-            QueueRun();
+            QueueRun(false);
+        }
+
+        [MenuItem("Tools/Meowdoku/Run Platform EditMode Tests")]
+        private static void RunPlatformFromMenu()
+        {
+            QueueRun(true);
         }
 
         private static void TryCreateEvent()
@@ -57,10 +72,15 @@ namespace Meowdoku.Editor
                     false,
                     EventResetMode.AutoReset,
                     EventName);
+                _platformEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    PlatformEventName);
             }
             catch (Exception)
             {
                 _runEvent = null;
+                _platformEvent = null;
             }
         }
 
@@ -69,7 +89,11 @@ namespace Meowdoku.Editor
             try
             {
                 if (_runEvent != null && _runEvent.WaitOne(0))
-                    QueueRun();
+                    QueueRun(false);
+                if (_platformEvent != null && _platformEvent.WaitOne(0))
+                    QueueRun(true);
+                if (_runPending && !_runActive)
+                    RunWhenReady();
             }
             catch (ObjectDisposedException)
             {
@@ -77,13 +101,13 @@ namespace Meowdoku.Editor
             }
         }
 
-        private static void QueueRun()
+        private static void QueueRun(bool platformOnly)
         {
             if (_runPending || _runActive)
                 return;
 
             _runPending = true;
-            EditorApplication.delayCall += RunWhenReady;
+            _platformPending = platformOnly;
         }
 
         private static void RunWhenReady()
@@ -91,30 +115,35 @@ namespace Meowdoku.Editor
             if (EditorApplication.isCompiling ||
                 EditorApplication.isUpdating ||
                 EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                EditorApplication.delayCall += RunWhenReady;
                 return;
-            }
 
             _runPending = false;
             _runActive = true;
-            WriteResult("RUNNING");
+            _platformActive = _platformPending;
+            _platformPending = false;
+            WriteResult("RUNNING", ActiveResultPath);
 
             _runner = ScriptableObject.CreateInstance<TestRunnerApi>();
             _callbacks = new ResultCallbacks(CompleteRun);
             _runner.RegisterCallbacks(_callbacks);
             try
             {
-                _runner.Execute(new ExecutionSettings(new Filter
+                var filter = new Filter
                 {
                     testMode =
                         UnityEditor.TestTools.TestRunner.Api.TestMode.EditMode,
                     assemblyNames = new[] { "Meowdoku.EditModeTests" }
-                }));
+                };
+                if (_platformActive)
+                    filter.groupNames = new[]
+                    {
+                        @"^Meowdoku\.Tests\.EditMode\.(AppRuntimeCompositionTests|PlatformPermissionTests)"
+                    };
+                _runner.Execute(new ExecutionSettings(filter));
             }
             catch (Exception exception)
             {
-                WriteResult("BRIDGE_ERROR\n" + exception);
+                WriteResult("BRIDGE_ERROR\n" + exception, ActiveResultPath);
                 ReleaseRunner();
             }
         }
@@ -123,7 +152,7 @@ namespace Meowdoku.Editor
         {
             try
             {
-                TestRunnerApi.SaveResultToFile(result, XmlResultPath);
+                TestRunnerApi.SaveResultToFile(result, ActiveXmlResultPath);
                 var builder = new StringBuilder();
                 builder.Append("RESULT passed=")
                     .Append(result.PassCount)
@@ -146,11 +175,11 @@ namespace Meowdoku.Editor
                         .Append(": ")
                         .AppendLine(failure.Message);
                 }
-                WriteResult(builder.ToString());
+                WriteResult(builder.ToString(), ActiveResultPath);
             }
             catch (Exception exception)
             {
-                WriteResult("BRIDGE_ERROR\n" + exception);
+                WriteResult("BRIDGE_ERROR\n" + exception, ActiveResultPath);
             }
             finally
             {
@@ -175,13 +204,19 @@ namespace Meowdoku.Editor
                 CollectFailures(child, failures);
         }
 
-        private static void WriteResult(string value)
+        private static string ActiveResultPath =>
+            _platformActive ? PlatformResultPath : ResultPath;
+
+        private static string ActiveXmlResultPath =>
+            _platformActive ? PlatformXmlResultPath : XmlResultPath;
+
+        private static void WriteResult(string value, string resultPath)
         {
             string projectRoot = Directory.GetParent(Application.dataPath)
                 ?.FullName;
             if (string.IsNullOrEmpty(projectRoot))
                 return;
-            string path = Path.Combine(projectRoot, ResultPath);
+            string path = Path.Combine(projectRoot, resultPath);
             Directory.CreateDirectory(Path.GetDirectoryName(path) ??
                                       projectRoot);
             File.WriteAllText(path, value ?? string.Empty);
@@ -196,6 +231,7 @@ namespace Meowdoku.Editor
             _runner = null;
             _callbacks = null;
             _runActive = false;
+            _platformActive = false;
         }
 
         private static void Dispose()
@@ -206,6 +242,8 @@ namespace Meowdoku.Editor
             ReleaseRunner();
             _runEvent?.Dispose();
             _runEvent = null;
+            _platformEvent?.Dispose();
+            _platformEvent = null;
         }
 
         private sealed class ResultCallbacks : ICallbacks

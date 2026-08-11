@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Meowdoku.Core.Config
 {
     public sealed class SettingsLanguageConfig : AbConfigBase<int>
@@ -35,5 +37,25 @@ namespace Meowdoku.Core.Config
 
         public bool IsEnabled() => Value != ValueControl;
         public bool IsKeepOnFilled() => Value == ValueKeepOnFilled;
+    }
+
+    public sealed class SettingsConfigSet
+    {
+        private readonly IAbConfig[] _all;
+
+        public SettingsConfigSet()
+        {
+            _all = new IAbConfig[]
+            {
+                Language,
+                BlindMode,
+                RuleText
+            };
+        }
+
+        public SettingsLanguageConfig Language { get; } = new();
+        public BlindModConfig BlindMode { get; } = new();
+        public RuleTextConfig RuleText { get; } = new();
+        public IReadOnlyList<IAbConfig> All => _all;
     }
 }

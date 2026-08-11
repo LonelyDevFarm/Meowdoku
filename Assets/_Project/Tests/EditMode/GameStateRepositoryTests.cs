@@ -45,6 +45,11 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(data.PatternModeOn, Is.False);
             Assert.That(data.PatternEntryDotDismissed, Is.False);
             Assert.That(data.PatternSwitchDotDismissed, Is.False);
+            Assert.That(data.PushAskCount, Is.Zero);
+            Assert.That(data.PushGuideLastDate, Is.Empty);
+            Assert.That(data.PushGuideShownCount, Is.Zero);
+            Assert.That(data.PushGuidePopupCount, Is.Zero);
+            Assert.That(data.HasShownAttGuide, Is.False);
             Assert.That(data.PreCatLockPosition, Is.EqualTo(new Vector2Int(-1, -1)));
             Assert.That(data.SavedGameAutoMark, Is.EqualTo(-1));
         }
@@ -81,6 +86,11 @@ namespace Meowdoku.Tests.EditMode
                 ToolUndo = 1,
                 HasUsedTool = true,
                 PropHighlightShown = true,
+                PushAskCount = 2,
+                PushGuideLastDate = "2026-08-03",
+                PushGuideShownCount = 4,
+                PushGuidePopupCount = 3,
+                HasShownAttGuide = true,
                 AppliedLocale = "vi",
                 MusicOn = false,
                 MusicUserModified = true,
@@ -128,6 +138,11 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(restored.ToolUndo, Is.EqualTo(1));
             Assert.That(restored.HasUsedTool, Is.True);
             Assert.That(restored.PropHighlightShown, Is.True);
+            Assert.That(restored.PushAskCount, Is.EqualTo(2));
+            Assert.That(restored.PushGuideLastDate, Is.EqualTo("2026-08-03"));
+            Assert.That(restored.PushGuideShownCount, Is.EqualTo(4));
+            Assert.That(restored.PushGuidePopupCount, Is.EqualTo(3));
+            Assert.That(restored.HasShownAttGuide, Is.True);
             Assert.That(restored.AppliedLocale, Is.EqualTo("vi"));
             Assert.That(restored.MusicOn, Is.False);
             Assert.That(restored.MusicUserModified, Is.True);

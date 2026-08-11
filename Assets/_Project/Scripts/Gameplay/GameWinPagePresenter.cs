@@ -9,6 +9,7 @@ using Meowdoku.Core.Config;
 using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
 using Meowdoku.Core.Profile;
+using Meowdoku.Core.Platform;
 using Meowdoku.Core.Rank;
 using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
@@ -22,7 +23,8 @@ namespace Meowdoku.Gameplay
     public sealed class GameWinPagePresenter : UIFrameWindow,
         IDailyMetaConsumer,
         IProfileConsumer,
-        IRankActivityConsumer
+        IRankActivityConsumer,
+        IPlatformPermissionRuntimeConsumer
     {
         public override string GetTrackingScreenName() =>
             _selfName == UiName.DailyWin
@@ -100,6 +102,9 @@ namespace Meowdoku.Gameplay
         private ProfileRuntime _profileRuntime;
         private RankActivityRuntime _rankActivityRuntime;
         private bool _continuing;
+        private PrivacyPermissionRuntime _platformRuntime;
+        private int _pushFlowGeneration;
+        private const float PushGuideAppearDelaySeconds = 2.467f;
 
         protected override void OnCreate()
         {
@@ -117,6 +122,7 @@ namespace Meowdoku.Gameplay
             _transition = transition;
             _gameplayManager = ReadManager(parameters);
             _continuing = false;
+            _pushFlowGeneration++;
             if (transition == null)
             {
                 Owner?.Hide(UiName.Win);
@@ -131,7 +137,10 @@ namespace Meowdoku.Gameplay
             if (transition.IsDailySession)
             {
                 if (dailyContinueButton != null)
-                    dailyContinueButton.interactable = false;
+                    dailyContinueButton.interactable = true;
+                Owner?.BlockInputBriefly(
+                    transform as RectTransform,
+                    DailyResultContract.InputBlockSeconds);
                 bool toastWasShown = ReadBool(
                     parameters,
                     "toast_was_shown");
@@ -139,7 +148,6 @@ namespace Meowdoku.Gameplay
                     StartDailyPresentation();
                 else
                     StartManagedCoroutine(StartDailyPresentationAfterDelay());
-                StartManagedCoroutine(UnlockDailyInputAfterDelay());
                 return;
             }
             if (passPanel)
@@ -152,6 +160,16 @@ namespace Meowdoku.Gameplay
                 PlayOpenAnimation();
                 _gameplayManager?.PlayResultSound(SoundKind.LevelWin);
             }
+            _platformRuntime?.PrepareNormalGameEnd(transition.Level);
+            if (_platformRuntime?.IsPushGuideEligible(transition.Level) == true)
+            {
+                Owner?.BlockInputBriefly(
+                    transform as RectTransform,
+                    PushGuideAppearDelaySeconds);
+                StartManagedCoroutine(ShowPushGuideAfterAppear(
+                    _pushFlowGeneration,
+                    transition.Level));
+            }
         }
 
         protected override IEnumerator OnHide()
@@ -160,6 +178,7 @@ namespace Meowdoku.Gameplay
             _gameplayManager = null;
             _transition = null;
             _continuing = false;
+            _pushFlowGeneration++;
             yield break;
         }
 
@@ -189,6 +208,24 @@ namespace Meowdoku.Gameplay
         public void BindRankActivityRuntime(RankActivityRuntime runtime)
         {
             _rankActivityRuntime = runtime;
+        }
+
+        public void BindPlatformPermissionRuntime(
+            PrivacyPermissionRuntime runtime)
+        {
+            _platformRuntime = runtime;
+        }
+
+        private IEnumerator ShowPushGuideAfterAppear(
+            int generation,
+            int level)
+        {
+            yield return new WaitForSecondsRealtime(
+                PushGuideAppearDelaySeconds);
+            if (generation != _pushFlowGeneration || !IsShowing ||
+                _platformRuntime == null)
+                yield break;
+            yield return _platformRuntime.TryShowPushGuide(level);
         }
 
         private bool RefreshText(MainGameTransitionData transition)
@@ -309,15 +346,6 @@ namespace Meowdoku.Gameplay
                 DailyResultContract.AppearDelaySeconds);
             if (_transition != null && _transition.IsDailySession)
                 StartDailyPresentation();
-        }
-
-        private IEnumerator UnlockDailyInputAfterDelay()
-        {
-            yield return new WaitForSecondsRealtime(
-                DailyResultContract.InputBlockSeconds);
-            if (_transition != null && _transition.IsDailySession &&
-                dailyContinueButton != null)
-                dailyContinueButton.interactable = true;
         }
 
         private void StartDailyPresentation()
@@ -588,6 +616,34 @@ namespace Meowdoku.Gameplay
 
         private void FinishContinue()
         {
+            if (_transition?.IsDailySession == true)
+            {
+                if (Owner == null || _gameplayManager == null)
+                {
+                    _continuing = false;
+                    SetContinueInteractable(true);
+                    return;
+                }
+
+                UIFrameWindow mainGame = Owner.Show(
+                    UiName.Game,
+                    new Dictionary<string, object>(2)
+                    {
+                        ["level_index"] = GameStateRuntime.Current.CurrentLevel,
+                        ["_tracker_status"] = TrackerCatalog.GameStatus.Continue
+                    });
+                if (mainGame == null)
+                {
+                    _continuing = false;
+                    SetContinueInteractable(true);
+                    return;
+                }
+
+                Owner.Hide(UiName.DailyWin);
+                Owner.Hide(UiName.DailyGame);
+                return;
+            }
+
             if (_gameplayManager == null || !_gameplayManager.ContinueToNextLevel())
             {
                 _continuing = false;

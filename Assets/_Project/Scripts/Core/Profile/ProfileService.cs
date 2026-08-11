@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using Meowdoku.Core.Daily;
+using Meowdoku.Core.Online;
 
 namespace Meowdoku.Core.Profile
 {
@@ -11,7 +12,7 @@ namespace Meowdoku.Core.Profile
     /// Storage and randomness are injected so runtime composition and tests do
     /// not depend on a global singleton.
     /// </summary>
-    public sealed class ProfileService : IFrameAwardSink
+    public sealed class ProfileService : IFrameAwardSink, IDataSyncSavable
     {
         private const int MaximumNicknameCodePoints = 12;
         private const string NickBase64Prefix = "b64:";
@@ -193,6 +194,13 @@ namespace Meowdoku.Core.Profile
             _store.Save(_data);
             AvatarFrameChanged?.Invoke();
             return true;
+        }
+
+        public bool MergeRemote(
+            IReadOnlyDictionary<string, object> remote,
+            DataSyncMergeContext context)
+        {
+            return MergeRemote(remote, context.RemoteAhead);
         }
 
         private void EnsureInitialized()

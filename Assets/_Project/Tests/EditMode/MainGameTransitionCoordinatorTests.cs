@@ -299,6 +299,44 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void BankRetryAfterNext_KeepsPoolMetadataWithoutDirectReturn()
+        {
+            LevelEntry entry = LevelEntry.FromDictionary(
+                new Dictionary<string, object>
+                {
+                    { "id", 22 },
+                    { "size", 4 },
+                    { "r", 1 },
+                    { "regionMap", Regions() },
+                    { "solution", new[] { 1, 3, 0, 2 } },
+                    { "bank_sp", true },
+                    { "bank_index", 2 },
+                    { "bank_total", 5 },
+                    { "r1", 4 },
+                    { "r2", 3 },
+                    { "r3", 2 },
+                    { "r4", 1 },
+                    { "r5", 0 }
+                });
+            var context = new GameSessionSnapshotContext
+            {
+                Level = 0,
+                BankIndex = 2,
+                Entry = entry,
+                Mode = GameplaySessionMode.Bank
+            };
+
+            Dictionary<string, object> retry =
+                GameRetryParameters.BuildFailure(context);
+
+            Assert.That(retry["bank_index"], Is.EqualTo(2));
+            Assert.That(retry["bank_total"], Is.EqualTo(5));
+            Assert.That(retry["bank_sp"], Is.True);
+            Assert.That(retry["r4_steps"], Is.EqualTo(1));
+            Assert.That(retry.ContainsKey("from_bank_browser"), Is.False);
+        }
+
+        [Test]
         public void DailyFailRevive_DoesNotTouchMainRetrySnapshotOrDda()
         {
             var store = new RecordingStore();

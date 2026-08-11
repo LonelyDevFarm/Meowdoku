@@ -518,6 +518,10 @@ GameObject:
   - component: {fileID: 864070158}
   - component: {fileID: 864070162}
   - component: {fileID: 864070163}
+  - component: {fileID: 864070164}
+  - component: {fileID: 864070166}
+  - component: {fileID: 864070165}
+  - component: {fileID: 864070167}
   m_Layer: 0
   m_Name: Systems
   m_TagString: Untagged
@@ -555,6 +559,8 @@ MonoBehaviour:
   uiManager: {fileID: 1289167002}
   localizationCatalog: {fileID: 11400000, guid: c40202602b3c96e4390a271f5f4a4515, type: 2}
   abConfigRuntime: {fileID: 864070163}
+  dataSyncRuntime: {fileID: 864070165}
+  platformRuntime: {fileID: 864070167}
   externalServicesAdapter: {fileID: 0}
   runOnStart: 1
 --- !u!114 &864070156
@@ -665,6 +671,67 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Meowdoku.Core::Meowdoku.Core.Config.AbConfigRuntime
   providerAdapter: {fileID: 0}
+--- !u!114 &864070164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864070153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd20d822c0d44c34aeb13fc27559d44c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Meowdoku.Core::Meowdoku.Core.Online.AuthRuntime
+  platformAdapter: {fileID: 0}
+--- !u!114 &864070165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864070153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d23b48c5e98b4f58bce0a99d2fb5e635, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Meowdoku.Core::Meowdoku.Core.Online.DataSyncRuntime
+  authRuntime: {fileID: 864070164}
+  apiAdapter: {fileID: 864070166}
+  dailyMetaRuntime: {fileID: 864070160}
+  profileRuntime: {fileID: 864070159}
+  rankActivityRuntime: {fileID: 864070158}
+--- !u!114 &864070166
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864070153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f1f2113b97346f7ad60b8c044078757, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Meowdoku.Core::Meowdoku.Core.Online.DataSyncHttpApi
+  platformMetadataAdapter: {fileID: 0}
+  authRuntime: {fileID: 864070164}
+--- !u!114 &864070167
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864070153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47ac0a2807a14799b697420822c68918, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Meowdoku.Core::Meowdoku.Core.Platform.PrivacyPermissionRuntime
+  uiManager: {fileID: 1289167002}
+  localization: {fileID: 11400000, guid: c40202602b3c96e4390a271f5f4a4515, type: 2}
+  abConfigRuntime: {fileID: 864070163}
+  trackingRuntime: {fileID: 864070156}
+  providerAdapter: {fileID: 0}
 --- !u!1 &1289167000
 GameObject:
   m_ObjectHideFlags: 0
@@ -727,6 +794,8 @@ MonoBehaviour:
   trackingRuntime: {fileID: 864070156}
   adRuntime: {fileID: 864070162}
   abConfigRuntime: {fileID: 864070163}
+  dataSyncRuntime: {fileID: 864070165}
+  platformRuntime: {fileID: 864070167}
   maskCanvas: {fileID: 1383443366}
   maskGroup: {fileID: 1383443365}
   inputBlocker: {fileID: 64817563}

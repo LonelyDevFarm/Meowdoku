@@ -54,6 +54,11 @@ namespace Meowdoku.Core
         public string LastSplashDate { get; set; } = string.Empty;
         public bool HasUsedTool { get; set; }
         public bool PropHighlightShown { get; set; }
+        public int PushAskCount { get; set; }
+        public string PushGuideLastDate { get; set; } = string.Empty;
+        public int PushGuideShownCount { get; set; }
+        public int PushGuidePopupCount { get; set; }
+        public bool HasShownAttGuide { get; set; }
         public string AppliedLocale { get; set; } = string.Empty;
         public bool MusicOn { get; set; } = true;
         public bool MusicUserModified { get; set; }
@@ -147,6 +152,11 @@ namespace Meowdoku.Core
                 { "last_splash_date", LastSplashDate },
                 { "has_used_tool", HasUsedTool },
                 { "prop_highlight_shown", PropHighlightShown },
+                { "push_ask_count", PushAskCount },
+                { "push_guide_last_date", PushGuideLastDate },
+                { "push_guide_shown_count", PushGuideShownCount },
+                { "push_guide_popup_count", PushGuidePopupCount },
+                { "has_shown_att_guide", HasShownAttGuide },
                 { "apply_locale", AppliedLocale },
                 { "music_on", MusicOn },
                 { "music_user_modified", MusicUserModified },
@@ -300,6 +310,23 @@ namespace Meowdoku.Core
                     string.Empty);
                 data.HasUsedTool = Bool(progress, "has_used_tool", false);
                 data.PropHighlightShown = Bool(progress, "prop_highlight_shown", false);
+                data.PushAskCount = Int(progress, "push_ask_count", 0);
+                data.PushGuideLastDate = String(
+                    progress,
+                    "push_guide_last_date",
+                    string.Empty);
+                data.PushGuideShownCount = Int(
+                    progress,
+                    "push_guide_shown_count",
+                    0);
+                data.PushGuidePopupCount = Int(
+                    progress,
+                    "push_guide_popup_count",
+                    0);
+                data.HasShownAttGuide = Bool(
+                    progress,
+                    "has_shown_att_guide",
+                    false);
                 data.AppliedLocale = String(progress, "apply_locale", string.Empty);
                 data.MusicOn = Bool(progress, "music_on", true);
                 data.MusicUserModified = Bool(progress, "music_user_modified", false);

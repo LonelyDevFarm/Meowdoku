@@ -86,6 +86,7 @@ namespace Meowdoku.Gameplay
         private GameplayTrackingStartData _trackingStartData;
         private bool _dailyClockPausedForAd;
         private bool _entryAdPending;
+        private bool _applicationSuspended;
         private bool _gameplayEntryStarted;
         private const double SnapshotDebounceSeconds = 0.5;
 
@@ -104,7 +105,33 @@ namespace Meowdoku.Gameplay
 
 #if UNITY_INCLUDE_TESTS
         internal int LivesForTests => _session?.Lives ?? 0;
+        internal int RestartCountForTests => _session?.RestartCount ?? 0;
+        internal double SnapshotElapsedSecondsForTests =>
+            _snapshotContext?.InGameSeconds ?? 0.0;
+        internal string DailyDateForTests =>
+            _snapshotContext?.DailyDate ?? string.Empty;
+        internal int DailyIndexForTests =>
+            _snapshotContext?.DailyIndex ?? 0;
         internal int BankIndexForTests => _snapshotContext?.BankIndex ?? 0;
+        internal int BankTotalForTests =>
+            _snapshotContext?.Entry?.BankTotal ?? 0;
+        internal BankPoolKind BankPoolForTests
+        {
+            get
+            {
+                LevelEntry entry = _snapshotContext?.Entry;
+                if (_sessionMode != GameplaySessionMode.Bank || entry == null)
+                    return BankPoolKind.None;
+                if (entry.BankLk)
+                    return entry.BankLkModified
+                        ? BankPoolKind.LkModified
+                        : BankPoolKind.Lk;
+                if (entry.BankSp) return BankPoolKind.Special;
+                if (entry.BankLkStyle) return BankPoolKind.LkStyle;
+                if (entry.BankGc) return BankPoolKind.Gc;
+                return BankPoolKind.Regular;
+            }
+        }
 
         internal int SolutionColumnForTests(int row)
         {
@@ -117,6 +144,24 @@ namespace Meowdoku.Gameplay
         internal SessionActionResult DoubleTapForTests(int row, int column)
         {
             return ConsumeDoubleTap(row, column);
+        }
+
+        internal bool ApplyCellStateForTests(
+            int row,
+            int column,
+            CellStateType state)
+        {
+            return ApplyCellState(row, column, state, false, true);
+        }
+
+        internal void SuspendApplicationForTests()
+        {
+            PersistLifecycleBoundary();
+        }
+
+        internal void ResumeApplicationForTests()
+        {
+            _applicationSuspended = false;
         }
 #endif
         public float ElapsedPlaySeconds => (float)Math.Max(
@@ -159,6 +204,18 @@ namespace Meowdoku.Gameplay
         public void BindAbConfigRuntime(AbConfigRuntime runtime)
         {
             _abConfigRuntime = runtime;
+        }
+
+        public bool IsPatternModeAvailable =>
+            _abConfigRuntime?.Settings.BlindMode.IsEnabled() == true;
+
+        public void ApplyPatternMode()
+        {
+            BlindModConfig config = _abConfigRuntime?.Settings.BlindMode;
+            bool available = config?.IsEnabled() == true;
+            boardView?.SetPatternMode(
+                available && GameStateRuntime.Current.PatternModeOn,
+                available && config.IsKeepOnFilled());
         }
 
         public bool GrantRewardedTool(GameToolKind kind)
@@ -458,6 +515,7 @@ namespace Meowdoku.Gameplay
             _currentRegions = entry.RegionMap;
             _currentSolutionColumns = entry.Solution;
             GameSessionRestoreData sessionRestore = snapshotRestore?.Session;
+            _elapsedPlaySeconds = snapshotRestore?.InGameSeconds ?? 0.0;
             if (sessionRestore == null && restartCount > 0)
                 sessionRestore = new GameSessionRestoreData { RestartCount = restartCount };
             _session = new GameSession(
@@ -484,6 +542,7 @@ namespace Meowdoku.Gameplay
                 _regionColorConfig,
                 _gameGridUiConfig,
                 _boardSizeBigConfig);
+            ApplyPatternMode();
 
             _snapshotContext = new GameSessionSnapshotContext
             {
@@ -547,7 +606,8 @@ namespace Meowdoku.Gameplay
                 boardView.GridSlotPixels,
                 boardView.GridPaddingPixels,
                 boardView.CellPixels);
-            _rankActivityRuntime?.Manager?.NotifyLevelStart();
+            if (sessionMode != GameplaySessionMode.Daily)
+                _rankActivityRuntime?.Manager?.NotifyLevelStart();
             string resolvedTrackingStatus = ResolveTrackingStatus(
                 trackingStatus,
                 sessionMode,
@@ -1187,6 +1247,7 @@ namespace Meowdoku.Gameplay
 
         public bool ReviveFromFail(int livesToRestore)
         {
+            RefreshSnapshotElapsedTime();
             if (_transitions == null || !_transitions.TryRevive(
                     _session,
                     _snapshotContext,
@@ -1214,7 +1275,8 @@ namespace Meowdoku.Gameplay
                     out MainGameTransitionData failedRestart))
             {
                 StopGameplayClock();
-                _rankActivityRuntime?.Manager?.NotifyLevelRestart();
+                if (_sessionMode != GameplaySessionMode.Daily)
+                    _rankActivityRuntime?.Manager?.NotifyLevelRestart();
                 PublishTransition(failedRestart);
                 _session.BeginLeaving();
                 LoadLevel(
@@ -1232,7 +1294,8 @@ namespace Meowdoku.Gameplay
                 return false;
 
             StopGameplayClock();
-            _rankActivityRuntime?.Manager?.NotifyLevelRestart();
+            if (_sessionMode != GameplaySessionMode.Daily)
+                _rankActivityRuntime?.Manager?.NotifyLevelRestart();
             PublishTransition(transition);
             _session.BeginLeaving();
             LoadLevel(
@@ -1245,6 +1308,7 @@ namespace Meowdoku.Gameplay
 
         public bool QuitLevel()
         {
+            RefreshSnapshotElapsedTime();
             if (_transitions == null || !_transitions.TryQuit(
                     _session,
                     _snapshotContext,
@@ -1253,7 +1317,8 @@ namespace Meowdoku.Gameplay
 
             _snapshotDirty = false;
             StopGameplayClock();
-            _rankActivityRuntime?.Manager?.NotifyLevelExit();
+            if (_sessionMode != GameplaySessionMode.Daily)
+                _rankActivityRuntime?.Manager?.NotifyLevelExit();
             PublishTransition(transition);
             _session.BeginLeaving();
             GameStateRuntime.FlushPendingWrites();
@@ -1345,6 +1410,7 @@ namespace Meowdoku.Gameplay
                         _snapshotContext?.Entry?.Size ?? 12);
                 }
                 if (transition.Kind == MainGameTransitionKind.Won &&
+                    !transition.IsDailySession &&
                     _rankActivityRuntime?.Manager != null)
                 {
                     RankActivityManager rank = _rankActivityRuntime.Manager;
@@ -1567,40 +1633,68 @@ namespace Meowdoku.Gameplay
             if (immediate) FlushSnapshot();
         }
 
-        private void FlushSnapshot()
+        private void FlushSnapshot(bool force = false)
         {
-            if (!_snapshotDirty || _session == null || _snapshotContext == null || _gameState == null) return;
+            if ((!_snapshotDirty && !force) ||
+                _session == null ||
+                _snapshotContext == null ||
+                _gameState == null)
+                return;
             if (_snapshotContext.Level <= 0)
             {
                 _snapshotDirty = false;
                 return;
             }
-            if (_session.State == GameSessionState.Won)
+            if (_session.State == GameSessionState.Won ||
+                _session.State == GameSessionState.Leaving)
             {
                 _snapshotDirty = false;
                 return;
             }
             _snapshotDirty = false;
+            RefreshSnapshotElapsedTime();
             _gameState.SetEndgameSnapshot(GameSessionSnapshot.Build(_session, _snapshotContext));
+        }
+
+        private void RefreshSnapshotElapsedTime()
+        {
+            if (_snapshotContext != null)
+                _snapshotContext.InGameSeconds = CurrentGameplayElapsed();
+        }
+
+        private void PersistLifecycleBoundary()
+        {
+            if (_applicationSuspended) return;
+            _applicationSuspended = true;
+            // Godot rebuilds the whole snapshot on focus-out even when the
+            // debounce timer is idle, so the latest in-game time is durable.
+            FlushSnapshot(force: true);
+            GameStateRuntime.FlushPendingWrites();
         }
 
         private void OnApplicationPause(bool paused)
         {
-            if (!paused) return;
-            FlushSnapshot();
-            GameStateRuntime.FlushPendingWrites();
+            if (paused)
+                PersistLifecycleBoundary();
+            else
+                _applicationSuspended = false;
         }
 
         private void OnApplicationFocus(bool hasFocus)
         {
             if (hasFocus)
             {
+                _applicationSuspended = false;
                 FinishPendingEntryAd();
                 _idleToolHint?.ResetElapsed();
                 return;
             }
-            FlushSnapshot();
-            GameStateRuntime.FlushPendingWrites();
+            PersistLifecycleBoundary();
+        }
+
+        private void OnApplicationQuit()
+        {
+            PersistLifecycleBoundary();
         }
 
         private void EnsureToolFlow(GameStateService state)

@@ -23,7 +23,8 @@ namespace Meowdoku.Tests.EditMode
                 Level = 12,
                 BankIndex = 7,
                 Entry = entry,
-                PreType = "2"
+                PreType = "2",
+                InGameSeconds = 37.25
             };
             context.PrefillPositions.Add(new Vector2Int(1, 2));
             Dictionary<string, object> snapshot = GameSessionSnapshot.Build(session, context);
@@ -33,7 +34,31 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(restore.Session.Marks, Is.EquivalentTo(new[] { new Vector2Int(0, 1) }));
             Assert.That(restore.PrefillPositions, Is.EquivalentTo(new[] { new Vector2Int(1, 2) }));
             Assert.That(restore.PreType, Is.EqualTo("2"));
+            Assert.That(restore.InGameSeconds, Is.EqualTo(37.25).Within(0.001));
             Assert.That(restore.Session.StepHistoryData.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TryRead_MissingOrInvalidElapsedTimeUsesSafeSourceFallback()
+        {
+            Dictionary<string, object> snapshot = ValidSnapshot();
+            snapshot.Remove("in_game_sec");
+            Assert.That(
+                GameSessionSnapshot.TryRead(
+                    snapshot,
+                    12,
+                    out GameSessionSnapshotRestore missing),
+                Is.True);
+            Assert.That(missing.InGameSeconds, Is.Zero);
+
+            snapshot["in_game_sec"] = -12.0;
+            Assert.That(
+                GameSessionSnapshot.TryRead(
+                    snapshot,
+                    12,
+                    out GameSessionSnapshotRestore negative),
+                Is.True);
+            Assert.That(negative.InGameSeconds, Is.Zero);
         }
 
         [Test]

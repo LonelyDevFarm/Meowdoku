@@ -212,6 +212,8 @@ MonoBehaviour:
   target: {fileID: 2090990221331518432}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 6
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &206279537488054437
 GameObject:
   m_ObjectHideFlags: 0
@@ -303,6 +305,8 @@ MonoBehaviour:
   target: {fileID: 7951557464046434175}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &285206599918364298
 GameObject:
   m_ObjectHideFlags: 0
@@ -538,6 +542,8 @@ MonoBehaviour:
   target: {fileID: 4949431796559233816}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 60
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &557325687452516854
 GameObject:
   m_ObjectHideFlags: 0
@@ -843,10 +849,10 @@ RectTransform:
   - {fileID: 1155330151358856796}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &800922683197636569
 CanvasRenderer:
@@ -901,6 +907,8 @@ MonoBehaviour:
   target: {fileID: 7122002187677648461}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &9135570927436596833
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1379,10 +1387,10 @@ RectTransform:
   - {fileID: 6707089717125681333}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8074730389935717611
 CanvasRenderer:
@@ -1437,6 +1445,8 @@ MonoBehaviour:
   target: {fileID: 1498236787213544969}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &1585967624656855177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1675,10 +1685,10 @@ RectTransform:
   - {fileID: 9078322730177891214}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7178850066301980541
 CanvasRenderer:
@@ -1733,6 +1743,8 @@ MonoBehaviour:
   target: {fileID: 3808312126119163616}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &8388265336006090938
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1937,8 +1949,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2090990221331518432}
   m_HandleRect: {fileID: 1833334161988789618}
   m_Direction: 2
-  m_Value: 0
-  m_Size: 0.2
+  m_Value: 1
+  m_Size: 0.6488487
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -2034,6 +2046,8 @@ MonoBehaviour:
   target: {fileID: 3625755944966848583}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &2225301415501348808
 GameObject:
   m_ObjectHideFlags: 0
@@ -2334,10 +2348,10 @@ RectTransform:
   - {fileID: 4446820964110835882}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &9205832110507720081
 CanvasRenderer:
@@ -2392,6 +2406,8 @@ MonoBehaviour:
   target: {fileID: 6489523401812648189}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &5691775103708813606
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2514,10 +2530,10 @@ RectTransform:
   - {fileID: 8266085702569549671}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5596959758316083178
 CanvasRenderer:
@@ -2572,6 +2588,8 @@ MonoBehaviour:
   target: {fileID: 4509165798598552211}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &897503092740795233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3046,10 +3064,10 @@ RectTransform:
   - {fileID: 7570904908734010728}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2904666413760487989
 CanvasRenderer:
@@ -3104,6 +3122,8 @@ MonoBehaviour:
   target: {fileID: 9054382925748700698}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &4967840025984705404
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3339,9 +3359,9 @@ RectTransform:
   m_Father: {fileID: 3910046052168469676}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -12, y: 0}
-  m_SizeDelta: {x: -24, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &921762616828833527
 CanvasRenderer:
@@ -3725,6 +3745,8 @@ MonoBehaviour:
   target: {fileID: 7492860384514751208}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 60
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &4765742598038682255
 GameObject:
   m_ObjectHideFlags: 0
@@ -3925,6 +3947,8 @@ MonoBehaviour:
   target: {fileID: 1506275814536696407}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &5046969827505793741
 GameObject:
   m_ObjectHideFlags: 0
@@ -4088,6 +4112,8 @@ MonoBehaviour:
   target: {fileID: 5594169796545830727}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &5179596642526491120
 GameObject:
   m_ObjectHideFlags: 0
@@ -4321,10 +4347,10 @@ RectTransform:
   - {fileID: 3324460911266220314}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7143361174592573604
 CanvasRenderer:
@@ -4379,6 +4405,8 @@ MonoBehaviour:
   target: {fileID: 3126735613918709723}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &2063561402675363001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4538,10 +4566,10 @@ RectTransform:
   - {fileID: 535963013857761009}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1758846308349543256
 CanvasRenderer:
@@ -4596,6 +4624,8 @@ MonoBehaviour:
   target: {fileID: 1100052125134722201}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &5888010375287704014
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4887,6 +4917,8 @@ MonoBehaviour:
   target: {fileID: 4887433104709312601}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &6263456918703082960
 GameObject:
   m_ObjectHideFlags: 0
@@ -5517,6 +5549,8 @@ MonoBehaviour:
   target: {fileID: 18007345881178476}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &7158403263381532365
 GameObject:
   m_ObjectHideFlags: 0
@@ -5608,6 +5642,8 @@ MonoBehaviour:
   target: {fileID: 5738225859974269329}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &7209305933138726008
 GameObject:
   m_ObjectHideFlags: 0
@@ -5646,10 +5682,10 @@ RectTransform:
   - {fileID: 1709848987880183233}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1148859549859604070
 CanvasRenderer:
@@ -5704,6 +5740,8 @@ MonoBehaviour:
   target: {fileID: 3279389940700976920}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &8144640541488585220
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5879,6 +5917,8 @@ MonoBehaviour:
   target: {fileID: 8942376738246463833}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &7259957838938748840
 GameObject:
   m_ObjectHideFlags: 0
@@ -6523,6 +6563,8 @@ MonoBehaviour:
   target: {fileID: 3546140965581734180}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &7837148086044602645
 GameObject:
   m_ObjectHideFlags: 0
@@ -6598,10 +6640,10 @@ RectTransform:
   - {fileID: 3603994205095687535}
   m_Father: {fileID: 7646758880820640490}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6724655599221255999
 CanvasRenderer:
@@ -6656,6 +6698,8 @@ MonoBehaviour:
   target: {fileID: 8812675034030294173}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 30
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &5446896581913183958
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6940,6 +6984,8 @@ MonoBehaviour:
   target: {fileID: 8664849327520976194}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 41
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &8268790677574186778
 GameObject:
   m_ObjectHideFlags: 0

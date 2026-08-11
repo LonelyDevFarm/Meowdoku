@@ -1,5 +1,7 @@
 namespace Meowdoku.Core.Config
 {
+    using System.Collections.Generic;
+
     public sealed class DailyStreakConfig : AbConfigBase<int>
     {
         public const int ValueControl = 0;
@@ -55,5 +57,25 @@ namespace Meowdoku.Core.Config
             : base("hard_button", ValueDefault, AbConfigTiming.AppStart) { }
 
         public int EffectVariant() => Value;
+    }
+
+    public sealed class HomeConfigSet
+    {
+        private readonly IAbConfig[] _all;
+
+        public HomeConfigSet()
+        {
+            _all = new IAbConfig[]
+            {
+                DailyStreak,
+                Leaderboard,
+                HardButton
+            };
+        }
+
+        public DailyStreakConfig DailyStreak { get; } = new();
+        public LeaderboardFuncConfig Leaderboard { get; } = new();
+        public HardButtonConfig HardButton { get; } = new();
+        public IReadOnlyList<IAbConfig> All => _all;
     }
 }

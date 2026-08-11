@@ -248,7 +248,7 @@ MonoBehaviour:
   m_Content: {fileID: 5713132627068011771}
   m_Horizontal: 0
   m_Vertical: 1
-  m_MovementType: 1
+  m_MovementType: 2
   m_Elasticity: 0.1
   m_Inertia: 1
   m_DecelerationRate: 0.135
@@ -353,8 +353,8 @@ MonoBehaviour:
   m_Padding:
     m_Left: 0
     m_Right: 0
-    m_Top: 0
-    m_Bottom: 0
+    m_Top: 200
+    m_Bottom: 200
   m_ChildAlignment: 1
   m_Spacing: 20
   m_ChildForceExpandWidth: 1
@@ -412,8 +412,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 97.5, y: -18}
-  m_SizeDelta: {x: 197, y: 52}
+  m_AnchoredPosition: {x: 97.5, y: -24}
+  m_SizeDelta: {x: 197, y: 40}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &894526956951357170
 CanvasRenderer:
@@ -470,6 +470,7 @@ GameObject:
   - component: {fileID: 8572025052840230593}
   - component: {fileID: 9122080148811178150}
   - component: {fileID: 6574724024367701370}
+  - component: {fileID: 6628158857249263477}
   m_Layer: 0
   m_Name: RankActivityChange
   m_TagString: Untagged
@@ -576,11 +577,65 @@ MonoBehaviour:
   encouragementText: {fileID: 8990727316625921615}
   scroll: {fileID: 2064117916207816947}
   rowList: {fileID: 5713132627068011771}
+  celebrateLayer: {fileID: 5071141850611267387}
   rowPrefab: {fileID: 3116437527250187440, guid: 67c98d7601d5994428de946221b67e64, type: 3}
   maskButton: {fileID: 8185324968901395174}
   tapButton: {fileID: 5998366973849592418}
   tapText: {fileID: 2363385918815969361}
   localization: {fileID: 11400000, guid: c40202602b3c96e4390a271f5f4a4515, type: 2}
+--- !u!114 &6628158857249263477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3829169779608747290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cddf516f48d4d4491c921733e8ef735, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.RankActivityChangeLayoutPresenter
+  layoutSpace: {fileID: 2331482278746417112}
+  encourage: {fileID: 3356216233675652172}
+  title: {fileID: 6116478208862105019}
+  countdown: {fileID: 5619745709269862964}
+  list: {fileID: 7910147979922812016}
+  tap: {fileID: 602218116832895485}
+--- !u!1 &3841175150850816698
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5071141850611267387}
+  m_Layer: 5
+  m_Name: PlayerCelebrate
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &5071141850611267387
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3841175150850816698}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2331482278746417112}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &4094123313738442184
 GameObject:
   m_ObjectHideFlags: 0
@@ -809,6 +864,7 @@ RectTransform:
   - {fileID: 6116478208862105019}
   - {fileID: 5619745709269862964}
   - {fileID: 7910147979922812016}
+  - {fileID: 5071141850611267387}
   - {fileID: 602218116832895485}
   m_Father: {fileID: 2972067826852080243}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

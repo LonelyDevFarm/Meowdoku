@@ -544,6 +544,18 @@ namespace Meowdoku.Core.Tracking
                 TrackerCatalog.UserProperty.UiLanguage,
                 languageCode ?? string.Empty);
 
+        public void TrackPushGuideResult(bool granted, int showCount)
+        {
+            Send(
+                TrackerCatalog.Event.PushGuideResult,
+                new Dictionary<string, object>
+                {
+                    ["granted"] = granted ? 1 : 0,
+                    ["show_count"] = showCount,
+                    ["source"] = "win_guide"
+                });
+        }
+
         public static string TransformToQuestionRotation(int transform)
         {
             int normalized = Math.Max(0, transform);

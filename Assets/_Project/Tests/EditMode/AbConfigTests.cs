@@ -12,11 +12,11 @@ namespace Meowdoku.Tests.EditMode
         [Test]
         public void DefaultProfile_ContainsAllPortedSourceConfigs()
         {
-            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(56));
+            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(59));
             Assert.That(DefaultConfigProfile.All.Select(item => item.Key), Is.Unique);
             Assert.That(
                 DefaultConfigProfile.All.Count(item => item.RegisteredBySource),
-                Is.EqualTo(50));
+                Is.EqualTo(53));
         }
 
         [TestCase("region_color", 2, AbConfigTiming.AppStart, true)]
@@ -50,6 +50,9 @@ namespace Meowdoku.Tests.EditMode
         [TestCase("dc_level", 0, AbConfigTiming.GameStartDaily, true)]
         [TestCase("no_dc", 0, AbConfigTiming.AppStart, false)]
         [TestCase("dc_tag_ui", 0, AbConfigTiming.AppStart, false)]
+        [TestCase("att_dlg_logic", 0, AbConfigTiming.AppStart, true)]
+        [TestCase("push_permission", 0, AbConfigTiming.GameEndNormal20, true)]
+        [TestCase("push_local_text", 0, AbConfigTiming.AppStart, true)]
         public void DefaultProfile_MatchesSource(
             string key,
             int expectedDefault,
@@ -276,6 +279,38 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void HomeConfigSet_ReloadsAllAppStartFeatureFlagsTogether()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true,
+                IsRemoteReadyValue = true
+            };
+            provider.IntValues["daily_streak"] = DailyStreakConfig.ValueControl;
+            provider.IntValues["leaderboard_func"] =
+                LeaderboardFuncConfig.ValueFishProp;
+            provider.IntValues["hard_button"] = HardButtonConfig.ValueRed2;
+            var configs = new HomeConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+
+            Assert.That(configs.DailyStreak.IsEnabled(), Is.False);
+            Assert.That(configs.Leaderboard.IsEnabled(), Is.True);
+            Assert.That(configs.Leaderboard.GetGroup(),
+                Is.EqualTo(LeaderboardFuncConfig.ValueFishProp));
+            Assert.That(configs.HardButton.EffectVariant(),
+                Is.EqualTo(HardButtonConfig.ValueRed2));
+            Assert.That(provider.DyedKeys,
+                Is.EqualTo(new[]
+                {
+                    "daily_streak",
+                    "leaderboard_func",
+                    "hard_button"
+                }));
+        }
+
+        [Test]
         public void ResultConfigs_UseOfflineSourceDefaultsAndVariants()
         {
             var passPage = new PassPageConfig();
@@ -458,6 +493,79 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(blindMode.IsEnabled(), Is.True);
             Assert.That(blindMode.IsKeepOnFilled(), Is.True);
             Assert.That(ruleText.IsSettingEntry(), Is.True);
+        }
+
+        [Test]
+        public void SettingsConfigSet_ReloadsSourceOpenAndGameStartTimings()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true
+            };
+            provider.IntValues["settings_language"] =
+                SettingsLanguageConfig.ValuePopup;
+            provider.IntValues["blind_mod"] =
+                BlindModConfig.ValueKeepOnFilled;
+            provider.IntValues["rule_text"] =
+                RuleTextConfig.ValueSettingEntry;
+            var configs = new SettingsConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+            service.ReloadTiming(AbConfigTiming.OpenSetting);
+
+            Assert.That(configs.Language.IsPopupMode(), Is.True);
+            Assert.That(configs.BlindMode.IsValueLoaded, Is.False);
+            Assert.That(configs.RuleText.IsValueLoaded, Is.False);
+            Assert.That(provider.DyedKeys,
+                Is.EqualTo(new[] { "settings_language" }));
+
+            service.ReloadTiming(AbConfigTiming.GameStart);
+
+            Assert.That(configs.BlindMode.IsKeepOnFilled(), Is.True);
+            Assert.That(configs.RuleText.IsSettingEntry(), Is.True);
+            Assert.That(provider.DyedKeys,
+                Is.EqualTo(new[]
+                {
+                    "settings_language",
+                    "blind_mod",
+                    "rule_text"
+                }));
+        }
+
+        [Test]
+        public void PlatformConfigSet_ReloadsAppStartAndLevel20WinSeparately()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true
+            };
+            provider.IntValues["att_dlg_logic"] =
+                AttDialogLogicConfig.ValueRestyledGuide;
+            provider.IntValues["push_local_text"] =
+                PushLocalTextConfig.ValueNewPool2;
+            provider.IntValues["push_permission"] =
+                PushPermissionConfig.ValueSessionStreak;
+            var configs = new PlatformConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+
+            Assert.That(configs.AttDialogLogic.IsCustomGuideRestyled(), Is.True);
+            Assert.That(configs.PushLocalText.IsNewPool2(), Is.True);
+            Assert.That(configs.PushPermission.IsValueLoaded, Is.False);
+
+            service.ReloadTiming(AbConfigTiming.GameEndNormal20);
+
+            Assert.That(
+                configs.PushPermission.ShouldShowBySessionStreak(),
+                Is.True);
+            Assert.That(provider.DyedKeys, Is.EqualTo(new[]
+            {
+                "att_dlg_logic",
+                "push_local_text",
+                "push_permission"
+            }));
         }
 
         [TestCase(SingleRegionNumConfig.ValueDefault, 200, 5, -1)]

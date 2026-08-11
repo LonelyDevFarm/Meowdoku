@@ -34,6 +34,9 @@ namespace Meowdoku.Gameplay
         public Color[] regionColors;     // Bảng màu cho các khu vực
         [SerializeField] private Shader roundedBackgroundShader;
 
+        [Header("Source pattern palette")]
+        [SerializeField] private Sprite[] patternIcons;
+
         private CellView[,] _cells;
         private readonly Queue<CellView> _cellPool = new Queue<CellView>();
         private int _puzzleSize = 0;
@@ -65,6 +68,17 @@ namespace Meowdoku.Gameplay
         private int _gridGap = SourceBoardLayout.CellGap;
         private int _gridSlot = SourceBoardLayout.GridSlot;
         private const int PrewarmCellsPerFrame = 4;
+        private static readonly Color[] PatternColors =
+        {
+            Rgb(0xC4, 0x9D, 0x00), Rgb(0xCA, 0x67, 0x84),
+            Rgb(0x7F, 0x71, 0xD2), Rgb(0xF0, 0x92, 0xDE),
+            Rgb(0xF2, 0x94, 0x54), Rgb(0xF3, 0xD1, 0x70),
+            Rgb(0x4A, 0x70, 0x9D), Rgb(0x98, 0xBE, 0xE2),
+            Rgb(0x32, 0xA0, 0xB7), Rgb(0x24, 0x85, 0x4F),
+            Rgb(0x82, 0xCD, 0x72), Rgb(0xA0, 0x65, 0x43)
+        };
+        private bool _patternOn;
+        private bool _patternKeepOnFilled;
 
         private void Awake()
         {
@@ -189,6 +203,17 @@ namespace Meowdoku.Gameplay
                                    : regionIdx % regionColors.Length;
                     colorIdx = (colorIdx % regionColors.Length + regionColors.Length) % regionColors.Length;
                     cellView.SetRegionColor(regionColors[colorIdx]);
+                    int patternSlot = colorIdx % PatternColors.Length;
+                    Sprite patternSprite = patternIcons != null &&
+                                           patternSlot < patternIcons.Length
+                        ? patternIcons[patternSlot]
+                        : null;
+                    cellView.ConfigurePattern(
+                        patternSprite,
+                        PatternColors[patternSlot]);
+                    cellView.SetPatternMode(
+                        _patternOn,
+                        _patternKeepOnFilled);
                     cellView.ConfigureBackgroundShape(
                         ResolveCellCornerRadii(r, c, puzzleSize, boardScale, layout),
                         _gridUiConfig.IsSingleLine());
@@ -339,6 +364,18 @@ namespace Meowdoku.Gameplay
             if (_cells == null || _cells[r, c] == null) return;
 
             _cells[r, c].ChangeState(state, playAnim);
+        }
+
+        public void SetPatternMode(bool on, bool keepOnFilled)
+        {
+            _patternOn = on;
+            _patternKeepOnFilled = keepOnFilled;
+            if (_cells == null) return;
+            for (int row = 0; row < _cells.GetLength(0); row++)
+            {
+                for (int column = 0; column < _cells.GetLength(1); column++)
+                    _cells[row, column]?.SetPatternMode(on, keepOnFilled);
+            }
         }
 
         // Lấy trạng thái của một ô
@@ -671,6 +708,19 @@ namespace Meowdoku.Gameplay
         public bool UsesEnlargedBoard => _visibleBoardPixels >
             SourceBoardLayout.FixedBoardWidth + 0.01f;
 
+#if UNITY_INCLUDE_TESTS
+        internal bool PatternOnForTests => _patternOn;
+        internal bool PatternKeepOnFilledForTests => _patternKeepOnFilled;
+
+        internal CellView GetCellForTests(int row, int column)
+        {
+            return _cells != null && row >= 0 && row < _puzzleSize &&
+                   column >= 0 && column < _puzzleSize
+                ? _cells[row, column]
+                : null;
+        }
+#endif
+
         public bool TryGetCellCenter(
             RectTransform targetSpace,
             int row,
@@ -692,6 +742,12 @@ namespace Meowdoku.Gameplay
                 screen,
                 camera,
                 out anchoredPosition);
+        }
+
+        private static Color Rgb(byte red, byte green, byte blue)
+        {
+            const float scale = 1f / 255f;
+            return new Color(red * scale, green * scale, blue * scale, 1f);
         }
 
         public bool TryGetCellLayout(

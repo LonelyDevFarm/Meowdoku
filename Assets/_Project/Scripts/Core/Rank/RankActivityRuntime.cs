@@ -26,6 +26,8 @@ namespace Meowdoku.Core.Rank
 
         private RankActivityManager _manager;
         private bool _subscribed;
+        private AbConfigRuntime _abConfigRuntime;
+        private readonly LeaderboardFuncConfig _fallbackLeaderboard = new();
 
         public RankActivityManager Manager
         {
@@ -59,6 +61,11 @@ namespace Meowdoku.Core.Rank
             SubscribeClock();
         }
 
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _abConfigRuntime = runtime;
+        }
+
         public void ResetData()
         {
             Manager.ResetData();
@@ -75,14 +82,12 @@ namespace Meowdoku.Core.Rank
             if (robotRuntime == null || profileRuntime == null ||
                 dailyMetaRuntime == null)
                 return;
-            var leaderboard = new LeaderboardFuncConfig();
-            leaderboard.ReloadValue(DefaultAbValueProvider.Instance);
             _manager = new RankActivityManager(
                 RankActivityRepository.CreateDefault(),
                 robotRuntime.Service,
                 profileRuntime.Service,
                 dailyMetaRuntime.Awards,
-                new RuntimeEnvironment(leaderboard));
+                new RuntimeEnvironment(this));
         }
 
         private void SubscribeClock()
@@ -108,16 +113,23 @@ namespace Meowdoku.Core.Rank
 
         private sealed class RuntimeEnvironment : IRankActivityEnvironment
         {
-            private readonly LeaderboardFuncConfig _config;
+            private readonly RankActivityRuntime _owner;
 
-            public RuntimeEnvironment(LeaderboardFuncConfig config)
+            public RuntimeEnvironment(RankActivityRuntime owner)
             {
-                _config = config;
+                _owner = owner;
             }
 
-            public bool LeaderboardEnabled => _config.IsEnabled();
-            public int LeaderboardGroup => _config.GetGroup();
+            public bool LeaderboardEnabled =>
+                _owner.CurrentLeaderboardConfig.IsEnabled();
+            public int LeaderboardGroup =>
+                _owner.CurrentLeaderboardConfig.GetGroup();
             public int CurrentLevel => GameStateRuntime.Current.CurrentLevel;
         }
+
+        private LeaderboardFuncConfig CurrentLeaderboardConfig =>
+            _abConfigRuntime != null
+                ? _abConfigRuntime.Home.Leaderboard
+                : _fallbackLeaderboard;
     }
 }

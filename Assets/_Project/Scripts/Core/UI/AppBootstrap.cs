@@ -1,6 +1,8 @@
 using System.Collections;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.Localization;
+using Meowdoku.Core.Online;
+using Meowdoku.Core.Platform;
 using UnityEngine;
 
 namespace Meowdoku.Core.UI
@@ -69,6 +71,8 @@ namespace Meowdoku.Core.UI
         [SerializeField] private UIManager uiManager;
         [SerializeField] private LocalizationCatalog localizationCatalog;
         [SerializeField] private AbConfigRuntime abConfigRuntime;
+        [SerializeField] private DataSyncRuntime dataSyncRuntime;
+        [SerializeField] private PrivacyPermissionRuntime platformRuntime;
         [SerializeField] private MonoBehaviour externalServicesAdapter;
         [SerializeField] private bool runOnStart = true;
 
@@ -101,8 +105,12 @@ namespace Meowdoku.Core.UI
 
             IAppStartupExternalServices external =
                 externalServicesAdapter as IAppStartupExternalServices ??
+                (IAppStartupExternalServices)platformRuntime ??
                 OfflineStartupExternalServices.Instance;
             _externalServices = external;
+            uiManager.BindSettingsExternalServices(
+                external as ISettingsExternalServices ??
+                OfflineSettingsExternalServices.Instance);
 
             Phase = AppStartupPhase.RuntimeSetup;
             Application.targetFrameRate = 60;
@@ -114,10 +122,14 @@ namespace Meowdoku.Core.UI
                 gameState.OnSessionStarted();
                 if (localizationCatalog != null)
                 {
-                    var languageConfig = new SettingsLanguageConfig();
+                    SettingsLanguageConfig languageConfig =
+                        abConfigRuntime != null
+                            ? abConfigRuntime.Settings.Language
+                            : new SettingsLanguageConfig();
                     localizationCatalog.ApplySystemLocale(
                         gameState,
-                        languageConfig.IsLanguageSwitchEnabledPeek());
+                        languageConfig.IsLanguageSwitchEnabledPeek(
+                            abConfigRuntime?.ValueProvider));
                 }
                 else
                 {
@@ -157,7 +169,11 @@ namespace Meowdoku.Core.UI
             _gamePrewarm = StartCoroutine(PrewarmGame(gameState));
 
             Phase = AppStartupPhase.DataSyncBoundary;
-            if (external.IsDataSyncAvailable)
+            if (dataSyncRuntime != null &&
+                dataSyncRuntime.IsStartupAvailable)
+                yield return RunOptional(dataSyncRuntime.AwaitStartup(
+                    AppStartupContract.ExternalWaitMaximumSeconds));
+            else if (external.IsDataSyncAvailable)
                 yield return RunOptional(external.AwaitDataSync(
                     AppStartupContract.ExternalWaitMaximumSeconds));
 
@@ -191,12 +207,16 @@ namespace Meowdoku.Core.UI
             UIManager manager,
             MonoBehaviour externalAdapter = null,
             bool autoRun = false,
-            LocalizationCatalog localization = null)
+            LocalizationCatalog localization = null,
+            DataSyncRuntime dataSync = null,
+            PrivacyPermissionRuntime platform = null)
         {
             uiManager = manager;
             externalServicesAdapter = externalAdapter;
             runOnStart = autoRun;
             localizationCatalog = localization;
+            dataSyncRuntime = dataSync;
+            platformRuntime = platform;
         }
 
         private IEnumerator PrewarmGame(GameStateService gameState)

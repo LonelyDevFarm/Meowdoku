@@ -2,18 +2,20 @@ using System;
 using DG.Tweening;
 using Meowdoku.Core.Localization;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
-    public sealed class LanguageSwitchWidget : MonoBehaviour
+    public sealed class LanguageSwitchWidget : MonoBehaviour,
+        IPointerDownHandler
     {
         public const float OpenSeconds = 0.1f;
         public const float FadeStepSeconds = 0.033333335f;
         public const float PanelOpenHeight = 508f;
 
-        [SerializeField] private Button outsideBlocker;
+        [SerializeField] private Graphic outsideBlocker;
         [SerializeField] private Button rowButton;
         [SerializeField] private RectTransform arrow;
         [SerializeField] private GameObject dropdown;
@@ -39,7 +41,6 @@ namespace Meowdoku.Gameplay
 
         private void Awake()
         {
-            AddListener(outsideBlocker, ForceClose);
             AddListener(rowButton, Toggle);
             AddListener(systemOption, PickSystem);
             AddListener(englishOption, PickEnglish);
@@ -54,7 +55,6 @@ namespace Meowdoku.Gameplay
         private void OnDestroy()
         {
             KillTween();
-            RemoveListener(outsideBlocker, ForceClose);
             RemoveListener(rowButton, Toggle);
             RemoveListener(systemOption, PickSystem);
             RemoveListener(englishOption, PickEnglish);
@@ -85,6 +85,18 @@ namespace Meowdoku.Gameplay
         public void ForceClose()
         {
             SetOpen(false, true);
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (!IsOpen || outsideBlocker == null || eventData == null)
+                return;
+            GameObject target = eventData.pointerCurrentRaycast.gameObject;
+            if (target == null) return;
+            Transform blocker = outsideBlocker.transform;
+            if (target == outsideBlocker.gameObject ||
+                target.transform.IsChildOf(blocker))
+                ForceClose();
         }
 
         private void Toggle()

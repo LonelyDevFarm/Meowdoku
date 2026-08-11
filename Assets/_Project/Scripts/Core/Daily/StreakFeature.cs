@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Meowdoku.Core.Config;
+using Meowdoku.Core.Online;
 
 namespace Meowdoku.Core.Daily
 {
@@ -127,7 +128,7 @@ namespace Meowdoku.Core.Daily
         public void ShowAward(int uid) { }
     }
 
-    public sealed class StreakFeature
+    public sealed class StreakFeature : IDataSyncSavable
     {
         public const int CycleLength = 7;
 
@@ -140,7 +141,7 @@ namespace Meowdoku.Core.Daily
 
         private readonly IStreakDataStore _store;
         private readonly ICurrentDateProvider _dateProvider;
-        private readonly DailyStreakConfig _streakConfig;
+        private DailyStreakConfig _streakConfig;
         private readonly StreakProtectConfig _protectConfig;
         private readonly IStreakRewardBoundary _rewardBoundary;
         private StreakData _data;
@@ -171,6 +172,7 @@ namespace Meowdoku.Core.Daily
 
         public event Action<StreakData> StreakUpdated;
         public event Action<StreakCheckinResult> CheckinCompleted;
+        public event Action<string> RemoteSyncRequested;
 
         public StreakData Data => _data;
         public StreakReviveAnimation ReviveAnimation => _reviveAnimation;
@@ -183,6 +185,11 @@ namespace Meowdoku.Core.Daily
         public bool ShouldSkipLit => _streakConfig.IsSkipLit();
         public bool HasPlayEntry => _streakConfig.HasPlayEntry();
         public bool IsSettleReorder => _streakConfig.IsSettleReorder();
+
+        public void BindConfig(DailyStreakConfig config)
+        {
+            _streakConfig = config ?? new DailyStreakConfig();
+        }
 
         private string Today => _dateProvider.CurrentDate ?? string.Empty;
         private int TodayJulianDay => StreakDateMath.DateToJulianDay(Today);
@@ -349,6 +356,7 @@ namespace Meowdoku.Core.Daily
             if (_data.CurrentStreak > _data.BestStreak)
                 _data.BestStreak = _data.CurrentStreak;
             Save();
+            RemoteSyncRequested?.Invoke("streak_revive");
             var result = new StreakReviveResult(
                 _data.CurrentStreak,
                 _data.BestStreak,
@@ -500,6 +508,29 @@ namespace Meowdoku.Core.Daily
             _data.RewardCycleDay = merged.RewardCycleDay;
             Save();
             StreakUpdated?.Invoke(_data);
+        }
+
+        public string RemoteSaveId => "streak";
+
+        public Dictionary<string, object> ExportRemote()
+        {
+            return new Dictionary<string, object>
+            {
+                ["current_streak"] = _data.CurrentStreak,
+                ["best_streak"] = _data.BestStreak,
+                ["last_checkin_date"] = _data.LastCheckinDate,
+                ["streak_start_weekday"] = _data.StreakStartWeekday,
+                ["reward_cycle_day"] = _data.RewardCycleDay
+            };
+        }
+
+        public bool MergeRemote(
+            IReadOnlyDictionary<string, object> remote,
+            DataSyncMergeContext context)
+        {
+            if (remote == null || remote.Count == 0) return false;
+            MergeRemote(remote);
+            return true;
         }
 
         public void Reset()

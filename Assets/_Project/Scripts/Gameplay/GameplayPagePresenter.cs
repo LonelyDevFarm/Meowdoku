@@ -29,6 +29,7 @@ namespace Meowdoku.Gameplay
             : TrackerCatalog.Screen.NormalGame;
 
         private static readonly UiName[] KeepHome = { UiName.Home };
+        private const float TerminalInputBlockSeconds = 2f;
 
         [SerializeField] private GameplayManager gameplayManager;
         [SerializeField] private Button backButton;
@@ -71,6 +72,8 @@ namespace Meowdoku.Gameplay
             {
                 gameplayManager.GameTransitioned += HandleGameTransition;
                 gameplayManager.GameTrackingStarted += HandleGameTrackingStarted;
+                gameplayManager.GameplayFeedbackBatchRequested +=
+                    HandleGameplayFeedbackBatch;
                 gameplayManager.SessionPresentationChanged +=
                     HandleSessionPresentationChanged;
                 gameplayManager.ToolRewardRequested += HandleToolRewardRequested;
@@ -103,7 +106,7 @@ namespace Meowdoku.Gameplay
             if (returnBankButton != null)
                 returnBankButton.gameObject.SetActive(fromBank);
             if (infoButton != null)
-                infoButton.gameObject.SetActive(_ruleTextConfig.IsInfoPopup());
+                infoButton.gameObject.SetActive(RuleTextConfig.IsInfoPopup());
             gameplayManager?.BindTracker(Tracking);
             gameplayManager?.OpenPage(parameters);
             if (_dailyPresentation) RefreshDailyPresentation();
@@ -142,6 +145,8 @@ namespace Meowdoku.Gameplay
             {
                 gameplayManager.GameTransitioned -= HandleGameTransition;
                 gameplayManager.GameTrackingStarted -= HandleGameTrackingStarted;
+                gameplayManager.GameplayFeedbackBatchRequested -=
+                    HandleGameplayFeedbackBatch;
                 gameplayManager.SessionPresentationChanged -=
                     HandleSessionPresentationChanged;
                 gameplayManager.ToolRewardRequested -= HandleToolRewardRequested;
@@ -186,6 +191,9 @@ namespace Meowdoku.Gameplay
             _abConfigRuntime = runtime;
             gameplayManager?.BindAbConfigRuntime(runtime);
         }
+
+        private RuleTextConfig RuleTextConfig =>
+            _abConfigRuntime?.Settings.RuleText ?? _ruleTextConfig;
 
         private void HandleToolRewardRequested(GameToolKind kind)
         {
@@ -249,9 +257,14 @@ namespace Meowdoku.Gameplay
             {
                 ["is_game_mode"] = true,
                 ["on_restart"] = (Action)(() =>
-                    gameplayManager.RestartLevel())
+                    gameplayManager.RestartLevel()),
+                ["on_pattern_changed"] =
+                    (Action)gameplayManager.ApplyPatternMode
             };
             Owner.Show(UiName.Setting, parameters);
+            if (gameplayManager.IsPatternModeAvailable &&
+                !GameStateRuntime.Current.PatternEntryDotDismissed)
+                GameStateRuntime.Current.MarkPatternEntryDotDismissed();
         }
 
         private void OpenHowToPlay()
@@ -399,6 +412,24 @@ namespace Meowdoku.Gameplay
                 returnBankButton.gameObject.SetActive(fromBankBrowser);
             SubscribeClock();
             if (_dailyPresentation) RefreshDailyPresentation();
+        }
+
+        private void HandleGameplayFeedbackBatch(
+            IReadOnlyList<GameplayFeedbackData> feedback)
+        {
+            if (!IsShowing || Owner == null || feedback == null) return;
+            for (int index = 0; index < feedback.Count; index++)
+            {
+                GameplayFeedbackData item = feedback[index];
+                if (item == null ||
+                    item.Kind != GameplayFeedbackKind.WrongGuess ||
+                    item.LivesAfter > 0)
+                    continue;
+                Owner.BlockInputBriefly(
+                    transform as RectTransform,
+                    TerminalInputBlockSeconds);
+                return;
+            }
         }
 
         private void ShowBannerIfEligible()

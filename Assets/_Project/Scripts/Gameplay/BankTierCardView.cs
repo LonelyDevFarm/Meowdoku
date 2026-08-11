@@ -23,6 +23,9 @@ namespace Meowdoku.Gameplay
         private int _count;
         private int _number = 1;
 
+        public int CountForTests => _count;
+        public int NumberForTests => _number;
+
         private void Awake()
         {
             if (minusButton != null)

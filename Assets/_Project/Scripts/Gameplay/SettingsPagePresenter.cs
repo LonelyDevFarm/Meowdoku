@@ -13,7 +13,9 @@ using UnityEngine.UI;
 namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
-    public sealed class SettingsPagePresenter : UIFrameWindow
+    public sealed class SettingsPagePresenter : UIFrameWindow,
+        IAbConfigRuntimeConsumer,
+        ISettingsExternalServicesConsumer
     {
         public override string GetTrackingDialogName() => _isGameMode
             ? TrackerCatalog.Dialog.Options
@@ -69,6 +71,9 @@ namespace Meowdoku.Gameplay
         private readonly SettingsLanguageConfig _languageConfig = new();
         private readonly BlindModConfig _blindModeConfig = new();
         private readonly RuleTextConfig _ruleTextConfig = new();
+        private AbConfigRuntime _abConfigRuntime;
+        private ISettingsExternalServices _externalServices =
+            OfflineSettingsExternalServices.Instance;
 
         private Action _onRestart;
         private Action _onPatternChanged;
@@ -81,6 +86,10 @@ namespace Meowdoku.Gameplay
         private bool _skipNextCloseAnimation;
         private bool _suppressNextCloseCallback;
         private bool _waitingForHowToPlay;
+        private HowToPlayPagedPagePresenter _howToPlayPage;
+#if UNITY_INCLUDE_TESTS
+        private string _systemLocaleOverrideForTests = string.Empty;
+#endif
 
         public bool IsGameMode => _isGameMode;
 
@@ -125,24 +134,28 @@ namespace Meowdoku.Gameplay
             _skipNextCloseAnimation = false;
             _suppressNextCloseCallback = false;
 
+            _abConfigRuntime?.ReloadTiming(AbConfigTiming.OpenSetting);
+            SettingsLanguageConfig languageConfig = LanguageConfig;
+            string systemLocale = ResolveSystemLocale();
             localization?.ApplySystemLocale(
                 GameStateRuntime.Current,
-                _languageConfig.IsLanguageSwitchEnabledPeek());
+                languageConfig.IsLanguageSwitchEnabled(),
+                systemLocale);
 
             SettingsPresentationState state = SettingsPageContract.Resolve(
                 _isGameMode,
-                LocalizationLocaleContract.ResolveCurrentSystemLocale(),
+                systemLocale,
                 GameStateRuntime.Current.TutorialDone,
                 GameStateRuntime.Current.PatternSwitchDotDismissed,
-                cmpRequired,
-                _languageConfig,
-                _blindModeConfig,
-                _ruleTextConfig);
+                cmpRequired || _externalServices.IsConsentManagementRequired,
+                languageConfig,
+                BlindModeConfig,
+                RuleTextConfig);
             ApplyLayout(state);
             if (state.ShowLanguageDropdown)
             {
                 languageSwitchWidget?.Setup(
-                    LocalizationLocaleContract.ResolveCurrentSystemLocale());
+                    systemLocale);
             }
             RefreshToggleValues();
             RefreshStaticText();
@@ -220,6 +233,34 @@ namespace Meowdoku.Gameplay
                 localization.LocaleChanged += RefreshStaticText;
             RefreshStaticText();
         }
+
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _abConfigRuntime = runtime;
+        }
+
+        public void BindSettingsExternalServices(
+            ISettingsExternalServices services)
+        {
+            _externalServices = services ??
+                OfflineSettingsExternalServices.Instance;
+        }
+
+#if UNITY_INCLUDE_TESTS
+        internal void OverrideSystemLocaleForTests(string locale)
+        {
+            _systemLocaleOverrideForTests = locale ?? string.Empty;
+        }
+#endif
+
+        private SettingsLanguageConfig LanguageConfig =>
+            _abConfigRuntime?.Settings.Language ?? _languageConfig;
+
+        private BlindModConfig BlindModeConfig =>
+            _abConfigRuntime?.Settings.BlindMode ?? _blindModeConfig;
+
+        private RuleTextConfig RuleTextConfig =>
+            _abConfigRuntime?.Settings.RuleText ?? _ruleTextConfig;
 
         private void ApplyLayout(SettingsPresentationState state)
         {
@@ -409,55 +450,77 @@ namespace Meowdoku.Gameplay
         {
             if (Owner == null || _waitingForHowToPlay) return;
             UIFrameWindow page = Owner.Show(UiName.HowToPlayPaged);
-            if (page == null) return;
+            HowToPlayPagedPagePresenter paged =
+                page as HowToPlayPagedPagePresenter;
+            if (paged == null) return;
             _waitingForHowToPlay = true;
+            _howToPlayPage = paged;
+            _howToPlayPage.Closed += HandleHowToPlayClosed;
             Owner.Events.WindowHidden += HandleWindowHidden;
             _skipNextCloseAnimation = true;
             _suppressNextCloseCallback = true;
             Owner.Hide(UiName.Setting);
         }
 
+        private void HandleHowToPlayClosed()
+        {
+            if (!_waitingForHowToPlay) return;
+            Action callback = _onClose;
+            DetachHowToPlayWait();
+            callback?.Invoke();
+        }
+
         private void HandleWindowHidden(UiName name, UIFrameWindow _)
         {
             if (!_waitingForHowToPlay || name != UiName.HowToPlayPaged) return;
             DetachHowToPlayWait();
-            _onClose?.Invoke();
         }
 
         private void DetachHowToPlayWait()
         {
+            if (_howToPlayPage != null)
+                _howToPlayPage.Closed -= HandleHowToPlayClosed;
             if (_waitingForHowToPlay && Owner != null)
                 Owner.Events.WindowHidden -= HandleWindowHidden;
             _waitingForHowToPlay = false;
+            _howToPlayPage = null;
         }
 
         private void OpenFeedback()
         {
             TrackButton(TrackerCatalog.Button.Feedback);
-            if (Application.internetReachability == NetworkReachability.NotReachable)
+            bool online = _onFeedback != null
+                ? Application.internetReachability !=
+                  NetworkReachability.NotReachable
+                : _externalServices.IsOnline;
+            if (!online)
             {
                 ShowToast("NETWORK_ERROR", "Please check your network connection.");
                 return;
             }
-            _onFeedback?.Invoke();
+            if (_onFeedback != null) _onFeedback.Invoke();
+            else _externalServices.OpenFeedbackFaq();
         }
 
         private void OpenCmp()
         {
             TrackButton(TrackerCatalog.Button.PrivacyPreference);
-            _onCmp?.Invoke();
+            if (_onCmp != null) _onCmp.Invoke();
+            else _externalServices.ShowConsentManagement();
         }
 
         private void OpenTerms()
         {
             TrackButton(TrackerCatalog.Button.Terms);
-            Application.OpenURL("https://oakevergames.com/tos.html");
+            _externalServices.OpenLocalizedPrivacyUrl(
+                "https://oakevergames.com/tos.html");
         }
 
         private void OpenPrivacy()
         {
             TrackButton(TrackerCatalog.Button.Privacy);
-            Application.OpenURL("https://oakevergames.com/pp.html");
+            _externalServices.OpenLocalizedPrivacyUrl(
+                "https://oakevergames.com/pp.html");
         }
 
         private void HandleLanguageDropdownOpened()
@@ -498,6 +561,16 @@ namespace Meowdoku.Gameplay
             return string.Equals(value, key, StringComparison.Ordinal)
                 ? fallback
                 : value;
+        }
+
+        private string ResolveSystemLocale()
+        {
+#if UNITY_INCLUDE_TESTS
+            if (!string.IsNullOrWhiteSpace(_systemLocaleOverrideForTests))
+                return LocalizationLocaleContract.NormalizeLocale(
+                    _systemLocaleOverrideForTests);
+#endif
+            return LocalizationLocaleContract.ResolveCurrentSystemLocale();
         }
 
         private static void BindToggle(

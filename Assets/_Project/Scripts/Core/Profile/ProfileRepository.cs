@@ -19,7 +19,7 @@ namespace Meowdoku.Core.Profile
     /// </summary>
     public sealed class ProfileRepository : IProfileDataStore
     {
-        private const string SavePassword =
+        internal const string SavePassword =
             "pf_q7K2mX9cV4nR8sL1wT6hB3zD5gY0";
 
         private readonly SaveStore _store;
@@ -47,6 +47,12 @@ namespace Meowdoku.Core.Profile
                 !document.TryGetValue("profile", out object section) ||
                 section is not IReadOnlyDictionary<string, object> profile)
                 return new ProfileData();
+            if (profile.TryGetValue("data", out object raw) &&
+                raw is IReadOnlyDictionary<string, object> sourceData)
+                return ProfileData.FromDictionary(sourceData);
+
+            // Compatibility for profiles written by the early Unity port,
+            // before its logical ConfigFile schema matched profile.cfg.
             return ProfileData.FromDictionary(profile);
         }
 
@@ -55,7 +61,10 @@ namespace Meowdoku.Core.Profile
             if (data == null) throw new ArgumentNullException(nameof(data));
             return _store.SaveConfig(new Dictionary<string, object>
             {
-                ["profile"] = data.ToDictionary()
+                ["profile"] = new Dictionary<string, object>
+                {
+                    ["data"] = data.ToDictionary()
+                }
             });
         }
 

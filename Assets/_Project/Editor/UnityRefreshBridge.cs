@@ -30,7 +30,7 @@ namespace Meowdoku.Editor
             EditorApplication.quitting += Dispose;
         }
 
-        [MenuItem("Tools/Meowdoku/Refresh Project Assets")]
+        [MenuItem("Tools/Meowdoku/Refresh Project Assets %#&r")]
         private static void RefreshFromMenu()
         {
             QueueRefresh();
@@ -59,6 +59,16 @@ namespace Meowdoku.Editor
             {
                 if (_refreshEvent != null && _refreshEvent.WaitOne(0))
                     QueueRefresh();
+
+                if (_refreshPending &&
+                    !EditorApplication.isCompiling &&
+                    !EditorApplication.isUpdating)
+                {
+                    _refreshPending = false;
+                    PlatformGuidePrefabInstaller.InstallIfReady();
+                    AppRuntimeSceneInstaller.InstallIfReady();
+                    AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+                }
             }
             catch (ObjectDisposedException)
             {
@@ -72,19 +82,6 @@ namespace Meowdoku.Editor
                 return;
 
             _refreshPending = true;
-            EditorApplication.delayCall += RefreshWhenReady;
-        }
-
-        private static void RefreshWhenReady()
-        {
-            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
-            {
-                EditorApplication.delayCall += RefreshWhenReady;
-                return;
-            }
-
-            _refreshPending = false;
-            AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         }
 
         private static void Dispose()

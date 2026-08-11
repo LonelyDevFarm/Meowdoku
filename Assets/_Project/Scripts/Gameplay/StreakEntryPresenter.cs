@@ -21,6 +21,11 @@ namespace Meowdoku.Gameplay
         private DailyMetaRuntime _runtime;
         private bool _presenting;
 
+#if UNITY_INCLUDE_TESTS
+        internal bool IsCheckedForTests =>
+            checkedState != null && checkedState.activeSelf;
+#endif
+
         private void Awake()
         {
             if (clickButton != null)

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
+using Meowdoku.Core.Profile;
 using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
 using UnityEngine;
@@ -11,7 +12,8 @@ namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
     public sealed class AwardPagePresenter : UIFrameWindow,
-        IDailyMetaConsumer
+        IDailyMetaConsumer,
+        IProfileConsumer
     {
         public override string GetTrackingDialogName() => _rankPhase switch
         {
@@ -28,13 +30,17 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Button doubleCollectButton;
         [SerializeField] private GameObject regularRoot;
         [SerializeField] private RankGiftView rankGiftView;
+        [SerializeField] private FrameAwardEffectView frameAddEffect;
         [SerializeField] private AwardItemView[] itemViews =
             System.Array.Empty<AwardItemView>();
         [SerializeField] private LocalizationCatalog localization;
 
         private DailyMetaRuntime _runtime;
+        private ProfileRuntime _profileRuntime;
         private AwardPresentationRequest _request;
+        private AwardItem _frameItem;
         private bool _completed;
+        private bool _closing;
         private int _generation;
         private int _rankPhase;
 
@@ -53,6 +59,7 @@ namespace Meowdoku.Gameplay
         {
             _generation++;
             _completed = false;
+            _closing = false;
             _rankPhase = 0;
             _request = ReadRequest(parameters);
             if (_request == null || _runtime == null)
@@ -69,6 +76,8 @@ namespace Meowdoku.Gameplay
                 "Collect"));
             if (collectButton != null)
                 collectButton.gameObject.SetActive(true);
+            frameAddEffect?.StopImmediate();
+            _frameItem = FindFrameItem(_request.Items);
             RenderItems(_request.Items);
             bool rankGift =
                 _request.DisplayType == AwardDisplayType.RankGift;
@@ -85,6 +94,14 @@ namespace Meowdoku.Gameplay
             }
             else
             {
+                if (IsFrameOnly(_request.Items))
+                {
+                    SetActive(regularRoot, false);
+                    if (collectButton != null)
+                        collectButton.gameObject.SetActive(false);
+                    BeginCloseWithFrameEffect();
+                    return;
+                }
                 if (collectButton != null)
                     collectButton.interactable = false;
                 StartManagedCoroutine(UnlockCollect(_generation));
@@ -94,8 +111,12 @@ namespace Meowdoku.Gameplay
         protected override IEnumerator OnHide()
         {
             _generation++;
+            rankGiftView?.StopImmediate();
+            frameAddEffect?.StopImmediate();
             CompleteOnce();
             _request = null;
+            _frameItem = null;
+            _closing = false;
             _rankPhase = 0;
             SetActive(
                 rankGiftView != null ? rankGiftView.gameObject : null,
@@ -108,6 +129,8 @@ namespace Meowdoku.Gameplay
         protected override void OnDestroyWindow()
         {
             _generation++;
+            rankGiftView?.StopImmediate();
+            frameAddEffect?.StopImmediate();
             CompleteOnce();
             if (rankGiftView != null)
                 rankGiftView.CollectRequested -= HandleRankGiftCollect;
@@ -119,6 +142,11 @@ namespace Meowdoku.Gameplay
         public void BindDailyMetaRuntime(DailyMetaRuntime runtime)
         {
             _runtime = runtime;
+        }
+
+        public void BindProfileRuntime(ProfileRuntime runtime)
+        {
+            _profileRuntime = runtime;
         }
 
         private IEnumerator UnlockCollect(int generation)
@@ -136,13 +164,6 @@ namespace Meowdoku.Gameplay
                 rankGiftView?.SetInteractable(true);
         }
 
-        private IEnumerator CompleteFrameOnly(int generation)
-        {
-            yield return new WaitForSecondsRealtime(0.8f);
-            if (generation != _generation || !IsShowing) yield break;
-            if (CompleteOnce()) Owner?.Hide(UiName.Award);
-        }
-
         private void HandleRankGiftCollect()
         {
             if (_completed || _request == null ||
@@ -157,34 +178,79 @@ namespace Meowdoku.Gameplay
             Tracking?.TrackDialogShown(
                 TrackerCatalog.Dialog.ChallengeRewardGet);
             rankGiftView.SetInteractable(false);
-            SetActive(rankGiftView.gameObject, false);
-            SetActive(regularRoot, true);
-            RenderItems(_request.Items);
             if (rankGiftView.HasBox)
             {
+                SetActive(regularRoot, true);
+                RenderItems(_request.Items);
                 if (collectButton != null)
                     collectButton.interactable = false;
                 StartManagedCoroutine(UnlockCollect(_generation));
             }
             else
             {
+                SetActive(regularRoot, false);
                 if (collectButton != null)
                     collectButton.gameObject.SetActive(false);
-                StartManagedCoroutine(CompleteFrameOnly(_generation));
+                BeginCloseWithFrameEffect();
             }
         }
 
         private void Collect()
         {
-            if (_completed || collectButton == null ||
+            if (_completed || _closing || collectButton == null ||
                 !collectButton.interactable)
                 return;
             if (_rankPhase > 0)
                 Tracking?.TrackButtonClick(
                     TrackerCatalog.Button.Collect,
                     GetTrackingDialogName());
-            if (!CompleteOnce()) return;
-            Owner?.Hide(UiName.Award);
+            BeginCloseWithFrameEffect();
+        }
+
+        private void BeginCloseWithFrameEffect()
+        {
+            if (_completed || _closing) return;
+            _closing = true;
+            if (collectButton != null)
+            {
+                collectButton.interactable = false;
+                collectButton.gameObject.SetActive(false);
+            }
+            if (doubleCollectButton != null)
+                doubleCollectButton.gameObject.SetActive(false);
+
+            if (_frameItem == null || frameAddEffect == null ||
+                _profileRuntime == null)
+            {
+                FinishClose();
+                return;
+            }
+
+            SetActive(regularRoot, false);
+            SetActive(
+                rankGiftView != null ? rankGiftView.gameObject : null,
+                false);
+            ProfileService profile = _profileRuntime.Service;
+            HomePagePresenter home = Owner?.Get(UiName.Home) as
+                HomePagePresenter;
+            RectTransform profileTarget = home != null && home.IsShowing
+                ? home.ProfileEntryRect
+                : null;
+            frameAddEffect.Play(
+                profile.AvatarId,
+                _frameItem.FrameId,
+                profile.GetFrameCount(_frameItem.FrameId),
+                _frameItem.Count,
+                profileTarget,
+                () => Owner?.FadeOutMaskEarly(0.2f),
+                () => home?.PlayProfileShake(),
+                FinishClose);
+        }
+
+        private void FinishClose()
+        {
+            if (!_closing || !IsShowing) return;
+            if (CompleteOnce()) Owner?.Hide(UiName.Award);
         }
 
         private bool CompleteOnce()
@@ -198,14 +264,48 @@ namespace Meowdoku.Gameplay
         private void RenderItems(IReadOnlyList<AwardItem> items)
         {
             if (itemViews == null) return;
+            int itemIndex = 0;
             for (int index = 0; index < itemViews.Length; index++)
             {
                 AwardItemView view = itemViews[index];
                 if (view == null) continue;
-                view.Apply(items != null && index < items.Count
-                    ? items[index]
-                    : null);
+                AwardItem item = null;
+                while (items != null && itemIndex < items.Count)
+                {
+                    AwardItem candidate = items[itemIndex++];
+                    if (candidate?.Category == AwardCategory.Frame) continue;
+                    item = candidate;
+                    break;
+                }
+                view.Apply(item);
             }
+        }
+
+        private static AwardItem FindFrameItem(
+            IReadOnlyList<AwardItem> items)
+        {
+            if (items == null) return null;
+            for (int index = 0; index < items.Count; index++)
+            {
+                AwardItem item = items[index];
+                if (item?.Category == AwardCategory.Frame && item.IsValid())
+                    return item;
+            }
+            return null;
+        }
+
+        private static bool IsFrameOnly(IReadOnlyList<AwardItem> items)
+        {
+            bool hasFrame = false;
+            if (items == null) return false;
+            for (int index = 0; index < items.Count; index++)
+            {
+                AwardItem item = items[index];
+                if (item == null || !item.IsValid()) continue;
+                if (item.Category == AwardCategory.Frame) hasFrame = true;
+                else return false;
+            }
+            return hasFrame;
         }
 
         private static AwardPresentationRequest ReadRequest(

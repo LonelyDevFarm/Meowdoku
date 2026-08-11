@@ -19,6 +19,21 @@ namespace Meowdoku.Editor
         private const string FontPath = "Assets/_Project/Fonts/Roboto.ttf";
         private const string RoundedShaderPath =
             "Assets/_Project/Shaders/UIRoundedRect.shader";
+        private static readonly string[] PatternSpritePaths =
+        {
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_claw.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_bell.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_fishbone.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_whisker.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_sparkle.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_ear.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_heart.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_yarn.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_sprout.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_paw.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_triangle.png",
+            "Assets/_Project/Sprites/game/pattern_icon/pattern_dot.png"
+        };
         private const int MaxInstallAttempts = 300;
         private static readonly Color Brown = new Color(0.576f, 0.353f, 0.353f, 1f);
         private static int _remainingInstallAttempts;
@@ -95,8 +110,10 @@ namespace Meowdoku.Editor
             boardData.FindProperty("roundedBackgroundShader").objectReferenceValue =
                 AssetDatabase.LoadAssetAtPath<Shader>(RoundedShaderPath);
             boardData.ApplyModifiedPropertiesWithoutUndo();
+            ConfigureBoardPatterns(board);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+            AppRuntimeSceneInstaller.UpgradeGamePagePatternAssets();
         }
 
         private static void UpgradeCellPrefab()
@@ -107,6 +124,19 @@ namespace Meowdoku.Editor
             {
                 CellView view = root.GetComponent<CellView>();
                 if (view == null) return;
+                Image pattern = EnsureImage("Pattern", root.transform);
+                SetRect(pattern.rectTransform, Vector2.zero, new Vector2(95f, 95f));
+                pattern.sprite = null;
+                pattern.color = Color.white;
+                pattern.preserveAspect = true;
+                pattern.raycastTarget = false;
+                int backgroundIndex = view.bgImage != null
+                    ? view.bgImage.transform.GetSiblingIndex()
+                    : 0;
+                pattern.transform.SetSiblingIndex(Mathf.Min(
+                    backgroundIndex + 1,
+                    root.transform.childCount - 1));
+                pattern.gameObject.SetActive(false);
                 RectTransform hintRoot = EnsureRect("HintVisuals", root.transform, true);
                 Image light = EnsureImage("HintLight", hintRoot);
                 Image frame = EnsureImage("PromptFrame", hintRoot);
@@ -126,6 +156,7 @@ namespace Meowdoku.Editor
                 if (error != null)
                     error.color = new Color(0.99215686f, 0.41568628f, 0.18039216f, 1f);
                 SerializedObject data = new SerializedObject(view);
+                data.FindProperty("patternImage").objectReferenceValue = pattern;
                 data.FindProperty("hintLight").objectReferenceValue = light;
                 data.FindProperty("promptFrame").objectReferenceValue = frame;
                 data.FindProperty("promptCross").objectReferenceValue = cross;
@@ -426,6 +457,34 @@ namespace Meowdoku.Editor
             property.arraySize = values.Length;
             for (int index = 0; index < values.Length; index++)
                 property.GetArrayElementAtIndex(index).objectReferenceValue = values[index];
+        }
+
+        internal static bool ConfigureBoardPatterns(BoardView board)
+        {
+            if (board == null) return false;
+            var sprites = new Object[PatternSpritePaths.Length];
+            for (int index = 0; index < PatternSpritePaths.Length; index++)
+                sprites[index] = LoadSprite(PatternSpritePaths[index]);
+
+            SerializedObject data = new SerializedObject(board);
+            SerializedProperty property = data.FindProperty("patternIcons");
+            if (property == null) return false;
+            bool changed = property.arraySize != sprites.Length;
+            if (!changed)
+            {
+                for (int index = 0; index < sprites.Length; index++)
+                {
+                    if (property.GetArrayElementAtIndex(index)
+                            .objectReferenceValue == sprites[index])
+                        continue;
+                    changed = true;
+                    break;
+                }
+            }
+            if (!changed) return false;
+            SetObjectArray(property, sprites);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            return true;
         }
 
         private static void SetRect(RectTransform rect, Vector2 center, Vector2 size)

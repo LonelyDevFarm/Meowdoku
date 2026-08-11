@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.Daily;
+using Meowdoku.Core.Online;
 
 namespace Meowdoku.Core
 {
@@ -26,7 +27,9 @@ namespace Meowdoku.Core
     /// <summary>
     /// Runtime mutation slice ported from the bank-progress API in game_state.gd.
     /// </summary>
-    public sealed class GameStateService
+    public sealed class GameStateService :
+        IDataSyncSavable,
+        IDataSyncMergeBasis
     {
         private const int RecentPuzzlesLimit = 100;
         private const long RewardHistoryRetainSeconds = 7 * 24 * 3600;
@@ -109,6 +112,11 @@ namespace Meowdoku.Core
                 Data.MaxDailyDate);
         public bool HasUsedTool => Data.HasUsedTool;
         public bool HasPropHighlightShown => Data.PropHighlightShown;
+        public int PushAskCount => Data.PushAskCount;
+        public string PushGuideLastDate => Data.PushGuideLastDate;
+        public int PushGuideShownCount => Data.PushGuideShownCount;
+        public int PushGuidePopupCount => Data.PushGuidePopupCount;
+        public bool HasShownAttGuide => Data.HasShownAttGuide;
         public bool IsCurrentLevelDirty => _currentLevelDirty;
         public bool IsCurrentLevelRetried => _currentLevelRetried;
         public bool WasDdaToolOrReviveUsed => _ddaToolOrReviveUsed;
@@ -437,6 +445,67 @@ namespace Meowdoku.Core
         {
             if (Data.PropHighlightShown) return;
             Data.PropHighlightShown = true;
+            SavePlayer();
+        }
+
+        public void IncrementPushAskCount()
+        {
+            Data.PushAskCount++;
+            SavePlayer();
+        }
+
+        public void MarkPushGuideTriggered()
+        {
+            Data.PushGuideLastDate = _dateProvider.CurrentDate;
+            Data.PushGuideShownCount++;
+            SavePlayer();
+        }
+
+        public void MarkPushGuidePopupShown()
+        {
+            Data.PushGuidePopupCount++;
+            SavePlayer();
+        }
+
+        public bool IsPushGuideCooldownElapsed()
+        {
+            if (string.IsNullOrEmpty(Data.PushGuideLastDate)) return true;
+            if (!DateTime.TryParseExact(
+                    Data.PushGuideLastDate,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out DateTime lastDate))
+                return true;
+            if (!DateTime.TryParseExact(
+                    _dateProvider.CurrentDate,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out DateTime today))
+                return true;
+            return (today - lastDate).TotalDays >= 5d;
+        }
+
+        public int GetRecentThreeDayWinCount()
+        {
+            RollDayIfNeeded();
+            int total = 0;
+            foreach (object value in Data.RecentWinCountsByDay.Values)
+            {
+                try { total += Convert.ToInt32(value); }
+                catch (Exception exception) when (
+                    exception is FormatException ||
+                    exception is InvalidCastException ||
+                    exception is OverflowException) { }
+            }
+            return total;
+        }
+
+        public void MarkAttGuideShown()
+        {
+            if (Data.HasShownAttGuide) return;
+            Data.HasShownAttGuide = true;
             SavePlayer();
         }
 
@@ -1146,6 +1215,66 @@ namespace Meowdoku.Core
         public static string LkModifiedProgressKey(int size, int rank)
         {
             return $"{size}_{rank}";
+        }
+
+        public string RemoteSaveId => "core";
+
+        public bool IsRemoteAhead(
+            IReadOnlyDictionary<string, object> remote)
+        {
+            return DataSyncValues.Int(remote, "current_level") >
+                   Data.CurrentLevel;
+        }
+
+        public Dictionary<string, object> ExportRemote()
+        {
+            return new Dictionary<string, object>
+            {
+                ["current_level"] = Data.CurrentLevel,
+                ["tool_locate"] = Data.ToolLocate,
+                ["tool_hint"] = Data.ToolHint,
+                ["current_strategy"] = Data.CurrentStrategy
+            };
+        }
+
+        public bool MergeRemote(
+            IReadOnlyDictionary<string, object> remote,
+            DataSyncMergeContext context)
+        {
+            if (remote == null || remote.Count == 0 ||
+                !context.RemoteAhead)
+                return false;
+
+            Data.CurrentLevel = DataSyncValues.Int(
+                remote,
+                "current_level",
+                Data.CurrentLevel);
+            Data.CurrentStrategy = DataSyncValues.Int(
+                remote,
+                "current_strategy",
+                Data.CurrentStrategy);
+            if (Data.CurrentLevel > 1 && !Data.TutorialDone)
+                Data.TutorialDone = true;
+
+            int locate = DataSyncValues.Int(
+                remote,
+                "tool_locate",
+                Data.ToolLocate);
+            int hint = DataSyncValues.Int(
+                remote,
+                "tool_hint",
+                Data.ToolHint);
+            bool locateChanged = locate != Data.ToolLocate;
+            bool hintChanged = hint != Data.ToolHint;
+            Data.ToolLocate = locate;
+            Data.ToolHint = hint;
+            SavePlayer();
+
+            if (locateChanged)
+                ToolCountChanged?.Invoke("locate", Data.ToolLocate);
+            if (hintChanged)
+                ToolCountChanged?.Invoke("hint", Data.ToolHint);
+            return true;
         }
 
         private bool SavePlayer()

@@ -27,6 +27,9 @@ namespace Meowdoku.Gameplay
 
         private CellStateType _currentState = CellStateType.EMPTY;
         private Color _regionColor = Color.white;
+        private Sprite _patternSprite;
+        private bool _patternOn;
+        private bool _patternKeepOnFilled;
         private Sequence _visualSequence;
         private Sequence _hintSequence;
         private Sequence _previewSequence;
@@ -62,6 +65,26 @@ namespace Meowdoku.Gameplay
         }
 
         public Color RegionColor => _regionColor;
+
+        public void ConfigurePattern(Sprite sprite, Color color)
+        {
+            _patternSprite = sprite;
+            if (patternImage != null)
+            {
+                patternImage.sprite = sprite;
+                patternImage.color = color;
+                patternImage.preserveAspect = true;
+                patternImage.raycastTarget = false;
+            }
+            RefreshPatternVisibility();
+        }
+
+        public void SetPatternMode(bool on, bool keepOnFilled)
+        {
+            _patternOn = on;
+            _patternKeepOnFilled = keepOnFilled;
+            RefreshPatternVisibility();
+        }
 
         public void ConfigureBackgroundShape(Vector4 cornerRadii, bool hardEdge)
         {
@@ -235,7 +258,22 @@ namespace Meowdoku.Gameplay
                         Vector3.one);
                     break;
             }
+            RefreshPatternVisibility();
         }
+
+        private void RefreshPatternVisibility()
+        {
+            if (patternImage == null) return;
+            bool show = _patternOn && _patternSprite != null &&
+                        (_currentState == CellStateType.EMPTY ||
+                         _patternKeepOnFilled);
+            patternImage.gameObject.SetActive(show);
+        }
+
+#if UNITY_INCLUDE_TESTS
+        internal bool IsPatternVisibleForTests =>
+            patternImage != null && patternImage.gameObject.activeSelf;
+#endif
 
         public void PlayHint()
         {

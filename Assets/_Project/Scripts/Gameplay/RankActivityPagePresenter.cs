@@ -26,6 +26,7 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Text ctaText;
         [SerializeField] private ScrollRect scroll;
         [SerializeField] private RectTransform rowList;
+        [SerializeField] private RectTransform floatingRowLayer;
         [SerializeField] private RankActivityRowView rowPrefab;
         [SerializeField] private RankActivityPodiumView[] podiums =
             new RankActivityPodiumView[0];
@@ -36,6 +37,14 @@ namespace Meowdoku.Gameplay
         private bool _subscribed;
         private bool _rewardFlowActive;
         private bool _profileOpening;
+        private bool _playIntroPending;
+        private RankActivityRowView _selfRow;
+        private RankActivityRowView _floatingSelfRow;
+        private int _selfIndex = -1;
+        private bool _floatingAtTop;
+        private bool _floatingAtBottom;
+        private readonly Vector3[] _viewportCorners = new Vector3[4];
+        private readonly Vector3[] _rowCorners = new Vector3[4];
 
         protected override void OnCreate()
         {
@@ -55,9 +64,10 @@ namespace Meowdoku.Gameplay
         {
             _rewardFlowActive = false;
             _profileOpening = false;
+            _playIntroPending = true;
             Subscribe();
-            RefreshAll();
             if (scroll != null) scroll.verticalNormalizedPosition = 1f;
+            RefreshAll();
             if (_runtime?.Manager?.GetPendingReward() != null)
             {
                 _rewardFlowActive = true;
@@ -69,6 +79,15 @@ namespace Meowdoku.Gameplay
         {
             Unsubscribe();
             _profileOpening = false;
+            _playIntroPending = false;
+            for (int index = 0; index < _rows.Count; index++)
+                _rows[index]?.ShowStatic();
+            if (_floatingSelfRow != null)
+            {
+                _floatingSelfRow.SetSelfShadow(false);
+                _floatingSelfRow.ShowStatic();
+                _floatingSelfRow.gameObject.SetActive(false);
+            }
             yield break;
         }
 
@@ -90,6 +109,8 @@ namespace Meowdoku.Gameplay
             for (int index = 0; index < _rows.Count; index++)
                 if (_rows[index] != null)
                     _rows[index].SelfRequested -= OpenSelfProfile;
+            if (_floatingSelfRow != null)
+                _floatingSelfRow.SelfRequested -= OpenSelfProfile;
             if (localization != null)
                 localization.LocaleChanged -= RefreshText;
             base.OnDestroyWindow();
@@ -174,14 +195,118 @@ namespace Meowdoku.Gameplay
             List<RankInfo> infos = manager.GetRankInfos();
             ApplyPodiums(infos, manager.Group);
             EnsureRows(infos.Count);
+            _selfRow = null;
+            _selfIndex = -1;
+            RankInfo selfInfo = null;
             for (int index = 0; index < _rows.Count; index++)
+            {
+                RankInfo info = index < infos.Count ? infos[index] : null;
                 _rows[index].Apply(
-                    index < infos.Count ? infos[index] : null,
+                    info,
                     manager.Group);
+                if (info?.IsSelf != true) continue;
+                _selfRow = _rows[index];
+                _selfIndex = index;
+                selfInfo = info;
+            }
+            ApplyFloatingSelf(selfInfo, manager.Group);
             if (countdownText != null)
                 countdownText.text = RankPresentationContract.FormatHms(
                     manager.RemainingSeconds);
             RefreshText();
+            Canvas.ForceUpdateCanvases();
+            if (rowList != null) LayoutRebuilder.ForceRebuildLayoutImmediate(rowList);
+            SyncFloatingSelf();
+            if (_playIntroPending)
+            {
+                _playIntroPending = false;
+                PlayIntro();
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (IsShowing) SyncFloatingSelf();
+        }
+
+        private void ApplyFloatingSelf(RankInfo info, int group)
+        {
+            if (info == null || floatingRowLayer == null || rowPrefab == null)
+            {
+                if (_floatingSelfRow != null)
+                    _floatingSelfRow.gameObject.SetActive(false);
+                return;
+            }
+            if (_floatingSelfRow == null)
+            {
+                _floatingSelfRow = Instantiate(rowPrefab, floatingRowLayer);
+                _floatingSelfRow.name = "FloatingSelfRow";
+                _floatingSelfRow.SelfRequested += OpenSelfProfile;
+                _floatingSelfRow.transform.SetAsLastSibling();
+            }
+            _floatingSelfRow.Apply(info, group);
+            _floatingSelfRow.gameObject.SetActive(true);
+        }
+
+        private void SyncFloatingSelf()
+        {
+            if (_selfRow == null || _floatingSelfRow == null ||
+                !_floatingSelfRow.gameObject.activeSelf || scroll?.viewport == null)
+            {
+                _floatingAtTop = false;
+                _floatingAtBottom = false;
+                _floatingSelfRow?.SetSelfShadow(false);
+                return;
+            }
+
+            RectTransform source = (RectTransform)_selfRow.transform;
+            RectTransform floating = (RectTransform)_floatingSelfRow.transform;
+            scroll.viewport.GetWorldCorners(_viewportCorners);
+            source.GetWorldCorners(_rowCorners);
+            float halfHeight = Mathf.Abs(_rowCorners[1].y - _rowCorners[0].y) * 0.5f;
+            float low = _viewportCorners[0].y + halfHeight;
+            float high = _viewportCorners[1].y - halfHeight;
+            Vector3 position = source.position;
+            _floatingAtTop = low <= high && position.y > high;
+            _floatingAtBottom = low <= high && position.y < low;
+            position.y = low <= high
+                ? Mathf.Clamp(position.y, low, high)
+                : (low + high) * 0.5f;
+            floating.position = position;
+            _floatingSelfRow.SetSelfShadow(
+                _floatingAtTop || _floatingAtBottom,
+                _floatingAtTop);
+        }
+
+        private void PlayIntro()
+        {
+            int visibleIndex = 0;
+            for (int index = 0; index < _rows.Count; index++)
+            {
+                RankActivityRowView row = _rows[index];
+                if (row == null || !row.gameObject.activeSelf) continue;
+                row.PlayIntro(
+                    RankActivityRowIntro.Appear1,
+                    0.06f + 0.05f * visibleIndex);
+                visibleIndex++;
+            }
+
+            if (_floatingSelfRow == null ||
+                !_floatingSelfRow.gameObject.activeSelf)
+                return;
+            if (_floatingAtTop || _floatingAtBottom)
+            {
+                _floatingSelfRow.PlayIntro(
+                    RankActivityRowIntro.Appear2,
+                    0.3f);
+                return;
+            }
+            float selfDelay = _selfIndex >= 0
+                ? 0.06f + 0.05f * _selfIndex
+                : 0.3f;
+            _floatingSelfRow.PlayIntro(
+                RankActivityRowIntro.Appear1,
+                selfDelay);
         }
 
         private void ApplyPodiums(IReadOnlyList<RankInfo> infos, int group)

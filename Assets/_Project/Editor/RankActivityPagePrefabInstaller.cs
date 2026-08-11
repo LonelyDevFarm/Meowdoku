@@ -34,6 +34,7 @@ namespace Meowdoku.Editor
             "Assets/_Project/Sprites/rank_activity/";
         private const string GameRoot = "Assets/_Project/Sprites/game/";
         private const string CommonRoot = "Assets/_Project/Sprites/common/";
+        private const string EffectsRoot = "Assets/_Project/Sprites/Effects/";
         private const string FontPath = "Assets/_Project/Fonts/Roboto.ttf";
         private const string EastAsianFontPath =
             "Assets/_Project/Fonts/NotoSourceHan-subset.ttf";
@@ -98,6 +99,8 @@ namespace Meowdoku.Editor
             GameObject row = AssetDatabase.LoadAssetAtPath<GameObject>(RowPath);
             if (row == null && avatar != null)
                 row = BuildRowPrefab(font, avatar);
+            UpgradeRankRowVisuals();
+            row = AssetDatabase.LoadAssetAtPath<GameObject>(RowPath);
             if (AssetDatabase.LoadAssetAtPath<GameObject>(PagePath) == null &&
                 avatar != null && row != null)
             {
@@ -122,6 +125,8 @@ namespace Meowdoku.Editor
                 PrefabUtility.SaveAsPrefabAsset(page, ChangePath);
                 UnityEngine.Object.DestroyImmediate(page);
             }
+            UpgradeRankPageLayout();
+            UpgradeRankChangeLayout();
             DailyMetaPagePrefabInstaller.InstallIfReady();
             if (avatar != null)
                 UpgradeAwardForRankGift(font, localization, avatar);
@@ -182,6 +187,502 @@ namespace Meowdoku.Editor
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        private static void UpgradeRankPageLayout()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(PagePath) == null) return;
+            GameObject page = PrefabUtility.LoadPrefabContents(PagePath);
+            try
+            {
+                if (page.GetComponent<RankActivityPageLayoutPresenter>() != null)
+                    return;
+                RectTransform root = page.transform.Find("Root") as RectTransform;
+                RectTransform header = page.transform.Find("Root/Header") as RectTransform;
+                RectTransform podium = page.transform.Find("Root/Podium") as RectTransform;
+                RectTransform list = page.transform.Find("Root/List") as RectTransform;
+                RectTransform viewport = page.transform.Find(
+                    "Root/List/Viewport") as RectTransform;
+                RectTransform rows = page.transform.Find(
+                    "Root/List/Viewport/Rows") as RectTransform;
+                RectTransform cta = page.transform.Find(
+                    "Root/CtaButton") as RectTransform;
+                RankActivityPagePresenter presenter =
+                    page.GetComponent<RankActivityPagePresenter>();
+                if (root == null || header == null || podium == null || list == null ||
+                    viewport == null || rows == null || cta == null || presenter == null)
+                    return;
+
+                podium.anchoredPosition = new Vector2(0f, -245f);
+                podium.sizeDelta = new Vector2(1080f, 521f);
+                list.anchoredPosition = new Vector2(0f, -203.5f);
+                list.sizeDelta = new Vector2(1008f, -1183f);
+                Stretch(viewport);
+                viewport.offsetMin = new Vector2(0f, 18f);
+                viewport.offsetMax = new Vector2(0f, -20f);
+                VerticalLayoutGroup vertical = rows.GetComponent<VerticalLayoutGroup>();
+                if (vertical != null) vertical.spacing = 20f;
+                ScrollRect scroll = list.GetComponent<ScrollRect>();
+                if (scroll != null)
+                    scroll.movementType = ScrollRect.MovementType.Clamped;
+                cta.anchoredPosition = new Vector2(0f, 130f);
+                cta.sizeDelta = new Vector2(784f, 258f);
+
+                RectTransform floating = page.transform.Find(
+                    "Root/FloatRow") as RectTransform;
+                if (floating == null)
+                {
+                    floating = CreateRect("FloatRow", root);
+                    Stretch(floating);
+                }
+                floating.SetAsLastSibling();
+
+                SerializedObject presenterData = new(presenter);
+                SetRef(presenterData, "floatingRowLayer", floating);
+                presenterData.ApplyModifiedPropertiesWithoutUndo();
+
+                RankActivityPageLayoutPresenter layout =
+                    page.AddComponent<RankActivityPageLayoutPresenter>();
+                SerializedObject layoutData = new(layout);
+                SetRef(layoutData, "layoutSpace", root);
+                SetRef(layoutData, "header", header);
+                SetRef(layoutData, "podium", podium);
+                SetRef(layoutData, "list", list);
+                SetRef(layoutData, "cta", cta);
+                layoutData.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(page, PagePath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(page);
+            }
+        }
+
+        private static void UpgradeRankRowVisuals()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(RowPath) == null)
+                return;
+            GameObject root = PrefabUtility.LoadPrefabContents(RowPath);
+            try
+            {
+                RankActivityRowView view =
+                    root.GetComponent<RankActivityRowView>();
+                RectTransform rootRect = root.transform as RectTransform;
+                if (view == null || rootRect == null) return;
+
+                bool changed = false;
+                RectTransform visual = root.transform.Find(
+                    "VisualRoot") as RectTransform;
+                if (visual == null)
+                {
+                    visual = CreateRect("VisualRoot", rootRect);
+                    Stretch(visual);
+                    changed = true;
+                }
+
+                RectTransform content = visual.Find(
+                    "CanvasGroup") as RectTransform;
+                if (content == null)
+                {
+                    content = CreateRect("CanvasGroup", visual);
+                    Stretch(content);
+                    changed = true;
+                }
+                CanvasGroup contentGroup =
+                    content.GetComponent<CanvasGroup>();
+                if (contentGroup == null)
+                {
+                    contentGroup = content.gameObject.AddComponent<CanvasGroup>();
+                    changed = true;
+                }
+                contentGroup.alpha = 1f;
+
+                Transform[] directChildren =
+                    new Transform[root.transform.childCount];
+                for (int index = 0; index < directChildren.Length; index++)
+                    directChildren[index] = root.transform.GetChild(index);
+                for (int index = 0; index < directChildren.Length; index++)
+                {
+                    Transform child = directChildren[index];
+                    if (child == visual) continue;
+                    child.SetParent(content, false);
+                    changed = true;
+                }
+
+                Transform[] visualChildren =
+                    new Transform[visual.childCount];
+                for (int index = 0; index < visualChildren.Length; index++)
+                    visualChildren[index] = visual.GetChild(index);
+                for (int index = 0; index < visualChildren.Length; index++)
+                {
+                    Transform child = visualChildren[index];
+                    if (child == content || child.name == "Shadow" ||
+                        child.name == "Effects")
+                        continue;
+                    child.SetParent(content, false);
+                    changed = true;
+                }
+
+                Image shadow = visual.Find("Shadow")?.GetComponent<Image>();
+                if (shadow == null)
+                {
+                    shadow = CreateImage(
+                        "Shadow",
+                        visual,
+                        LoadSprite(RankRoot + "rank_row_self_shadow.png"));
+                    changed = true;
+                }
+                Sprite shadowSprite = LoadSprite(
+                    RankRoot + "rank_row_self_shadow.png");
+                if (shadow.sprite != shadowSprite)
+                {
+                    shadow.sprite = shadowSprite;
+                    changed = true;
+                }
+                shadow.raycastTarget = false;
+                shadow.type = Image.Type.Simple;
+                RectTransform shadowRect = shadow.rectTransform;
+                Vector2 shadowAnchor = new(0f, 1f);
+                Vector2 shadowPivot = new(0.5f, 0.5f);
+                Vector2 shadowPosition = new(484.5f, -93.55f);
+                Vector2 shadowSize = new(1033f, 270f);
+                Vector3 shadowScale = new(1f, -1f, 1f);
+                if (shadowRect.anchorMin != shadowAnchor ||
+                    shadowRect.anchorMax != shadowAnchor ||
+                    shadowRect.pivot != shadowPivot ||
+                    shadowRect.anchoredPosition != shadowPosition ||
+                    shadowRect.sizeDelta != shadowSize ||
+                    shadowRect.localScale != shadowScale)
+                {
+                    shadowRect.anchorMin = shadowAnchor;
+                    shadowRect.anchorMax = shadowAnchor;
+                    shadowRect.pivot = shadowPivot;
+                    shadowRect.anchoredPosition = shadowPosition;
+                    shadowRect.sizeDelta = shadowSize;
+                    shadowRect.localScale = shadowScale;
+                    changed = true;
+                }
+                Color shadowColor = shadow.color;
+                if (!Mathf.Approximately(shadowColor.a, 0f))
+                {
+                    shadowColor.a = 0f;
+                    shadow.color = shadowColor;
+                    changed = true;
+                }
+                if (shadow.gameObject.activeSelf)
+                {
+                    shadow.gameObject.SetActive(false);
+                    changed = true;
+                }
+                if (shadowRect.GetSiblingIndex() != 0)
+                {
+                    shadowRect.SetAsFirstSibling();
+                    changed = true;
+                }
+                RankActivityRowCelebrationView celebration =
+                    EnsureRankRowCelebration(visual, ref changed);
+                RectTransform effects = visual.Find("Effects") as RectTransform;
+                if (effects != null &&
+                    effects.GetSiblingIndex() != visual.childCount - 1)
+                {
+                    effects.SetAsLastSibling();
+                    changed = true;
+                }
+                int contentIndex = effects != null
+                    ? effects.GetSiblingIndex() - 1
+                    : visual.childCount - 1;
+                if (content.GetSiblingIndex() != contentIndex)
+                {
+                    content.SetSiblingIndex(Mathf.Max(1, contentIndex));
+                    changed = true;
+                }
+
+                SerializedObject data = new(view);
+                SerializedProperty visualProperty =
+                    data.FindProperty("visualRoot");
+                SerializedProperty groupProperty =
+                    data.FindProperty("contentGroup");
+                SerializedProperty shadowProperty =
+                    data.FindProperty("selfShadow");
+                SerializedProperty celebrationProperty =
+                    data.FindProperty("celebration");
+                if (visualProperty.objectReferenceValue != visual)
+                {
+                    visualProperty.objectReferenceValue = visual;
+                    changed = true;
+                }
+                if (groupProperty.objectReferenceValue != contentGroup)
+                {
+                    groupProperty.objectReferenceValue = contentGroup;
+                    changed = true;
+                }
+                if (shadowProperty.objectReferenceValue != shadow)
+                {
+                    shadowProperty.objectReferenceValue = shadow;
+                    changed = true;
+                }
+                if (celebrationProperty.objectReferenceValue != celebration)
+                {
+                    celebrationProperty.objectReferenceValue = celebration;
+                    changed = true;
+                }
+                if (!changed) return;
+                data.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, RowPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void UpgradeRankChangeLayout()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(ChangePath) == null) return;
+            GameObject page = PrefabUtility.LoadPrefabContents(ChangePath);
+            try
+            {
+                if (page.GetComponent<RankActivityChangeLayoutPresenter>() != null)
+                    return;
+                RectTransform root = page.transform.Find("Root") as RectTransform;
+                RectTransform encourage = page.transform.Find(
+                    "Root/EncourageTopBar") as RectTransform;
+                RectTransform title = page.transform.Find(
+                    "Root/Leaderboard") as RectTransform;
+                RectTransform countdown = page.transform.Find(
+                    "Root/Countdown") as RectTransform;
+                RectTransform countdownText = page.transform.Find(
+                    "Root/Countdown/CountdownText") as RectTransform;
+                RectTransform list = page.transform.Find(
+                    "Root/ListGroup") as RectTransform;
+                RectTransform rows = page.transform.Find(
+                    "Root/ListGroup/RankCellMask/RowList") as RectTransform;
+                RectTransform tap = page.transform.Find(
+                    "Root/TapToContinue") as RectTransform;
+                RankActivityChangePresenter presenter =
+                    page.GetComponent<RankActivityChangePresenter>();
+                if (root == null || encourage == null || title == null ||
+                    countdown == null || countdownText == null || list == null ||
+                    rows == null || tap == null || presenter == null)
+                    return;
+
+                SetTop(countdownText, 97.5f, 24f, 197f, 40f);
+                VerticalLayoutGroup vertical = rows.GetComponent<VerticalLayoutGroup>();
+                if (vertical != null)
+                {
+                    vertical.spacing = 20f;
+                    vertical.padding = new RectOffset(0, 0, 200, 200);
+                }
+                ScrollRect scroll = list.GetComponent<ScrollRect>();
+                if (scroll != null)
+                    scroll.movementType = ScrollRect.MovementType.Clamped;
+
+                RectTransform celebrate = page.transform.Find(
+                    "Root/PlayerCelebrate") as RectTransform;
+                if (celebrate == null)
+                {
+                    celebrate = CreateRect("PlayerCelebrate", root);
+                    Stretch(celebrate);
+                    celebrate.SetSiblingIndex(tap.GetSiblingIndex());
+                }
+
+                SerializedObject presenterData = new(presenter);
+                SetRef(presenterData, "celebrateLayer", celebrate);
+                presenterData.ApplyModifiedPropertiesWithoutUndo();
+
+                RankActivityChangeLayoutPresenter layout =
+                    page.AddComponent<RankActivityChangeLayoutPresenter>();
+                SerializedObject layoutData = new(layout);
+                SetRef(layoutData, "layoutSpace", root);
+                SetRef(layoutData, "encourage", encourage);
+                SetRef(layoutData, "title", title);
+                SetRef(layoutData, "countdown", countdown);
+                SetRef(layoutData, "list", list);
+                SetRef(layoutData, "tap", tap);
+                layoutData.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(page, ChangePath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(page);
+            }
+        }
+
+        private static RankActivityRowCelebrationView
+            EnsureRankRowCelebration(
+                RectTransform visual,
+                ref bool changed)
+        {
+            RectTransform effects = visual.Find("Effects") as RectTransform;
+            if (effects == null)
+            {
+                effects = CreateRect("Effects", visual);
+                Stretch(effects);
+                changed = true;
+            }
+            RankActivityRowCelebrationView existing =
+                effects.GetComponent<RankActivityRowCelebrationView>();
+            if (existing != null) return existing;
+
+            RankActivityRowCelebrationView celebration =
+                effects.gameObject.AddComponent<RankActivityRowCelebrationView>();
+            Sprite fish = LoadSprite(RankRoot + "collect_fish.png");
+            Sprite cat = LoadSprite(GameRoot + "tool_cat_item.png");
+            Sprite glowSprite = LoadSprite(
+                EffectsRoot + "glow/et_glow_002.png");
+            Sprite maskSprite = LoadSprite(
+                EffectsRoot + "mask/et_mask_015.png");
+            Sprite star1 = LoadSprite(
+                EffectsRoot + "star/et_star_1.png");
+            Sprite star2 = LoadSprite(
+                EffectsRoot + "star/et_star_003.png");
+            Sprite arrowSprite = LoadSprite(
+                EffectsRoot + "ui/et_change_arrow.png");
+
+            RectTransform collection = CreateRect("Collection", effects);
+            SetTop(collection, 888f, 90f, 40f, 40f);
+            RectTransform target = CreateRect("Target", collection);
+            SetSourcePoint(target, new Vector2(-250f, 1f),
+                new Vector2(1f, 1f));
+            var itemPositions = new[]
+            {
+                new Vector2(-5f, -52f),
+                new Vector2(40f, -30f),
+                new Vector2(-25f, 35f),
+                new Vector2(35f, 30f),
+                new Vector2(-40f, -15f),
+                new Vector2(3f, -2f)
+            };
+            var items = new Image[itemPositions.Length];
+            var collectionGlows = new Image[itemPositions.Length];
+            var collectionStars = new Image[itemPositions.Length];
+            for (int index = 0; index < itemPositions.Length; index++)
+            {
+                items[index] = CreateImage(
+                    $"CollectItem_{index + 1}",
+                    collection,
+                    fish);
+                SetSourcePoint(
+                    items[index].rectTransform,
+                    itemPositions[index],
+                    new Vector2(54f, 54f));
+                items[index].preserveAspect = true;
+                items[index].gameObject.SetActive(false);
+
+                collectionGlows[index] = CreateImage(
+                    $"Burst_{index + 1}_Glow",
+                    collection,
+                    glowSprite);
+                SetSourcePoint(
+                    collectionGlows[index].rectTransform,
+                    new Vector2(-250f, 1f),
+                    new Vector2(120f, 120f));
+                collectionGlows[index].preserveAspect = true;
+                collectionGlows[index].color =
+                    new Color(1f, 0.78f, 0.35f, 0f);
+                collectionGlows[index].gameObject.SetActive(false);
+
+                collectionStars[index] = CreateImage(
+                    $"Burst_{index + 1}_Star",
+                    collection,
+                    index % 2 == 0 ? star1 : star2);
+                SetSourcePoint(
+                    collectionStars[index].rectTransform,
+                    new Vector2(-250f, 1f),
+                    new Vector2(52f, 52f));
+                collectionStars[index].preserveAspect = true;
+                collectionStars[index].gameObject.SetActive(false);
+            }
+
+            RectTransform arrowRoot = CreateRect("Arrow", effects);
+            Stretch(arrowRoot);
+            CanvasGroup arrowGroup =
+                arrowRoot.gameObject.AddComponent<CanvasGroup>();
+            arrowGroup.alpha = 0f;
+            arrowGroup.interactable = false;
+            arrowGroup.blocksRaycasts = false;
+            float[] arrowX = { 150f, 375f, 600f, 825f };
+            var arrows = new Image[arrowX.Length];
+            for (int index = 0; index < arrows.Length; index++)
+            {
+                arrows[index] = CreateImage(
+                    $"ArrowParticle_{index + 1}",
+                    arrowRoot,
+                    arrowSprite);
+                SetSourcePoint(
+                    arrows[index].rectTransform,
+                    new Vector2(arrowX[index], 200f),
+                    new Vector2(90f, 90f));
+                arrows[index].preserveAspect = true;
+                Color arrowColor = arrows[index].color;
+                arrowColor.a = 0f;
+                arrows[index].color = arrowColor;
+            }
+            arrowRoot.gameObject.SetActive(false);
+
+            RectTransform riseBurst = CreateRect("RiseBurst", effects);
+            Stretch(riseBurst);
+            Image riseGlow = CreateImage("Glow", riseBurst, maskSprite);
+            SetCentered(riseGlow.rectTransform, Vector2.zero,
+                new Vector2(240f, 240f));
+            riseGlow.preserveAspect = true;
+            riseGlow.color = new Color(1f, 0.92f, 0.2f, 0f);
+            riseGlow.gameObject.SetActive(false);
+            Vector2[] starPositions =
+            {
+                new(-360f, 90f), new(-120f, 90f),
+                new(120f, 90f), new(360f, 90f),
+                new(-360f, -90f), new(-120f, -90f),
+                new(120f, -90f), new(360f, -90f),
+                new(-480f, 45f), new(-480f, -45f),
+                new(480f, 45f), new(480f, -45f)
+            };
+            var riseStars = new Image[starPositions.Length];
+            for (int index = 0; index < riseStars.Length; index++)
+            {
+                riseStars[index] = CreateImage(
+                    $"EdgeStar_{index + 1}",
+                    riseBurst,
+                    index % 2 == 0 ? star1 : star2);
+                SetCentered(
+                    riseStars[index].rectTransform,
+                    starPositions[index],
+                    new Vector2(42f, 42f));
+                riseStars[index].preserveAspect = true;
+                riseStars[index].color = index % 2 == 0
+                    ? new Color(0.55f, 0.482f, 0.275f, 0f)
+                    : new Color(1f, 0.92f, 0.2f, 0f);
+                riseStars[index].gameObject.SetActive(false);
+            }
+
+            SerializedObject data = new(celebration);
+            SetRef(data, "collectionTarget", target);
+            SetComponentArray(data, "collectionItems", items);
+            SetComponentArray(data, "collectionGlows", collectionGlows);
+            SetComponentArray(data, "collectionStars", collectionStars);
+            SetRef(data, "fishSprite", fish);
+            SetRef(data, "catSprite", cat);
+            SetRef(data, "arrowGroup", arrowGroup);
+            SetComponentArray(data, "arrowItems", arrows);
+            SetRef(data, "riseGlow", riseGlow);
+            SetComponentArray(data, "riseStars", riseStars);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            effects.SetAsLastSibling();
+            changed = true;
+            return celebration;
+        }
+
+        private static void SetSourcePoint(
+            RectTransform rect,
+            Vector2 sourcePosition,
+            Vector2 size)
+        {
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(
+                sourcePosition.x,
+                -sourcePosition.y);
+            rect.sizeDelta = size;
         }
 
         private static RankActivityEntryPresenter BuildEntry(
@@ -456,19 +957,40 @@ namespace Meowdoku.Editor
             layout.preferredWidth = 968f;
             layout.preferredHeight = 180f;
 
+            RectTransform visualRoot = CreateRect("VisualRoot", rootRect);
+            Stretch(visualRoot);
+            Image selfShadow = CreateImage(
+                "Shadow",
+                visualRoot,
+                LoadSprite(RankRoot + "rank_row_self_shadow.png"));
+            RectTransform shadowRect = selfShadow.rectTransform;
+            shadowRect.anchorMin = shadowRect.anchorMax = new Vector2(0f, 1f);
+            shadowRect.pivot = new Vector2(0.5f, 0.5f);
+            shadowRect.anchoredPosition = new Vector2(484.5f, -93.55f);
+            shadowRect.sizeDelta = new Vector2(1033f, 270f);
+            shadowRect.localScale = new Vector3(1f, -1f, 1f);
+            Color shadowColor = selfShadow.color;
+            shadowColor.a = 0f;
+            selfShadow.color = shadowColor;
+            selfShadow.gameObject.SetActive(false);
+            RectTransform canvasRoot = CreateRect("CanvasGroup", visualRoot);
+            Stretch(canvasRoot);
+            CanvasGroup contentGroup =
+                canvasRoot.gameObject.AddComponent<CanvasGroup>();
+
             Image background = CreateImage(
-                "Background", rootRect,
+                "Background", canvasRoot,
                 LoadSprite(RankRoot + "rank_row_bg.png"));
             Stretch(background.rectTransform, new Vector2(-14f, -4f));
             background.rectTransform.offsetMax = new Vector2(14f, 24f);
 
             Image bigMedal = CreateImage(
-                "BigMedal", rootRect,
+                "BigMedal", canvasRoot,
                 LoadSprite(RankRoot + "rank_medal_gold.png"));
             SetTop(bigMedal.rectTransform, -14f, -4f, 332f, 208f);
             bigMedal.preserveAspect = true;
 
-            RectTransform content = CreateRect("Content", rootRect);
+            RectTransform content = CreateRect("Content", canvasRoot);
             SetTop(content, 110f, 10f, 838f, 160f);
             GameObject avatar = (GameObject)PrefabUtility.InstantiatePrefab(
                 avatarPrefab);
@@ -515,7 +1037,7 @@ namespace Meowdoku.Editor
             Stretch(chestImage.rectTransform);
             chestImage.preserveAspect = true;
 
-            RectTransform badgeRoot = CreateRect("MedalBadge", rootRect);
+            RectTransform badgeRoot = CreateRect("MedalBadge", canvasRoot);
             SetTop(badgeRoot, 20f, 43f, 76f, 88f);
             Image badge = CreateImage(
                 "BadgeBg", badgeRoot,
@@ -532,6 +1054,9 @@ namespace Meowdoku.Editor
 
             RankActivityRowView view = root.GetComponent<RankActivityRowView>();
             SerializedObject data = new(view);
+            SetRef(data, "visualRoot", visualRoot);
+            SetRef(data, "contentGroup", contentGroup);
+            SetRef(data, "selfShadow", selfShadow);
             SetRef(data, "background", background);
             SetRef(data, "normalBackground",
                 LoadSprite(RankRoot + "rank_row_bg.png"));
@@ -586,7 +1111,8 @@ namespace Meowdoku.Editor
                 typeof(Canvas),
                 typeof(CanvasGroup),
                 typeof(GraphicRaycaster),
-                typeof(RankActivityPagePresenter));
+                typeof(RankActivityPagePresenter),
+                typeof(RankActivityPageLayoutPresenter));
             Stretch((RectTransform)page.transform);
             page.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
 
@@ -646,7 +1172,7 @@ namespace Meowdoku.Editor
             podiumArea.anchorMin = podiumArea.anchorMax = new Vector2(0.5f, 1f);
             podiumArea.pivot = new Vector2(0.5f, 1f);
             podiumArea.anchoredPosition = new Vector2(0f, -245f);
-            podiumArea.sizeDelta = new Vector2(1080f, 470f);
+            podiumArea.sizeDelta = new Vector2(1080f, 521f);
             RankActivityPodiumView[] podiums =
             {
                 BuildPodium("First", podiumArea, avatarPrefab, font, 1,
@@ -661,8 +1187,8 @@ namespace Meowdoku.Editor
             listGroup.anchorMin = new Vector2(0.5f, 0f);
             listGroup.anchorMax = new Vector2(0.5f, 1f);
             listGroup.pivot = new Vector2(0.5f, 0.5f);
-            listGroup.anchoredPosition = new Vector2(0f, -185f);
-            listGroup.sizeDelta = new Vector2(1008f, -900f);
+            listGroup.anchoredPosition = new Vector2(0f, -203.5f);
+            listGroup.sizeDelta = new Vector2(1008f, -1183f);
             Image listBackground = CreateImage(
                 "Background", listGroup,
                 LoadSprite(RankRoot + "rankpage_list_bg.png"));
@@ -670,7 +1196,9 @@ namespace Meowdoku.Editor
             listBackground.type = Image.Type.Sliced;
 
             RectTransform viewport = CreateRect("Viewport", listGroup);
-            Stretch(viewport, new Vector2(20f, 20f));
+            Stretch(viewport);
+            viewport.offsetMin = new Vector2(0f, 18f);
+            viewport.offsetMax = new Vector2(0f, -20f);
             Image viewportImage = viewport.gameObject.AddComponent<Image>();
             viewportImage.color = new Color(1f, 1f, 1f, 0.001f);
             Mask mask = viewport.gameObject.AddComponent<Mask>();
@@ -683,7 +1211,7 @@ namespace Meowdoku.Editor
             rows.sizeDelta = new Vector2(968f, 0f);
             VerticalLayoutGroup vertical =
                 rows.gameObject.AddComponent<VerticalLayoutGroup>();
-            vertical.spacing = 10f;
+            vertical.spacing = 20f;
             vertical.childAlignment = TextAnchor.UpperCenter;
             vertical.childControlWidth = true;
             vertical.childControlHeight = true;
@@ -697,8 +1225,7 @@ namespace Meowdoku.Editor
             scroll.content = rows;
             scroll.horizontal = false;
             scroll.vertical = true;
-            scroll.movementType = ScrollRect.MovementType.Elastic;
-            scroll.elasticity = 0.1f;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
 
             Button cta = CreateButton(
                 "CtaButton", root,
@@ -706,12 +1233,16 @@ namespace Meowdoku.Editor
             RectTransform ctaRect = (RectTransform)cta.transform;
             ctaRect.anchorMin = ctaRect.anchorMax = new Vector2(0.5f, 0f);
             ctaRect.pivot = new Vector2(0.5f, 0f);
-            ctaRect.anchoredPosition = new Vector2(0f, 35f);
-            ctaRect.sizeDelta = new Vector2(820f, 180f);
+            ctaRect.anchoredPosition = new Vector2(0f, 130f);
+            ctaRect.sizeDelta = new Vector2(784f, 258f);
             Text ctaText = CreateText(
                 "Text", cta.transform, font, 58,
                 "Go to Collect", Color.white);
             Stretch(ctaText.rectTransform, new Vector2(60f, 25f));
+
+            RectTransform floatingRowLayer = CreateRect("FloatRow", root);
+            Stretch(floatingRowLayer);
+            floatingRowLayer.SetAsLastSibling();
 
             RankActivityPagePresenter presenter =
                 page.GetComponent<RankActivityPagePresenter>();
@@ -725,11 +1256,22 @@ namespace Meowdoku.Editor
             SetRef(data, "ctaText", ctaText);
             SetRef(data, "scroll", scroll);
             SetRef(data, "rowList", rows);
+            SetRef(data, "floatingRowLayer", floatingRowLayer);
             SetRef(data, "rowPrefab",
                 rowPrefab.GetComponent<RankActivityRowView>());
             SetComponentArray(data, "podiums", podiums);
             SetRef(data, "localization", localization);
             data.ApplyModifiedPropertiesWithoutUndo();
+
+            RankActivityPageLayoutPresenter layout =
+                page.GetComponent<RankActivityPageLayoutPresenter>();
+            SerializedObject layoutData = new(layout);
+            SetRef(layoutData, "layoutSpace", root);
+            SetRef(layoutData, "header", header);
+            SetRef(layoutData, "podium", podiumArea);
+            SetRef(layoutData, "list", listGroup);
+            SetRef(layoutData, "cta", ctaRect);
+            layoutData.ApplyModifiedPropertiesWithoutUndo();
             return page;
         }
 
@@ -968,7 +1510,8 @@ namespace Meowdoku.Editor
                 typeof(Canvas),
                 typeof(CanvasGroup),
                 typeof(GraphicRaycaster),
-                typeof(RankActivityChangePresenter));
+                typeof(RankActivityChangePresenter),
+                typeof(RankActivityChangeLayoutPresenter));
             Stretch((RectTransform)page.transform);
             page.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
 
@@ -1035,7 +1578,7 @@ namespace Meowdoku.Editor
             Text countdown = CreateText(
                 "CountdownText", countdownRoot, font, 50,
                 "12:05:05", Color.white);
-            SetTop(countdown.rectTransform, 97.5f, 18f, 197f, 52f);
+            SetTop(countdown.rectTransform, 97.5f, 24f, 197f, 40f);
 
             RectTransform listGroup = CreateRect("ListGroup", root);
             listGroup.anchorMin = new Vector2(0.5f, 0f);
@@ -1058,6 +1601,7 @@ namespace Meowdoku.Editor
             VerticalLayoutGroup vertical =
                 rows.gameObject.AddComponent<VerticalLayoutGroup>();
             vertical.spacing = 20f;
+            vertical.padding = new RectOffset(0, 0, 200, 200);
             vertical.childAlignment = TextAnchor.UpperCenter;
             vertical.childControlWidth = true;
             vertical.childControlHeight = true;
@@ -1071,8 +1615,10 @@ namespace Meowdoku.Editor
             scroll.content = rows;
             scroll.horizontal = false;
             scroll.vertical = true;
-            scroll.movementType = ScrollRect.MovementType.Elastic;
-            scroll.elasticity = 0.1f;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+
+            RectTransform celebrateLayer = CreateRect("PlayerCelebrate", root);
+            Stretch(celebrateLayer);
 
             Button tap = CreateButton(
                 "TapToContinue", root, null, Color.clear);
@@ -1098,6 +1644,7 @@ namespace Meowdoku.Editor
             SetRef(data, "encouragementText", progress);
             SetRef(data, "scroll", scroll);
             SetRef(data, "rowList", rows);
+            SetRef(data, "celebrateLayer", celebrateLayer);
             SetRef(data, "rowPrefab",
                 rowPrefab.GetComponent<RankActivityRowView>());
             SetRef(data, "maskButton", maskButton);
@@ -1105,6 +1652,17 @@ namespace Meowdoku.Editor
             SetRef(data, "tapText", tapText);
             SetRef(data, "localization", localization);
             data.ApplyModifiedPropertiesWithoutUndo();
+
+            RankActivityChangeLayoutPresenter layout =
+                page.GetComponent<RankActivityChangeLayoutPresenter>();
+            SerializedObject layoutData = new(layout);
+            SetRef(layoutData, "layoutSpace", root);
+            SetRef(layoutData, "encourage", encourage);
+            SetRef(layoutData, "title", title.rectTransform);
+            SetRef(layoutData, "countdown", countdownRoot);
+            SetRef(layoutData, "list", listGroup);
+            SetRef(layoutData, "tap", tapRect);
+            layoutData.ApplyModifiedPropertiesWithoutUndo();
             return page;
         }
 
@@ -1161,13 +1719,21 @@ namespace Meowdoku.Editor
                 Transform giftRoot =
                     root.transform.Find("RankGiftRoot");
                 RankGiftView gift;
-                if (giftRoot == null)
+                bool rebuildGift = giftRoot == null ||
+                                   giftRoot.Find("Effects") == null;
+                if (rebuildGift)
                 {
+                    if (giftRoot != null)
+                        UnityEngine.Object.DestroyImmediate(
+                            giftRoot.gameObject);
+                    Image backdrop = root.transform.Find("Overlay")
+                        ?.GetComponent<Image>();
                     gift = BuildRankGift(
                         root.transform,
                         font,
                         localization,
-                        avatarPrefab);
+                        avatarPrefab,
+                        backdrop);
                     giftRoot = gift.transform;
                     changed = true;
                 }
@@ -1183,8 +1749,38 @@ namespace Meowdoku.Editor
                     giftProperty.objectReferenceValue = gift;
                     changed = true;
                 }
+
+                Transform effectRoot = root.transform.Find("FrameAddEffect");
+                FrameAwardEffectView frameEffect;
+                bool rebuildFrameEffect = effectRoot == null ||
+                                          effectRoot.Find("Flight") == null;
+                if (rebuildFrameEffect)
+                {
+                    if (effectRoot != null)
+                        UnityEngine.Object.DestroyImmediate(
+                            effectRoot.gameObject);
+                    frameEffect = BuildFrameAddEffect(
+                        root.transform,
+                        avatarPrefab);
+                    effectRoot = frameEffect.transform;
+                    changed = true;
+                }
+                else
+                {
+                    frameEffect =
+                        effectRoot.GetComponent<FrameAwardEffectView>();
+                }
+                SerializedProperty effectProperty =
+                    presenterData.FindProperty("frameAddEffect");
+                if (effectProperty != null &&
+                    effectProperty.objectReferenceValue != frameEffect)
+                {
+                    effectProperty.objectReferenceValue = frameEffect;
+                    changed = true;
+                }
                 presenterData.ApplyModifiedPropertiesWithoutUndo();
                 giftRoot.gameObject.SetActive(false);
+                effectRoot.gameObject.SetActive(false);
                 if (!changed) return;
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
@@ -1192,6 +1788,55 @@ namespace Meowdoku.Editor
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        private static FrameAwardEffectView BuildFrameAddEffect(
+            Transform parent,
+            GameObject avatarPrefab)
+        {
+            RectTransform root = CreateRect("FrameAddEffect", parent);
+            Stretch(root);
+            root.SetAsLastSibling();
+            FrameAwardEffectView view =
+                root.gameObject.AddComponent<FrameAwardEffectView>();
+
+            RectTransform ray = CreateRect("EffectRayLight", root);
+            SetCentered(ray, Vector2.zero, new Vector2(900f, 900f));
+            CanvasGroup rayGroup = ray.gameObject.AddComponent<CanvasGroup>();
+            Image glow = CreateImage(
+                "Glow",
+                ray,
+                LoadSprite(RankRoot + "rank_reward_glow.png"));
+            Stretch(glow.rectTransform);
+            glow.preserveAspect = true;
+            glow.raycastTarget = false;
+
+            GameObject avatarObject =
+                (GameObject)PrefabUtility.InstantiatePrefab(avatarPrefab);
+            avatarObject.name = "AvatarCell";
+            avatarObject.transform.SetParent(root, false);
+            RectTransform avatarRect =
+                (RectTransform)avatarObject.transform;
+            SetCentered(avatarRect, Vector2.zero, new Vector2(185f, 185f));
+            CanvasGroup avatarGroup =
+                avatarObject.GetComponent<CanvasGroup>();
+            if (avatarGroup == null)
+                avatarGroup = avatarObject.AddComponent<CanvasGroup>();
+            ProfileAvatarView avatar =
+                avatarObject.GetComponent<ProfileAvatarView>();
+
+            FrameAwardFlightView flight = BuildFrameFlight(root);
+
+            SerializedObject data = new(view);
+            SetRef(data, "rayGroup", rayGroup);
+            SetRef(data, "rayVisual", ray);
+            SetRef(data, "avatarGroup", avatarGroup);
+            SetRef(data, "avatarVisual", avatarRect);
+            SetRef(data, "avatar", avatar);
+            SetRef(data, "flight", flight);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            root.gameObject.SetActive(false);
+            return view;
         }
 
         private static Transform BuildFrameReward(Transform parent)
@@ -1217,7 +1862,8 @@ namespace Meowdoku.Editor
             Transform parent,
             Font font,
             LocalizationCatalog localization,
-            GameObject avatarPrefab)
+            GameObject avatarPrefab,
+            Image backdrop)
         {
             RectTransform root = CreateRect("RankGiftRoot", parent);
             Stretch(root);
@@ -1232,6 +1878,7 @@ namespace Meowdoku.Editor
             win.rectTransform.pivot = new Vector2(0.5f, 1f);
             win.rectTransform.anchoredPosition = new Vector2(0f, -256f);
             win.rectTransform.sizeDelta = new Vector2(857f, 100f);
+            CanvasGroup winGroup = win.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform chestRoot = CreateRect("Box", root);
             chestRoot.anchorMin =
@@ -1239,16 +1886,20 @@ namespace Meowdoku.Editor
             chestRoot.pivot = new Vector2(0.5f, 1f);
             chestRoot.anchoredPosition = new Vector2(0f, -390f);
             chestRoot.sizeDelta = new Vector2(520f, 520f);
+            CanvasGroup chestGroup =
+                chestRoot.gameObject.AddComponent<CanvasGroup>();
+            RectTransform animatedBox = CreateRect("AnimatedBox", chestRoot);
+            SetCentered(animatedBox, Vector2.zero, new Vector2(520f, 520f));
             Image glow = CreateImage(
-                "Glow", chestRoot,
+                "Glow", animatedBox,
                 LoadSprite(RankRoot + "rank_reward_glow.png"));
             Stretch(glow.rectTransform);
             glow.preserveAspect = true;
             Image chest = CreateImage(
-                "Chest", chestRoot,
+                "Chest", animatedBox,
                 LoadSprite(RankRoot + "chest_tier3.png"));
             SetCentered(chest.rectTransform, Vector2.zero,
-                new Vector2(350f, 350f));
+                new Vector2(466f, 466f));
             chest.preserveAspect = true;
 
             RectTransform podium = CreateRect("Podium", root);
@@ -1257,6 +1908,8 @@ namespace Meowdoku.Editor
             podium.pivot = new Vector2(0.5f, 1f);
             podium.anchoredPosition = new Vector2(0f, -930f);
             podium.sizeDelta = new Vector2(1080f, 347f);
+            CanvasGroup podiumGroup =
+                podium.gameObject.AddComponent<CanvasGroup>();
             ProfileAvatarView[] avatars =
             {
                 BuildAwardPodium(
@@ -1272,6 +1925,26 @@ namespace Meowdoku.Editor
                     LoadSprite(RankRoot + "award_podium_bronze.png"),
                     new Vector2(352f, -37f), 185f)
             };
+            var seats = new RectTransform[avatars.Length];
+            var seatGroups = new CanvasGroup[avatars.Length];
+            var avatarVisuals = new RectTransform[avatars.Length];
+            var avatarGroups = new CanvasGroup[avatars.Length];
+            for (int index = 0; index < avatars.Length; index++)
+            {
+                avatarVisuals[index] = avatars[index].transform as RectTransform;
+                seats[index] = avatarVisuals[index]?.parent as RectTransform;
+                if (seats[index] != null)
+                    seatGroups[index] = seats[index].gameObject
+                        .AddComponent<CanvasGroup>();
+                if (avatarVisuals[index] != null)
+                {
+                    avatarGroups[index] = avatarVisuals[index]
+                        .GetComponent<CanvasGroup>();
+                    if (avatarGroups[index] == null)
+                        avatarGroups[index] = avatarVisuals[index]
+                            .gameObject.AddComponent<CanvasGroup>();
+                }
+            }
 
             Button collect = CreateButton(
                 "CollectBtn", root,
@@ -1290,17 +1963,152 @@ namespace Meowdoku.Editor
                 "Text", collect.transform, font, 64,
                 "Collect", Color.white);
             Stretch(collectText.rectTransform, new Vector2(50f, 35f));
+            CanvasGroup collectGroup =
+                collect.gameObject.AddComponent<CanvasGroup>();
+
+            BuildRankGiftEffects(
+                root,
+                out RectTransform[] burstRoots,
+                out Image[] burstGlows,
+                out Image[] burstStars);
 
             SerializedObject data = new(view);
+            SetRef(data, "backdrop", backdrop);
             SetRef(data, "winText", win);
+            SetRef(data, "winGroup", winGroup);
             SetRef(data, "chestRoot", chestRoot.gameObject);
             SetRef(data, "chestImage", chest);
+            SetRef(data, "chestGroup", chestGroup);
+            SetRef(data, "chestVisual", animatedBox);
+            SetRef(data, "chestGlow", glow);
             SetSpriteArray(data, "chestTiers", ChestSprites());
+            SetRef(data, "podiumVisual", podium);
+            SetRef(data, "podiumGroup", podiumGroup);
+            SetComponentArray(data, "podiumSeats", seats);
+            SetComponentArray(data, "podiumSeatGroups", seatGroups);
             SetComponentArray(data, "podiumAvatars", avatars);
+            SetComponentArray(data, "podiumAvatarVisuals", avatarVisuals);
+            SetComponentArray(data, "podiumAvatarGroups", avatarGroups);
             SetRef(data, "collectButton", collect);
             SetRef(data, "collectText", collectText);
+            SetRef(data, "collectGroup", collectGroup);
+            SetComponentArray(data, "burstRoots", burstRoots);
+            SetComponentArray(data, "burstGlows", burstGlows);
+            SetComponentArray(data, "burstStars", burstStars);
             SetRef(data, "localization", localization);
             data.ApplyModifiedPropertiesWithoutUndo();
+            return view;
+        }
+
+        private static void BuildRankGiftEffects(
+            RectTransform parent,
+            out RectTransform[] roots,
+            out Image[] glows,
+            out Image[] stars)
+        {
+            RectTransform effects = CreateRect("Effects", parent);
+            Stretch(effects);
+            effects.SetAsLastSibling();
+            Vector2[] positions =
+            {
+                new(0f, 300f),
+                new(300f, 318f),
+                new(-276f, 274f),
+                new(164f, -169f)
+            };
+            roots = new RectTransform[positions.Length];
+            glows = new Image[positions.Length];
+            stars = new Image[positions.Length * 8];
+            Sprite glowSprite = LoadSprite(
+                EffectsRoot + "glow/et_glow_002.png");
+            Sprite starSprite = LoadSprite(
+                EffectsRoot + "star/et_star_1.png");
+            for (int group = 0; group < positions.Length; group++)
+            {
+                RectTransform burst = CreateRect(
+                    $"Firework_{group + 1}",
+                    effects);
+                SetCentered(burst, positions[group], new Vector2(40f, 40f));
+                roots[group] = burst;
+                Image glow = CreateImage("Glow", burst, glowSprite);
+                SetCentered(glow.rectTransform, Vector2.zero,
+                    new Vector2(300f, 300f));
+                glow.preserveAspect = true;
+                glows[group] = glow;
+                for (int index = 0; index < 8; index++)
+                {
+                    Image star = CreateImage(
+                        $"Star_{index + 1}",
+                        burst,
+                        starSprite);
+                    SetCentered(star.rectTransform, Vector2.zero,
+                        new Vector2(42f, 42f));
+                    star.preserveAspect = true;
+                    stars[group * 8 + index] = star;
+                }
+            }
+        }
+
+        private static FrameAwardFlightView BuildFrameFlight(
+            RectTransform parent)
+        {
+            RectTransform root = CreateRect("Flight", parent);
+            Stretch(root);
+            root.SetAsLastSibling();
+            FrameAwardFlightView view =
+                root.gameObject.AddComponent<FrameAwardFlightView>();
+
+            Sprite trailSprite = LoadSprite(
+                EffectsRoot + "trail/et_trail_001.png");
+            Sprite pointSprite = LoadSprite(
+                EffectsRoot + "glow/et_glow_005.png");
+            Sprite glowSprite = LoadSprite(
+                EffectsRoot + "glow/et_glow_002.png");
+            Sprite starSprite = LoadSprite(
+                EffectsRoot + "star/et_star_1.png");
+            Image[] trail = new Image[16];
+            for (int index = trail.Length - 1; index >= 0; index--)
+            {
+                Image segment = CreateImage(
+                    $"Trail_{index + 1}",
+                    root,
+                    trailSprite);
+                SetCentered(segment.rectTransform, Vector2.zero,
+                    new Vector2(3f, 30f));
+                segment.type = Image.Type.Sliced;
+                segment.color = new Color(1f, 0.86f, 0.25f, 0f);
+                trail[index] = segment;
+            }
+            Image point = CreateImage("Point", root, pointSprite);
+            SetCentered(point.rectTransform, Vector2.zero,
+                new Vector2(82f, 82f));
+            point.preserveAspect = true;
+            point.color = new Color(1f, 0.933f, 0.6f, 1f);
+
+            Image burstGlow = CreateImage("BurstGlow", root, glowSprite);
+            SetCentered(burstGlow.rectTransform, Vector2.zero,
+                new Vector2(300f, 300f));
+            burstGlow.preserveAspect = true;
+            var burstStars = new Image[12];
+            for (int index = 0; index < burstStars.Length; index++)
+            {
+                Image star = CreateImage(
+                    $"BurstStar_{index + 1}",
+                    root,
+                    starSprite);
+                SetCentered(star.rectTransform, Vector2.zero,
+                    new Vector2(42f, 42f));
+                star.preserveAspect = true;
+                burstStars[index] = star;
+            }
+
+            SerializedObject data = new(view);
+            SetRef(data, "point", point);
+            SetComponentArray(data, "trailSegments", trail);
+            SetRef(data, "burstGlow", burstGlow);
+            SetComponentArray(data, "burstStars", burstStars);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            root.gameObject.SetActive(false);
             return view;
         }
 

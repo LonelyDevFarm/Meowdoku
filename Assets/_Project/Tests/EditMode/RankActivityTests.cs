@@ -172,6 +172,8 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(uid, Is.GreaterThan(0));
             Assert.That(request, Is.Not.Null);
             Assert.That(request.DisplayType, Is.EqualTo(AwardDisplayType.RankGift));
+            Assert.That(request.DisplayParameters["group"],
+                Is.EqualTo(1));
             Assert.That(fixture.Awards.CompleteAward(uid), Is.True);
 
             Assert.That(fixture.Profile.GetFrameCount(
@@ -206,6 +208,46 @@ namespace Meowdoku.Tests.EditMode
             fixture.Manager.NotifySettlementDone();
             Assert.That(fixture.Manager.State,
                 Is.EqualTo(RankActivityState.NotOpened));
+        }
+
+        [Test]
+        public void NoRewardPeriod_ReopensOnlyOnTenthWinAfterClose()
+        {
+            Fixture fixture = CreateFixture(group: 3);
+            Assert.That(fixture.Manager.MaybeOpen(true), Is.True);
+            fixture.Manager.ConfirmParticipation();
+            fixture.Manager.NotifyLevelStart();
+            fixture.Manager.SetLevelCollect(0);
+            fixture.Time.UnixNow +=
+                RankActivityConfig.PeriodDurationSeconds + 1;
+            fixture.Manager.Tick();
+            fixture.Manager.NotifyLevelWin();
+            fixture.Manager.NotifySettlementDone();
+
+            Assert.That(fixture.Manager.State,
+                Is.EqualTo(RankActivityState.NotOpened));
+            Assert.That(fixture.Manager.PeriodCount, Is.EqualTo(1));
+            Assert.That(fixture.RankStore.Current.PreviousAwarded, Is.False);
+
+            for (int win = 1; win < RankActivityConfig.ReopenWins; win++)
+            {
+                fixture.Manager.NotifyLevelStart();
+                fixture.Manager.NotifyLevelWin();
+                Assert.That(fixture.Manager.State,
+                    Is.EqualTo(RankActivityState.NotOpened),
+                    "Rank reopened before win " +
+                    RankActivityConfig.ReopenWins + ".");
+                Assert.That(fixture.RankStore.Current.WinsSinceClose,
+                    Is.EqualTo(win));
+            }
+
+            fixture.Manager.NotifyLevelStart();
+            fixture.Manager.NotifyLevelWin();
+
+            Assert.That(fixture.Manager.State,
+                Is.EqualTo(RankActivityState.OpenNotJoined));
+            Assert.That(fixture.Manager.PeriodCount, Is.EqualTo(2));
+            Assert.That(fixture.RankStore.Current.WinsSinceClose, Is.Zero);
         }
 
         [Test]

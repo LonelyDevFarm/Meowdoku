@@ -610,6 +610,57 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(service.WasDdaToolOrReviveUsed, Is.False);
         }
 
+        [Test]
+        public void PlatformProgress_MatchesSourceCountersCooldownAndAttGuide()
+        {
+            var store = new CountingStore();
+            var data = new GameStateData
+            {
+                TodayDate = "2026-08-11",
+                RecentWinCountsByDay = new Dictionary<string, object>
+                {
+                    { "2026-08-09", 7 },
+                    { "2026-08-10", 6 },
+                    { "2026-08-11", 8 }
+                }
+            };
+            var service = new GameStateService(
+                data,
+                store,
+                dateProvider: new DateProvider("2026-08-11"));
+
+            Assert.That(service.IsPushGuideCooldownElapsed(), Is.True);
+            Assert.That(service.GetRecentThreeDayWinCount(), Is.EqualTo(21));
+
+            service.IncrementPushAskCount();
+            service.MarkPushGuideTriggered();
+            service.MarkPushGuidePopupShown();
+            service.MarkAttGuideShown();
+            service.MarkAttGuideShown();
+
+            Assert.That(service.PushAskCount, Is.EqualTo(1));
+            Assert.That(service.PushGuideLastDate, Is.EqualTo("2026-08-11"));
+            Assert.That(service.PushGuideShownCount, Is.EqualTo(1));
+            Assert.That(service.PushGuidePopupCount, Is.EqualTo(1));
+            Assert.That(service.HasShownAttGuide, Is.True);
+            Assert.That(service.IsPushGuideCooldownElapsed(), Is.False);
+            Assert.That(store.SaveCount, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void PushGuideCooldown_UsesSourceFiveCalendarDayBoundary()
+        {
+            var data = new GameStateData
+            {
+                PushGuideLastDate = "2026-08-06"
+            };
+            var service = new GameStateService(
+                data,
+                dateProvider: new DateProvider("2026-08-11"));
+
+            Assert.That(service.IsPushGuideCooldownElapsed(), Is.True);
+        }
+
         private sealed class CountingStore : IGameStatePlayerStore
         {
             public int SaveCount { get; private set; }

@@ -167,9 +167,15 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(File.ReadAllText(paths.Flag), Is.EqualTo("A"));
             Assert.That(File.Exists(paths.Legacy), Is.True);
             Assert.That(store.LoadConfig()["level"], Is.EqualTo(90L));
+
+            byte[] firstSlotAfterMigration = File.ReadAllBytes(paths.A);
             Assert.That(
                 store.MigrateLegacyIfNeeded(),
                 Is.EqualTo(LegacySaveMigrationResult.NotNeeded));
+            Assert.That(
+                File.ReadAllBytes(paths.A),
+                Is.EqualTo(firstSlotAfterMigration),
+                "A second migration check must not rewrite the committed slot.");
         }
 
         [Test]
@@ -213,6 +219,29 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(store.LoadConfig(), Is.Null);
         }
 
+        [Test]
+        public void DualSlot_VerifyFailurePreservesCommittedSlotsAndFlag()
+        {
+            Paths paths = CreatePaths();
+            SaveStore store = CreateDualStore(paths, "test-password");
+            Assert.That(store.SaveConfig(Document(110)), Is.True);
+            Assert.That(store.SaveConfig(Document(111)), Is.True);
+            byte[] committedSlotA = File.ReadAllBytes(paths.A);
+
+            SaveStore failingStore = CreateDualStore(
+                paths,
+                "test-password",
+                temporaryPath => File.WriteAllText(
+                    temporaryPath,
+                    "corrupt-before-verify"));
+
+            Assert.That(failingStore.SaveConfig(Document(112)), Is.False);
+            Assert.That(File.ReadAllText(paths.Flag), Is.EqualTo("B"));
+            Assert.That(File.ReadAllBytes(paths.A), Is.EqualTo(committedSlotA));
+            Assert.That(File.Exists(paths.A + ".tmp"), Is.False);
+            Assert.That(failingStore.LoadConfig()["level"], Is.EqualTo(111L));
+        }
+
         private static Dictionary<string, object> Document(int level)
         {
             return new Dictionary<string, object>
@@ -233,8 +262,24 @@ namespace Meowdoku.Tests.EditMode
             };
         }
 
-        private SaveStore CreateDualStore(Paths paths, string password)
+        private SaveStore CreateDualStore(
+            Paths paths,
+            string password,
+            Action<string> beforeVerify = null)
         {
+            if (beforeVerify != null)
+            {
+                return new SaveStore(
+                    password,
+                    _directory,
+                    true,
+                    paths.A,
+                    paths.B,
+                    paths.Flag,
+                    paths.Legacy,
+                    beforeVerify);
+            }
+
             return new SaveStore(
                 password,
                 _directory,

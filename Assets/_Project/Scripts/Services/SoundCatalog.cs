@@ -26,6 +26,17 @@ namespace Meowdoku.Services
         [SerializeField] private List<PathSoundClipEntry> pathClips = new List<PathSoundClipEntry>();
 
         public IReadOnlyList<SoundClipEntry> FixedClips => fixedClips;
+        public IReadOnlyList<PathSoundClipEntry> PathClips => pathClips;
+
+        internal void ReplaceEntries(
+            IEnumerable<SoundClipEntry> fixedEntries,
+            IEnumerable<PathSoundClipEntry> dynamicEntries)
+        {
+            fixedClips.Clear();
+            pathClips.Clear();
+            if (fixedEntries != null) fixedClips.AddRange(fixedEntries);
+            if (dynamicEntries != null) pathClips.AddRange(dynamicEntries);
+        }
 
         public bool TryGetPathClip(string sourcePath, out AudioClip clip)
         {

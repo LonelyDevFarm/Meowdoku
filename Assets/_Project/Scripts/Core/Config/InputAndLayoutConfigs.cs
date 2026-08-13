@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Meowdoku.Core.Config
 {
@@ -82,6 +83,28 @@ namespace Meowdoku.Core.Config
         public bool NeedsConflict() => Value == ValueByConflict;
     }
 
+    public sealed class InputConfigSet
+    {
+        private readonly IAbConfig[] _all;
+
+        public InputConfigSet()
+        {
+            _all = new IAbConfig[]
+            {
+                SwipeProtect,
+                DoubleTapProtect,
+                TutorialDiagonal,
+                GuideFeedback
+            };
+        }
+
+        public SwipeProtectConfig SwipeProtect { get; } = new();
+        public DoubleTapProtectConfig DoubleTapProtect { get; } = new();
+        public TutorialDiagonalConfig TutorialDiagonal { get; } = new();
+        public GuideFeedbackConfig GuideFeedback { get; } = new();
+        public IReadOnlyList<IAbConfig> All => _all;
+    }
+
     public sealed class TutorialDiagonalConfig : AbConfigBase<int>
     {
         public const int ValueAdjacent = 0;
@@ -139,6 +162,24 @@ namespace Meowdoku.Core.Config
         public bool IsTempBalanced() => Value == ValueTempBalanced;
     }
 
+    public sealed class BoardConfigSet
+    {
+        private readonly IAbConfig[] _all;
+
+        public BoardConfigSet()
+        {
+            // Keep the three board-owned experiments in the same shared
+            // runtime catalog. In the source, BoardView reads all three from
+            // ABTestManager instead of constructing page-local defaults.
+            _all = new IAbConfig[] { RegionColor, BoardSizeBig, GameGridUi };
+        }
+
+        public RegionColorConfig RegionColor { get; } = new();
+        public BoardSizeBigConfig BoardSizeBig { get; } = new();
+        public GameGridUiConfig GameGridUi { get; } = new();
+        public IReadOnlyList<IAbConfig> All => _all;
+    }
+
     public sealed class GameGridUiConfig : AbConfigBase<int>
     {
         public const int ValueNormal = 0;
@@ -191,6 +232,119 @@ namespace Meowdoku.Core.Config
             : base("size_cycle", ValueControl, AbConfigTiming.GameStartNormal) { }
 
         public bool IsCycleEnabled() => Value != ValueControl;
+
+        private static readonly int[] Control1To10 =
+            { 4, 4, 6, 6, 8, 6, 6, 8, 8, 7 };
+        private static readonly int[] Control11To20 =
+            { 6, 6, 8, 8, 10, 8, 9, 10, 9, 8 };
+        private static readonly int[] Control21To50 =
+            { 8, 9, 10, 9, 10, 8, 9, 10, 9, 10 };
+        private static readonly int[] Control51Plus =
+            { 8, 10, 10, 9, 10, 10, 9, 10, 10, 10 };
+
+        private static readonly int[] CycleB11To20 =
+            { 6, 6, 8, 8, 9, 8, 9, 8, 9, 8 };
+        private static readonly int[] CycleB21To50 =
+            { 8, 9, 9, 8, 9, 9, 8, 9, 9, 10 };
+        private static readonly int[] CycleD1To10 =
+            { 4, 5, 6, 6, 8, 6, 7, 8, 9, 7 };
+        private static readonly int[] CycleE21To50 =
+            { 8, 10, 10, 9, 10, 10, 9, 10, 10, 10 };
+        private static readonly int[] CycleE51Plus =
+            { 8, 10, 11, 9, 10, 11, 9, 10, 11, 10 };
+
+        public int ResolveSize(int levelNumber)
+        {
+            if (levelNumber < 1) return 0;
+            switch (Value)
+            {
+                case ValueCycleV3A:
+                    if (levelNumber <= 10)
+                        return At(Control1To10, levelNumber - 1);
+                    if (levelNumber <= 20)
+                        return At(Control11To20, levelNumber - 11);
+                    return At(Control51Plus, levelNumber - 21);
+                case ValueCycleV3B:
+                    if (levelNumber <= 10)
+                        return At(Control1To10, levelNumber - 1);
+                    if (levelNumber <= 20)
+                        return At(CycleB11To20, levelNumber - 11);
+                    if (levelNumber <= 50)
+                        return At(CycleB21To50, levelNumber - 21);
+                    return At(Control51Plus, levelNumber - 51);
+                case ValueCycleV3C:
+                    if (levelNumber <= 10)
+                        return At(Control1To10, levelNumber - 1);
+                    if (levelNumber <= 20)
+                        return At(CycleB11To20, levelNumber - 11);
+                    if (levelNumber <= 100)
+                        return At(CycleB21To50, levelNumber - 21);
+                    return At(Control51Plus, levelNumber - 101);
+                case ValueCycleV3D:
+                    if (levelNumber <= 10)
+                        return At(CycleD1To10, levelNumber - 1);
+                    return At(Control51Plus, levelNumber - 11);
+                case ValueCycleV3E:
+                    if (levelNumber <= 10)
+                        return At(Control1To10, levelNumber - 1);
+                    if (levelNumber <= 20)
+                        return At(Control11To20, levelNumber - 11);
+                    if (levelNumber <= 50)
+                        return At(CycleE21To50, levelNumber - 21);
+                    return At(CycleE51Plus, levelNumber - 51);
+                case ValueCycleV3F:
+                    if (levelNumber <= 10)
+                        return At(CycleD1To10, levelNumber - 1);
+                    if (levelNumber <= 50)
+                        return At(CycleE21To50, levelNumber - 11);
+                    return At(CycleE51Plus, levelNumber - 51);
+                default:
+                    if (levelNumber <= 10)
+                        return At(Control1To10, levelNumber - 1);
+                    if (levelNumber <= 20)
+                        return At(Control11To20, levelNumber - 11);
+                    if (levelNumber <= 50)
+                        return At(Control21To50, levelNumber - 21);
+                    return At(Control51Plus, levelNumber - 51);
+            }
+        }
+
+        private static int At(int[] values, int index) =>
+            values[index % values.Length];
+    }
+
+    public sealed class NormalLevel10Config : AbConfigBase<int>
+    {
+        public const int ValueSp44 = 0;
+        public const int ValueSp57 = 1;
+
+        public NormalLevel10Config()
+            : base("normal_level_10", ValueSp44,
+                AbConfigTiming.GameStartNormal) { }
+
+        public bool IsSp57AtLevel10() => Value == ValueSp57;
+    }
+
+    public sealed class LevelSelectionConfigSet
+    {
+        private readonly IAbConfig[] _all;
+
+        public LevelSelectionConfigSet()
+        {
+            _all = new IAbConfig[]
+            {
+                SizeCycle,
+                SingleRegion,
+                NormalLevel10,
+                PreCat
+            };
+        }
+
+        public SizeCycleConfig SizeCycle { get; } = new();
+        public SingleRegionNumConfig SingleRegion { get; } = new();
+        public NormalLevel10Config NormalLevel10 { get; } = new();
+        public PreCatConfig PreCat { get; } = new();
+        public IReadOnlyList<IAbConfig> All => _all;
     }
 
     public sealed class SingleRegionNumConfig : AbConfigBase<int>
@@ -324,13 +478,64 @@ namespace Meowdoku.Core.Config
 
     public sealed class RuleHighlightConfig : AbConfigBase<int>
     {
-        public const int ValueOff = 0;
-        public const int ValueOn = 1;
+        public const int ValueControl = 0;
+        public const int ValueHighlightViolated = 1;
+        public const int ValueHighlightAllLevels = 2;
+
+        // Compatibility aliases for the initial Unity port.
+        public const int ValueOff = ValueControl;
+        public const int ValueOn = ValueHighlightViolated;
 
         public RuleHighlightConfig()
-            : base("rule_highlight", ValueOff, AbConfigTiming.GameStart) { }
+            : base("rule_highlight", ValueControl, AbConfigTiming.GameStart) { }
 
-        public bool IsEnabled() => Value == ValueOn;
+        public bool IsEnabled() => IsHighlightViolated();
+        public bool IsHighlightViolated() => Value != ValueControl;
+        public bool IsAllLevels() => Value == ValueHighlightAllLevels;
+
+        public bool ShouldHighlight(bool tutorialDone, int currentLevel)
+        {
+            if (!IsHighlightViolated()) return false;
+            return IsAllLevels() || (tutorialDone && currentLevel <= 5);
+        }
+    }
+
+    /// <summary>
+    /// Shared game-owned experiments registered by ABTestManager in the source.
+    /// Consumers must use these instances so timing reloads reach live gameplay.
+    /// </summary>
+    public sealed class GameplayConfigSet
+    {
+        private readonly IAbConfig[] _all;
+
+        public GameplayConfigSet()
+        {
+            _all = new IAbConfig[]
+            {
+                DailyFirstLevelDifficulty,
+                DdaRank,
+                RewardUnlockLevel,
+                PropHighlight,
+                MarkSound,
+                RuleHighlight,
+                VibrateCombo,
+                ComboVoice,
+                MeowFeedback,
+                ThumbUp
+            };
+        }
+
+        public DailyFirstLevelDifficultyConfig DailyFirstLevelDifficulty { get; } = new();
+        public DdaRankConfig DdaRank { get; } = new();
+        public RewardUnlockLevelConfig RewardUnlockLevel { get; } = new();
+        public PropHighlightConfig PropHighlight { get; } = new();
+        public MarkSoundConfig MarkSound { get; } = new();
+        public RuleHighlightConfig RuleHighlight { get; } = new();
+        public VibrateComboConfig VibrateCombo { get; } = new();
+        public ComboVoiceConfig ComboVoice { get; } = new();
+        public MeowFeedbackConfig MeowFeedback { get; } = new();
+        public ThumbUpConfig ThumbUp { get; } = new();
+        public IReadOnlyList<IAbConfig> All => _all;
     }
 
     public sealed class RuleTextConfig : AbConfigBase<int>

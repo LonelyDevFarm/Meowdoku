@@ -1589,7 +1589,7 @@ RectTransform:
   m_GameObject: {fileID: 3684687295692052846}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3663518665102226804}
@@ -1671,7 +1671,7 @@ MonoBehaviour:
   playOpenSound: 0
   rootCanvas: {fileID: 8408214487994648725}
   rootCanvasGroup: {fileID: 8508775035012645407}
-  closeButton: {fileID: 0}
+  frameCloseButton: {fileID: 0}
   content: {fileID: 6743215738744693964}
   contentGroup: {fileID: 4058276865191434599}
   defaultVisuals: {fileID: 130944634901928217}

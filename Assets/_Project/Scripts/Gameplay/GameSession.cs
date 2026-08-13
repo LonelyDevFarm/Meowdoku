@@ -183,6 +183,10 @@ namespace Meowdoku.Gameplay
                 return Rejected();
 
             CellStateType before = Board.GetCellState(row, column);
+            CellStateType historyBefore = ConsumePriorTapBefore(
+                row,
+                column,
+                before);
             bool correct = Board.IsSolutionCell(row, column);
             // Source BoardView.play_error_feedback keeps a wrong double-tap in
             // ERROR. It is intentionally folded to MARK only for hint solving.
@@ -193,7 +197,7 @@ namespace Meowdoku.Gameplay
             _currentStep.Add(new StepHistory.CellChange
             {
                 Position = new Vector2Int(row, column),
-                Before = before,
+                Before = historyBefore,
                 After = after
             });
 
@@ -265,6 +269,23 @@ namespace Meowdoku.Gameplay
             result.LivesAfter = Lives;
             result.IsComplete = State == GameSessionState.Won;
             return result;
+        }
+
+        private CellStateType ConsumePriorTapBefore(
+            int row,
+            int column,
+            CellStateType fallback)
+        {
+            StepHistory.StepRecord previous = History.PeekLast();
+            if (previous == null || previous.Cells.Count != 1)
+                return fallback;
+
+            StepHistory.CellChange entry = previous.Cells[0];
+            if (entry.Position != new Vector2Int(row, column))
+                return fallback;
+
+            History.PopLast();
+            return entry.Before;
         }
 
         public void CommitCurrentStep(bool isCatPlacement = false, bool isWrongGuess = false)

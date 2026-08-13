@@ -160,6 +160,34 @@ namespace Meowdoku.Editor
             EditorSceneManager.SaveScene(scene);
         }
 
+        internal static bool ConfigureLifeEffects(Transform scope)
+        {
+            if (scope == null) return false;
+            GameplayLifeHudPresenter presenter =
+                scope.GetComponentInChildren<GameplayLifeHudPresenter>(true);
+            if (presenter == null) return false;
+
+            Sprite[] fishFrames = LoadAllSprites(
+                "Assets/_Project/Sprites/Effects/obj/et_fish_full_001.png");
+            Sprite fishGlow = LoadFirstSprite(
+                "Assets/_Project/Sprites/Effects/glow/et_glow_fish.png");
+            Sprite reviveGlow = LoadFirstSprite(
+                "Assets/_Project/Sprites/Effects/ui/et_broken_fish_glow.png");
+            if (fishFrames.Length == 0 || fishGlow == null || reviveGlow == null)
+                return false;
+
+            SerializedObject data = new(presenter);
+            SerializedProperty slots = data.FindProperty("slots");
+            if (slots == null || slots.arraySize == 0) return false;
+            for (int index = 0; index < slots.arraySize; index++)
+            {
+                GameplayLifeSlotView slot = slots.GetArrayElementAtIndex(index)
+                    .objectReferenceValue as GameplayLifeSlotView;
+                EnsureLifeEffects(slot, fishFrames, fishGlow, reviveGlow);
+            }
+            return true;
+        }
+
         private static void EnsureSceneTree(
             Scene scene,
             Canvas canvas,
@@ -394,16 +422,32 @@ namespace Meowdoku.Editor
                 ? existing
                 : root.gameObject.AddComponent<GameplayLifeHudPresenter>();
 
+            Sprite full = LoadSprite("Assets/_Project/Sprites/game/fish_full.png");
+            Sprite dim = LoadSprite("Assets/_Project/Sprites/game/fish_dim.png");
+            Sprite[] fishFrames = LoadAllSprites(
+                "Assets/_Project/Sprites/Effects/obj/et_fish_full_001.png");
+            Sprite fishGlow = LoadFirstSprite(
+                "Assets/_Project/Sprites/Effects/glow/et_glow_fish.png");
+            Sprite reviveGlow = LoadFirstSprite(
+                "Assets/_Project/Sprites/Effects/ui/et_broken_fish_glow.png");
+
             if (existing != null)
             {
                 SerializedObject existingData = new SerializedObject(existing);
                 existingData.FindProperty("gameplayManager").objectReferenceValue = manager;
+                SerializedProperty existingSlots = existingData.FindProperty("slots");
+                for (int index = 0; index < existingSlots.arraySize; index++)
+                {
+                    GameplayLifeSlotView slotView = existingSlots
+                        .GetArrayElementAtIndex(index).objectReferenceValue as
+                        GameplayLifeSlotView;
+                    EnsureLifeEffects(
+                        slotView, fishFrames, fishGlow, reviveGlow);
+                }
                 existingData.ApplyModifiedPropertiesWithoutUndo();
                 return existing;
             }
 
-            Sprite full = LoadSprite("Assets/_Project/Sprites/game/fish_full.png");
-            Sprite dim = LoadSprite("Assets/_Project/Sprites/game/fish_dim.png");
             var slots = new GameplayLifeSlotView[3];
             float[] centers = { -68f, 0f, 69f };
             for (int index = 0; index < slots.Length; index++)
@@ -421,6 +465,7 @@ namespace Meowdoku.Editor
                 slotData.FindProperty("dimImage").objectReferenceValue = dimImage;
                 slotData.FindProperty("fullImage").objectReferenceValue = fullImage;
                 slotData.ApplyModifiedPropertiesWithoutUndo();
+                EnsureLifeEffects(view, fishFrames, fishGlow, reviveGlow);
                 view.ShowAlive();
                 slots[index] = view;
             }
@@ -430,6 +475,54 @@ namespace Meowdoku.Editor
             SetObjectArray(data.FindProperty("slots"), slots);
             data.ApplyModifiedPropertiesWithoutUndo();
             return presenter;
+        }
+
+        private static void EnsureLifeEffects(
+            GameplayLifeSlotView view,
+            Sprite[] fishFrames,
+            Sprite fishGlowSprite,
+            Sprite reviveGlowSprite)
+        {
+            if (view == null) return;
+            RectTransform effects = EnsureRect("Effects", view.transform);
+            Stretch(effects);
+            effects.SetAsLastSibling();
+
+            Image reviveGlow = EnsureImage("ReviveGlow", effects);
+            SetCenteredRect(
+                reviveGlow.rectTransform, Vector2.zero, new Vector2(84f, 84f));
+            reviveGlow.sprite = reviveGlowSprite;
+            reviveGlow.color = Color.white;
+            reviveGlow.gameObject.SetActive(false);
+
+            var fishParticles = new Image[6];
+            var glowParticles = new Image[6];
+            for (int index = 0; index < 6; index++)
+            {
+                Image fish = EnsureImage($"FishParticle{index + 1}", effects);
+                SetCenteredRect(
+                    fish.rectTransform, Vector2.zero, new Vector2(26f, 26f));
+                fish.sprite = fishFrames != null && fishFrames.Length > 0
+                    ? fishFrames[index % fishFrames.Length]
+                    : null;
+                fish.color = Color.white;
+                fish.gameObject.SetActive(false);
+                fishParticles[index] = fish;
+
+                Image glow = EnsureImage($"GlowParticle{index + 1}", effects);
+                SetCenteredRect(
+                    glow.rectTransform, Vector2.zero, new Vector2(18f, 18f));
+                glow.sprite = fishGlowSprite;
+                glow.color = Color.white;
+                glow.gameObject.SetActive(false);
+                glowParticles[index] = glow;
+            }
+
+            SerializedObject data = new(view);
+            data.FindProperty("reviveGlow").objectReferenceValue = reviveGlow;
+            SetObjectArray(data.FindProperty("fishParticles"), fishParticles);
+            SetObjectArray(data.FindProperty("glowParticles"), glowParticles);
+            data.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void ConfigureLifeImage(Image image, Sprite sprite)
@@ -842,6 +935,25 @@ namespace Meowdoku.Editor
             for (int index = 0; index < count; index++)
                 sprites[index] = LoadSprite($"{prefix}{first + index:00}.png");
             return sprites;
+        }
+
+        private static Sprite[] LoadAllSprites(string path)
+        {
+            Object[] assets = AssetDatabase.LoadAllAssetsAtPath(path);
+            var sprites = new List<Sprite>();
+            for (int index = 0; index < assets.Length; index++)
+            {
+                if (assets[index] is Sprite sprite) sprites.Add(sprite);
+            }
+            sprites.Sort((left, right) =>
+                string.CompareOrdinal(left.name, right.name));
+            return sprites.ToArray();
+        }
+
+        private static Sprite LoadFirstSprite(string path)
+        {
+            Sprite[] sprites = LoadAllSprites(path);
+            return sprites.Length > 0 ? sprites[0] : null;
         }
 
         private static void SetObjectArray<T>(SerializedProperty property, IReadOnlyList<T> values)

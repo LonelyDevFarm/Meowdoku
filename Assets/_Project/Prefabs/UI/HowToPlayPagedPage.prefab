@@ -244,7 +244,7 @@ RectTransform:
   m_GameObject: {fileID: 1463063412304954170}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5915814837503223626}
@@ -326,7 +326,7 @@ MonoBehaviour:
   playOpenSound: 1
   rootCanvas: {fileID: 2431073411467032701}
   rootCanvasGroup: {fileID: 2411108698715733036}
-  closeButton: {fileID: 6567370743608678119}
+  frameCloseButton: {fileID: 0}
   popupAnimator: {fileID: 5745045678381519818}
   boards:
   - {fileID: 32406750265612254}
@@ -356,6 +356,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.GenericPopupAnimator
   content: {fileID: 7456583010505667134}
   contentGroup: {fileID: 4509851722068650751}
+  overlayGroup: {fileID: 0}
 --- !u!1 &1911625380769925328
 GameObject:
   m_ObjectHideFlags: 0
@@ -1215,7 +1216,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1578052085977212394}
   - component: {fileID: 8588509105784987627}
-  - component: {fileID: 555283844838811038}
+  - component: {fileID: 7314668251503522390}
   m_Layer: 0
   m_Name: BackIcon
   m_TagString: Untagged
@@ -1250,7 +1251,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5637262906625437930}
   m_CullTransparentMesh: 1
---- !u!114 &555283844838811038
+--- !u!114 &7314668251503522390
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1259,9 +1260,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 5637262906625437930}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: af6098ddca320ed4cad647fad410624e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_EditorClassIdentifier: Meowdoku.Core::Meowdoku.Core.UI.SourceBackChevronGraphic
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -1270,16 +1271,6 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &5660985234581223835
 GameObject:
   m_ObjectHideFlags: 0

@@ -19,6 +19,11 @@ namespace Meowdoku.Core.Config
         private readonly SettingsConfigSet _settingsConfigs = new();
         private readonly HomeConfigSet _homeConfigs = new();
         private readonly PlatformConfigSet _platformConfigs = new();
+        private readonly LevelSelectionConfigSet _levelSelectionConfigs = new();
+        private readonly BoardConfigSet _boardConfigs = new();
+        private readonly InputConfigSet _inputConfigs = new();
+        private readonly GameplayConfigSet _gameplayConfigs = new();
+        private readonly ResultConfigSet _resultConfigs = new();
         private AbConfigService _service;
         private GameStateService _gameState;
 
@@ -27,6 +32,12 @@ namespace Meowdoku.Core.Config
         public SettingsConfigSet Settings => _settingsConfigs;
         public HomeConfigSet Home => _homeConfigs;
         public PlatformConfigSet Platform => _platformConfigs;
+        public LevelSelectionConfigSet LevelSelection =>
+            _levelSelectionConfigs;
+        public BoardConfigSet Board => _boardConfigs;
+        public InputConfigSet Input => _inputConfigs;
+        public GameplayConfigSet Gameplay => _gameplayConfigs;
+        public ResultConfigSet Result => _resultConfigs;
         public IAbValueProvider ValueProvider
         {
             get
@@ -49,6 +60,7 @@ namespace Meowdoku.Core.Config
         public void Initialize(GameStateService gameState)
         {
             _gameState = gameState ?? GameStateRuntime.Current;
+            _gameState.BindDdaRankConfig(_gameplayConfigs.DdaRank);
             if (_service != null) return;
             IAbRuntimeProvider provider =
                 providerAdapter as IAbRuntimeProvider ??
@@ -148,11 +160,21 @@ namespace Meowdoku.Core.Config
                 _adConfigs.All.Count +
                 _settingsConfigs.All.Count +
                 _homeConfigs.All.Count +
-                _platformConfigs.All.Count);
+                _platformConfigs.All.Count +
+                _levelSelectionConfigs.All.Count +
+                _boardConfigs.All.Count +
+                _inputConfigs.All.Count +
+                _gameplayConfigs.All.Count +
+                _resultConfigs.All.Count);
             configs.AddRange(_adConfigs.All);
             configs.AddRange(_settingsConfigs.All);
             configs.AddRange(_homeConfigs.All);
             configs.AddRange(_platformConfigs.All);
+            configs.AddRange(_levelSelectionConfigs.All);
+            configs.AddRange(_boardConfigs.All);
+            configs.AddRange(_inputConfigs.All);
+            configs.AddRange(_gameplayConfigs.All);
+            configs.AddRange(_resultConfigs.All);
             return configs;
         }
     }

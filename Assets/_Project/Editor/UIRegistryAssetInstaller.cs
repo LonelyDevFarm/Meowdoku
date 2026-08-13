@@ -21,6 +21,9 @@ namespace Meowdoku.Editor
             new(UiName.Tutorial, "Assets/_Project/Prefabs/UI/TutorialPage.prefab"),
             new(UiName.Setting, "Assets/_Project/Prefabs/UI/SettingsPage.prefab"),
             new(UiName.Language, "Assets/_Project/Prefabs/UI/LanguagePage.prefab"),
+            new(UiName.Feedback, ProductServicePrefabInstaller.FeedbackPath),
+            new(UiName.RateUs, ProductServicePrefabInstaller.RateUsPath),
+            new(UiName.RateUsV2, ProductServicePrefabInstaller.RateUsV2Path),
             new(UiName.Privacy,
                 PlatformGuidePrefabInstaller.PrivacyPath),
             new(UiName.PreAttGuide,
@@ -29,6 +32,7 @@ namespace Meowdoku.Editor
                 PlatformGuidePrefabInstaller.PreAttV2Path),
             new(UiName.PrePushGuide,
                 PlatformGuidePrefabInstaller.PrePushPath),
+            new(UiName.Confirm, ConfirmDialogPrefabInstaller.PrefabPath),
             new(UiName.Bank, "Assets/_Project/Prefabs/UI/BankPage.prefab"),
             new(UiName.HowToPlay,
                 "Assets/_Project/Prefabs/UI/HowToPlayPage.prefab"),
@@ -102,10 +106,13 @@ namespace Meowdoku.Editor
             var resolved = new List<ResolvedRegistration>(Registrations.Length);
             foreach (Registration registration in Registrations)
             {
+                NormalizePrefabRootScale(registration.Path);
                 GameObject prefab =
                     AssetDatabase.LoadAssetAtPath<GameObject>(registration.Path);
                 UIFrameWindow window =
-                    prefab != null ? prefab.GetComponent<UIFrameWindow>() : null;
+                    prefab != null
+                        ? prefab.GetComponentInChildren<UIFrameWindow>(true)
+                        : null;
                 if (window != null)
                     resolved.Add(new ResolvedRegistration(
                         registration.Name,
@@ -138,6 +145,38 @@ namespace Meowdoku.Editor
             EditorUtility.SetDirty(registry);
             AssetDatabase.SaveAssets();
             return registry;
+        }
+
+        private static void NormalizePrefabRootScale(string path)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null || prefab.transform.localScale == Vector3.one)
+                return;
+
+            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                if (HasMissingScripts(contents))
+                    return;
+                contents.transform.localScale = Vector3.one;
+                PrefabUtility.SaveAsPrefabAsset(contents, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        private static bool HasMissingScripts(GameObject root)
+        {
+            Transform[] nodes = root.GetComponentsInChildren<Transform>(true);
+            foreach (Transform node in nodes)
+            {
+                if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(
+                        node.gameObject) > 0)
+                    return true;
+            }
+            return false;
         }
 
         private static bool EntriesMatch(

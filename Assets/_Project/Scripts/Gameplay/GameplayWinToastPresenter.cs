@@ -24,12 +24,35 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Sprite p10Icon;
         [SerializeField] private Sprite p20Icon;
 
-        private readonly WinToastConfig _config = new();
+        private WinToastConfig _config = new();
         private Coroutine _hideRoutine;
         private int _generation;
+#if UNITY_INCLUDE_TESTS
+        private int _tryShowCountForTests;
+#endif
+
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _config = runtime?.Result.WinToast ?? new WinToastConfig();
+        }
+
+#if UNITY_INCLUDE_TESTS
+        internal int ConfigValueForTests => _config.Value;
+        internal int TryShowCountForTests => _tryShowCountForTests;
+        internal bool IsVisibleForTests => gameObject.activeSelf;
+        internal string MessageForTests => messageText != null
+            ? messageText.text
+            : string.Empty;
+        internal Sprite TierIconForTests => tierIcon != null
+            ? tierIcon.sprite
+            : null;
+#endif
 
         public bool TryShow(MainGameTransitionData transition)
         {
+#if UNITY_INCLUDE_TESTS
+            _tryShowCountForTests++;
+#endif
             HideImmediate();
             if (transition == null || !_config.IsEnabled()) return false;
             int tier = WinToastTierContract.DetermineTier(
@@ -48,7 +71,8 @@ namespace Meowdoku.Gameplay
             if (messageText != null)
             {
                 messageText.supportRichText = true;
-                messageText.text = HighlightNumbers(message, highlight);
+                messageText.text = ConvertGodotBbCode(
+                    HighlightNumbers(message, highlight));
             }
             if (tierIcon != null)
             {
@@ -128,6 +152,17 @@ namespace Meowdoku.Gameplay
             return NumberPattern.Replace(
                 value,
                 match => $"<color={hex}>{match.Value}</color>");
+        }
+
+        internal static string ConvertGodotBbCode(string value)
+        {
+            return (value ?? string.Empty)
+                .Replace("[b]", "<b>")
+                .Replace("[/b]", "</b>")
+                .Replace("[i]", "<i>")
+                .Replace("[/i]", "</i>")
+                .Replace("[u]", "<u>")
+                .Replace("[/u]", "</u>");
         }
 
         private void OnDisable()

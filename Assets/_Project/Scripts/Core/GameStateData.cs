@@ -59,6 +59,9 @@ namespace Meowdoku.Core
         public int PushGuideShownCount { get; set; }
         public int PushGuidePopupCount { get; set; }
         public bool HasShownAttGuide { get; set; }
+        public bool HasShownRateUs { get; set; }
+        public long HelpLastOpenTime { get; set; }
+        public string InstallVersion { get; set; } = string.Empty;
         public string AppliedLocale { get; set; } = string.Empty;
         public bool MusicOn { get; set; } = true;
         public bool MusicUserModified { get; set; }
@@ -157,6 +160,9 @@ namespace Meowdoku.Core
                 { "push_guide_shown_count", PushGuideShownCount },
                 { "push_guide_popup_count", PushGuidePopupCount },
                 { "has_shown_att_guide", HasShownAttGuide },
+                { "has_shown_rate_us", HasShownRateUs },
+                { "help_last_open_time", HelpLastOpenTime },
+                { "install_version", InstallVersion },
                 { "apply_locale", AppliedLocale },
                 { "music_on", MusicOn },
                 { "music_user_modified", MusicUserModified },
@@ -327,6 +333,18 @@ namespace Meowdoku.Core
                     progress,
                     "has_shown_att_guide",
                     false);
+                data.HasShownRateUs = Bool(
+                    progress,
+                    "has_shown_rate_us",
+                    false);
+                data.HelpLastOpenTime = Long(
+                    progress,
+                    "help_last_open_time",
+                    0L);
+                data.InstallVersion = String(
+                    progress,
+                    "install_version",
+                    string.Empty);
                 data.AppliedLocale = String(progress, "apply_locale", string.Empty);
                 data.MusicOn = Bool(progress, "music_on", true);
                 data.MusicUserModified = Bool(progress, "music_user_modified", false);

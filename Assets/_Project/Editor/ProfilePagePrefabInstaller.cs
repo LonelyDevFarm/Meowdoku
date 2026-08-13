@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Meowdoku.Core.Localization;
 using Meowdoku.Core.UI;
 using Meowdoku.Gameplay;
@@ -50,9 +49,10 @@ namespace Meowdoku.Editor
                     EditorApplication.delayCall += QueueInstall;
                 return null;
             }
+            UpgradePagePrefab();
             if (LoadSprite(SpriteRoot + "avatars/head_0000.png") == null ||
                 AssetDatabase.LoadAssetAtPath<Font>(FontPath) == null)
-                return null;
+                return AssetDatabase.LoadAssetAtPath<GameObject>(PagePath);
 
             EnsureFolder("Assets/_Project/Prefabs", "UI");
             GameObject avatar =
@@ -64,6 +64,7 @@ namespace Meowdoku.Editor
             GameObject page =
                 AssetDatabase.LoadAssetAtPath<GameObject>(PagePath) ??
                 BuildPagePrefab(avatar, cell);
+            page = AssetDatabase.LoadAssetAtPath<GameObject>(PagePath);
             if (page != null) UIRegistryAssetInstaller.InstallIfReady();
             return page;
         }
@@ -263,7 +264,11 @@ namespace Meowdoku.Editor
             RectTransform title = CreateRect("Title", content);
             SetTopLeft(title, 0f, 0f, 900f, 130f);
             Image titleBg = title.gameObject.AddComponent<Image>();
-            titleBg.color = new Color(0.723077f, 0.508657f, 0.36571f, 1f);
+            titleBg.color = new Color(
+                0.9764706f,
+                0.9254902f,
+                0.88235295f,
+                1f);
             title.gameObject.AddComponent<RoundedImageView>()
                 .Configure(titleBg, rounded, new Vector4(60f, 60f, 0f, 0f));
             Text titleText = CreateText(
@@ -271,7 +276,7 @@ namespace Meowdoku.Editor
                 title,
                 85,
                 "Profile",
-                Color.white);
+                new Color(0.426923f, 0.3251181f, 0.34547916f, 1f));
             SetTopLeft(titleText.rectTransform, 140f, 16f, 620f, 100f);
             titleText.alignment = TextAnchor.MiddleCenter;
             Button close = CreateIconButton(
@@ -354,6 +359,129 @@ namespace Meowdoku.Editor
             UnityEngine.Object.DestroyImmediate(page);
             AssetDatabase.SaveAssets();
             return prefab;
+        }
+
+        private static void UpgradePagePrefab()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(PagePath) == null)
+                return;
+            GameObject root = PrefabUtility.LoadPrefabContents(PagePath);
+            if (root == null) return;
+            bool changed = false;
+            try
+            {
+                changed |= SetColor(
+                    root.transform.Find("Content/Title")?.GetComponent<Image>(),
+                    new Color(0.9764706f, 0.9254902f, 0.88235295f, 1f));
+                changed |= SetColor(
+                    root.transform.Find("Content/Title/PopupTitle")
+                        ?.GetComponent<Text>(),
+                    new Color(0.426923f, 0.3251181f, 0.34547916f, 1f));
+
+                Color inactiveTab = new(
+                    0.7372549f,
+                    0.60784316f,
+                    0.5411765f,
+                    1f);
+                Color activeTab = new(
+                    1f,
+                    0.9843137f,
+                    0.96862745f,
+                    1f);
+                changed |= UpgradeLabel(
+                    root.transform.Find("Content/TabGroup/AvatarTab/Label"),
+                    110f,
+                    7f,
+                    174f,
+                    86f,
+                    inactiveTab);
+                changed |= UpgradeLabel(
+                    root.transform.Find("Content/TabGroup/FrameTab/Label"),
+                    112f,
+                    6f,
+                    170f,
+                    88f,
+                    inactiveTab);
+                changed |= UpgradeLabel(
+                    root.transform.Find(
+                        "Content/TabGroup/AvatarTab/Active/ActiveLabel"),
+                    110f,
+                    13.5f,
+                    174f,
+                    73f,
+                    activeTab);
+                changed |= UpgradeLabel(
+                    root.transform.Find(
+                        "Content/TabGroup/FrameTab/Active/ActiveLabel"),
+                    110f,
+                    7f,
+                    170f,
+                    88f,
+                    activeTab);
+
+                LayoutElement bottomPad = root.transform.Find(
+                        "Content/AvatarScroll/Content/BottomPad")
+                    ?.GetComponent<LayoutElement>();
+                if (bottomPad != null &&
+                    !Mathf.Approximately(bottomPad.preferredHeight, 0f))
+                {
+                    bottomPad.preferredHeight = 0f;
+                    changed = true;
+                }
+
+                if (changed)
+                    PrefabUtility.SaveAsPrefabAsset(root, PagePath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+            if (changed) AssetDatabase.SaveAssets();
+        }
+
+        private static bool UpgradeLabel(
+            Transform target,
+            float x,
+            float y,
+            float width,
+            float height,
+            Color color)
+        {
+            if (target == null) return false;
+            bool changed = SetTopLeftIfDifferent(
+                target as RectTransform,
+                x,
+                y,
+                width,
+                height);
+            changed |= SetColor(target.GetComponent<Text>(), color);
+            return changed;
+        }
+
+        private static bool SetTopLeftIfDifferent(
+            RectTransform rect,
+            float x,
+            float y,
+            float width,
+            float height)
+        {
+            if (rect == null) return false;
+            Vector2 anchor = new(0f, 1f);
+            Vector2 position = new(x, -y);
+            Vector2 size = new(width, height);
+            if (rect.anchorMin == anchor && rect.anchorMax == anchor &&
+                rect.pivot == anchor && rect.anchoredPosition == position &&
+                rect.sizeDelta == size)
+                return false;
+            SetTopLeft(rect, x, y, width, height);
+            return true;
+        }
+
+        private static bool SetColor(Graphic target, Color color)
+        {
+            if (target == null || target.color == color) return false;
+            target.color = color;
+            return true;
         }
 
         private static NicknameRefs CreateNickname(RectTransform parent)
@@ -446,8 +574,11 @@ namespace Meowdoku.Editor
             inactive.sprite = LoadSprite(SpriteRoot + "tab_inactive_bg.png");
             inactive.type = Image.Type.Sliced;
             Text text = CreateText("Label", root, 60, label,
-                new Color(0.576f, 0.353f, 0.353f, 1f));
-            SetTopLeft(text.rectTransform, 80f, 7f, 235f, 86f);
+                new Color(0.7372549f, 0.60784316f, 0.5411765f, 1f));
+            if (name == "AvatarTab")
+                SetTopLeft(text.rectTransform, 110f, 7f, 174f, 86f);
+            else
+                SetTopLeft(text.rectTransform, 112f, 6f, 170f, 88f);
             text.alignment = TextAnchor.MiddleCenter;
 
             RectTransform active = CreateRect("Active", root);
@@ -462,7 +593,10 @@ namespace Meowdoku.Editor
                 60,
                 label,
                 Color.white);
-            Stretch(activeText.rectTransform);
+            if (name == "AvatarTab")
+                SetTopLeft(activeText.rectTransform, 110f, 13.5f, 174f, 73f);
+            else
+                SetTopLeft(activeText.rectTransform, 110f, 7f, 170f, 88f);
             activeText.alignment = TextAnchor.MiddleCenter;
 
             Button button = CreateButton("Button", root, Color.clear);
@@ -537,7 +671,7 @@ namespace Meowdoku.Editor
             RectTransform classicGrid = CreateGrid("ClassicGrid", content, 4);
             RectTransform pad = CreateRect("BottomPad", content);
             LayoutElement padLayout = pad.gameObject.AddComponent<LayoutElement>();
-            padLayout.preferredHeight = 10f;
+            padLayout.preferredHeight = 0f;
 
             leaderboard.Root.SetActive(false);
             leaderboardGrid.gameObject.SetActive(false);

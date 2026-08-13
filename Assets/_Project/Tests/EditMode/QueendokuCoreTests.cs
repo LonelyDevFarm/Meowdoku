@@ -37,6 +37,103 @@ namespace Meowdoku.Tests.EditMode
                 Is.False);
         }
 
+        [Test]
+        public void ValidateSolutionEntry_RejectsMalformedAndOutOfRangeDataSafely()
+        {
+            int[][] malformedRows =
+            {
+                new[] { 0, 0, 0, 0 },
+                new[] { 1, 1, 1 },
+                new[] { 2, 2, 2, 2 },
+                null
+            };
+
+            Assert.That(
+                QueendokuCore.ValidateSolutionEntry(
+                    null, new[] { 1, 3, 0, 2 }, 4),
+                Is.False);
+            Assert.That(
+                QueendokuCore.ValidateSolutionEntry(
+                    malformedRows, new[] { 1, 3, 0, 2 }, 4),
+                Is.False);
+            Assert.That(
+                QueendokuCore.ValidateSolutionEntry(
+                    RegionsByRow, null, 4),
+                Is.False);
+            Assert.That(
+                QueendokuCore.ValidateSolutionEntry(
+                    RegionsByRow, new[] { 1, 3, 0 }, 4),
+                Is.False);
+            Assert.That(
+                QueendokuCore.ValidateSolutionEntry(
+                    RegionsByRow, new[] { -1, 3, 0, 2 }, 4),
+                Is.False);
+            Assert.That(
+                QueendokuCore.ValidateSolutionEntry(
+                    RegionsByRow, new[] { 1, 4, 0, 2 }, 4),
+                Is.False);
+        }
+
+        [Test]
+        public void FindConflicts_ReturnsEveryConflictingCatAndOnlyCats()
+        {
+            int[][] regions =
+            {
+                new[] { 0, 0, 0, 0, 0 },
+                new[] { 1, 1, 1, 1, 1 },
+                new[] { 2, 2, 2, 2, 2 },
+                new[] { 3, 3, 3, 3, 3 },
+                new[] { 4, 4, 4, 4, 4 }
+            };
+            CellStateType[][] board = EmptyBoard(5);
+            board[0][0] = CellStateType.CAT;
+            board[0][4] = CellStateType.CAT;
+            board[2][2] = CellStateType.CAT;
+            board[4][0] = CellStateType.CAT;
+            board[4][4] = CellStateType.CAT;
+            board[2][0] = CellStateType.MARK;
+            board[2][4] = CellStateType.ERROR;
+
+            Assert.That(
+                QueendokuCore.FindConflicts(board, 5, regions),
+                Is.EquivalentTo(new[]
+                {
+                    new Vector2Int(0, 0),
+                    new Vector2Int(0, 4),
+                    new Vector2Int(4, 0),
+                    new Vector2Int(4, 4)
+                }));
+        }
+
+        [Test]
+        public void CellsExcludedByCat_MatchesSourceRowMajorUnion()
+        {
+            int[][] regions =
+            {
+                new[] { 0, 1, 2, 3 },
+                new[] { 1, 1, 2, 3 },
+                new[] { 2, 2, 3, 3 },
+                new[] { 3, 0, 0, 0 }
+            };
+
+            Assert.That(
+                QueendokuCore.CellsExcludedByCat(
+                    new Vector2Int(0, 0), 4, regions),
+                Is.EqualTo(new[]
+                {
+                    new Vector2Int(0, 1),
+                    new Vector2Int(0, 2),
+                    new Vector2Int(0, 3),
+                    new Vector2Int(1, 0),
+                    new Vector2Int(1, 1),
+                    new Vector2Int(2, 0),
+                    new Vector2Int(3, 0),
+                    new Vector2Int(3, 1),
+                    new Vector2Int(3, 2),
+                    new Vector2Int(3, 3)
+                }));
+        }
+
         [TestCase(0, 0, 0, 2, QueendokuCore.Rule.SameColor)]
         [TestCase(0, 0, 1, 0, QueendokuCore.Rule.SameLine)]
         [TestCase(0, 0, 1, 1, QueendokuCore.Rule.NoTouch)]
@@ -244,6 +341,34 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(hint.Regions, Is.EqualTo(new[] { 0, 1 }));
             Assert.That(hint.LockedRows, Is.EqualTo(new[] { 0, 1 }));
             Assert.That(hint.LockedColumns, Is.Empty);
+        }
+
+        [Test]
+        public void HintEngine_R4UsesFourRegionSubsetWithoutEarlierPairOrTriple()
+        {
+            // Regions 0..3 each span all first four rows and columns. No pair
+            // or triple can lock exactly k units; all four together lock rows
+            // 0..3 and expose the region-4 cells in column 4 for marking.
+            int[][] regions =
+            {
+                new[] { 0, 1, 2, 3, 4 },
+                new[] { 1, 2, 3, 0, 4 },
+                new[] { 2, 3, 0, 1, 4 },
+                new[] { 3, 0, 1, 2, 4 },
+                new[] { 4, 4, 4, 4, 4 }
+            };
+
+            HintResult hint = HintEngine.FindR3R4Hint(
+                EmptyBoard(5),
+                5,
+                regions);
+
+            Assert.That(hint.Found, Is.True);
+            Assert.That(hint.Strategy, Is.EqualTo("R4"));
+            Assert.That(hint.Regions, Is.EqualTo(new[] { 0, 1, 2, 3 }));
+            Assert.That(hint.LockedRows, Is.EqualTo(new[] { 0, 1, 2, 3 }));
+            Assert.That(hint.LockedColumns, Is.Empty);
+            Assert.That(hint.HighlightCells, Has.Count.EqualTo(16));
         }
 
         [Test]

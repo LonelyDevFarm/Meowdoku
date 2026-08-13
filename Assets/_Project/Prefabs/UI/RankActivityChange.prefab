@@ -487,7 +487,7 @@ RectTransform:
   m_GameObject: {fileID: 3829169779608747290}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2679261781512351159}
@@ -570,7 +570,7 @@ MonoBehaviour:
   playOpenSound: 1
   rootCanvas: {fileID: 3595832236771547349}
   rootCanvasGroup: {fileID: 8572025052840230593}
-  closeButton: {fileID: 0}
+  frameCloseButton: {fileID: 0}
   titleText: {fileID: 549184999332558053}
   countdownText: {fileID: 6897508397672134032}
   encouragementRoot: {fileID: 4094123313738442184}

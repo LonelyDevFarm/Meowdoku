@@ -19,6 +19,16 @@ namespace Meowdoku.Editor
         private const string FontPath = "Assets/_Project/Fonts/Roboto.ttf";
         private const string RoundedShaderPath =
             "Assets/_Project/Shaders/UIRoundedRect.shader";
+        private const string ToolBackgroundPath =
+            "Assets/_Project/Sprites/game/btn_tool_bg.png";
+        private const string ToolLightPath =
+            "Assets/_Project/Sprites/game/icon_light.png";
+        private const string LocateIconPath =
+            "Assets/_Project/Sprites/game/tool_cat_item.png";
+        private const string HintIconPath =
+            "Assets/_Project/Sprites/game/icon_hint_lamp.png";
+        private const string PlusIconPath =
+            "Assets/_Project/Sprites/game/icon_plus.png";
         private static readonly string[] PatternSpritePaths =
         {
             "Assets/_Project/Sprites/game/pattern_icon/pattern_claw.png",
@@ -41,6 +51,7 @@ namespace Meowdoku.Editor
         static GameplayPresentationSceneInstaller()
         {
             QueueInstall();
+            EditorApplication.delayCall += UpgradeCellPrefab;
             EditorSceneManager.sceneOpened += HandleSceneOpened;
             EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
         }
@@ -88,6 +99,15 @@ namespace Meowdoku.Editor
             InstallIfNeeded();
         }
 
+        public static void InstallGameplaySceneForBatch()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            if (!scene.IsValid()) return;
+            InstallIfNeeded();
+            AssetDatabase.SaveAssets();
+        }
+
         private static void InstallIfNeeded()
         {
             if (EditorApplication.isPlaying ||
@@ -104,6 +124,7 @@ namespace Meowdoku.Editor
             RectTransform hud = EnsureRect("HUD", canvas.transform, true);
             RectTransform overlays = EnsureRect("Overlays", canvas.transform, true);
             RectTransform ruleBar = InstallRuleBar(hud, manager);
+            ConfigureToolBar(canvas.transform, manager);
             InstallPageLayout(hud, ruleBar, board);
             InstallHintOverlay(overlays, manager, board);
             SerializedObject boardData = new SerializedObject(board);
@@ -116,7 +137,7 @@ namespace Meowdoku.Editor
             AppRuntimeSceneInstaller.UpgradeGamePagePatternAssets();
         }
 
-        private static void UpgradeCellPrefab()
+        internal static void UpgradeCellPrefab()
         {
             GameObject root = PrefabUtility.LoadPrefabContents(CellPrefabPath);
             if (root == null) return;
@@ -266,9 +287,188 @@ namespace Meowdoku.Editor
             serialized.FindProperty("ruleBar").objectReferenceValue = ruleBar;
             serialized.FindProperty("board").objectReferenceValue =
                 board.cellsContainer as RectTransform;
+            serialized.FindProperty("bottomTools").objectReferenceValue =
+                hud.Find("BottomTools") as RectTransform;
             serialized.FindProperty("boardView").objectReferenceValue = board;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             presenter.ApplyLayout();
+        }
+
+        internal static bool ConfigureToolBar(
+            Transform pageRoot,
+            GameplayManager manager)
+        {
+            RectTransform hud = pageRoot?.Find("HUD") as RectTransform;
+            if (hud == null || manager == null) return false;
+            bool changed = hud.Find("BottomTools") == null;
+            RectTransform root = EnsureRect("BottomTools", hud, false);
+            SetRect(root, Vector2.zero, new Vector2(1080f, 200f));
+
+            ToolButtonView locate = EnsureToolButton(
+                "Locate",
+                root,
+                new Vector2(-185f, -25f),
+                LoadSprite(LocateIconPath),
+                new Vector2(106f, 106f),
+                out bool locateChanged);
+            ToolButtonView hint = EnsureToolButton(
+                "Hint",
+                root,
+                new Vector2(185f, -25f),
+                LoadSprite(HintIconPath),
+                new Vector2(67f, 106f),
+                out bool hintChanged);
+            changed |= locateChanged || hintChanged;
+
+            GameplayToolBarPresenter presenter =
+                root.GetComponent<GameplayToolBarPresenter>();
+            if (presenter == null)
+            {
+                presenter = root.gameObject.AddComponent<GameplayToolBarPresenter>();
+                changed = true;
+            }
+            SerializedObject data = new(presenter);
+            changed |= SetReferenceIfChanged(data, "gameplayManager", manager);
+            changed |= SetReferenceIfChanged(data, "locateButton", locate);
+            changed |= SetReferenceIfChanged(data, "hintButton", hint);
+            data.ApplyModifiedPropertiesWithoutUndo();
+
+            GameplayPageLayoutPresenter layout =
+                hud.GetComponent<GameplayPageLayoutPresenter>();
+            if (layout != null)
+            {
+                SerializedObject layoutData = new(layout);
+                changed |= SetReferenceIfChanged(
+                    layoutData,
+                    "bottomTools",
+                    root);
+                layoutData.ApplyModifiedPropertiesWithoutUndo();
+                layout.ApplyLayout();
+            }
+            return changed;
+        }
+
+        private static ToolButtonView EnsureToolButton(
+            string name,
+            RectTransform parent,
+            Vector2 center,
+            Sprite iconSprite,
+            Vector2 iconSize,
+            out bool changed)
+        {
+            changed = parent.Find(name) == null;
+            RectTransform root = EnsureRect(name, parent, false);
+            SetRect(root, center, new Vector2(210f, 250f));
+
+            RectTransform visual = EnsureRect("Visual", root, false);
+            SetRect(visual, new Vector2(0f, 20f), new Vector2(210f, 210f));
+            Transform legacyBackground = root.Find("Background");
+            if (visual.Find("Background") == null && legacyBackground != null)
+            {
+                legacyBackground.SetParent(visual, false);
+                changed = true;
+            }
+            Image background = EnsureImage("Background", visual);
+            SetRect(background.rectTransform, Vector2.zero,
+                new Vector2(210f, 210f));
+            background.sprite = LoadSprite(ToolBackgroundPath);
+            background.preserveAspect = true;
+            background.raycastTarget = true;
+            Image light = EnsureImage("Light", visual);
+            SetRect(light.rectTransform, Vector2.zero, new Vector2(228f, 228f));
+            light.sprite = LoadSprite(ToolLightPath);
+            light.preserveAspect = true;
+            light.color = new Color(1f, 1f, 1f, 0f);
+            light.gameObject.SetActive(false);
+            Image icon = EnsureImage("Icon", visual);
+            SetRect(icon.rectTransform, new Vector2(0f, -6f), iconSize);
+            icon.sprite = iconSprite;
+            icon.preserveAspect = true;
+
+            RectTransform badge = EnsureRect("Badge", root, false);
+            SetRect(badge, new Vector2(70f, 98f), new Vector2(90f, 54f));
+            Image count = EnsureImage("Count", badge);
+            Stretch(count.rectTransform, new Vector2(4f, 0f));
+            count.color = new Color(0.9137255f, 0.2392157f, 0.227451f, 1f);
+            ConfigureRounded(count, 27f);
+            Text countLabel = EnsureText(
+                "Label",
+                count.transform,
+                AssetDatabase.LoadAssetAtPath<Font>(FontPath),
+                40,
+                "3");
+            Stretch(countLabel.rectTransform, Vector2.zero);
+            countLabel.color = Color.white;
+
+            Image action = EnsureImage("Action", badge);
+            Stretch(action.rectTransform, Vector2.zero);
+            action.color = new Color(0.007843138f, 0.74509805f, 0.32156864f, 1f);
+            ConfigureRounded(action, 27f);
+            Image plus = EnsureImage("Plus", action.transform);
+            SetRect(plus.rectTransform, Vector2.zero, new Vector2(38f, 38f));
+            plus.sprite = LoadSprite(PlusIconPath);
+            plus.preserveAspect = true;
+            Text free = EnsureText(
+                "Free",
+                action.transform,
+                AssetDatabase.LoadAssetAtPath<Font>(FontPath),
+                34,
+                "Free");
+            Stretch(free.rectTransform, new Vector2(4f, 0f));
+            free.color = Color.white;
+
+            Button hit = root.GetComponent<Button>();
+            if (hit == null)
+            {
+                hit = root.gameObject.AddComponent<Button>();
+                changed = true;
+            }
+            hit.targetGraphic = background;
+            hit.transition = Selectable.Transition.None;
+
+            ToolButtonView view = root.GetComponent<ToolButtonView>();
+            if (view == null)
+            {
+                view = root.gameObject.AddComponent<ToolButtonView>();
+                changed = true;
+            }
+            SerializedObject data = new(view);
+            changed |= SetReferenceIfChanged(data, "hitButton", hit);
+            changed |= SetReferenceIfChanged(data, "visualRoot", visual);
+            changed |= SetReferenceIfChanged(data, "icon", icon.rectTransform);
+            changed |= SetReferenceIfChanged(data, "toolLight", light);
+            changed |= SetReferenceIfChanged(data, "badgeRoot", badge.gameObject);
+            changed |= SetReferenceIfChanged(data, "countBadgeRoot", count.gameObject);
+            changed |= SetReferenceIfChanged(data, "countLabel", countLabel);
+            changed |= SetReferenceIfChanged(data, "actionBadgeRoot", action.gameObject);
+            changed |= SetReferenceIfChanged(data, "plusIcon", plus.gameObject);
+            changed |= SetReferenceIfChanged(data, "freeLabel", free);
+            data.FindProperty("showBadge").boolValue = true;
+            data.ApplyModifiedPropertiesWithoutUndo();
+            return view;
+        }
+
+        private static void ConfigureRounded(Image image, float radius)
+        {
+            RoundedImageView rounded = image.GetComponent<RoundedImageView>();
+            if (rounded == null)
+                rounded = image.gameObject.AddComponent<RoundedImageView>();
+            rounded.Configure(
+                image,
+                AssetDatabase.LoadAssetAtPath<Shader>(RoundedShaderPath),
+                radius);
+        }
+
+        private static bool SetReferenceIfChanged(
+            SerializedObject data,
+            string name,
+            Object value)
+        {
+            SerializedProperty property = data.FindProperty(name);
+            if (property == null || property.objectReferenceValue == value)
+                return false;
+            property.objectReferenceValue = value;
+            return true;
         }
 
         private static void ConfigureCanvasScaler(Canvas canvas)

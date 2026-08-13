@@ -13,6 +13,7 @@ namespace Meowdoku.Gameplay
     {
         [SerializeField] private RectTransform content;
         [SerializeField] private CanvasGroup contentGroup;
+        [SerializeField] private CanvasGroup overlayGroup;
 
         private Sequence _tween;
 
@@ -22,6 +23,7 @@ namespace Meowdoku.Gameplay
             if (content == null || contentGroup == null) return;
             content.localScale = Vector3.one * 0.7f;
             contentGroup.alpha = 0f;
+            if (overlayGroup != null) overlayGroup.alpha = 0f;
             _tween = DOTween.Sequence().SetLink(gameObject);
             _tween.Append(content.DOScale(
                     1.05f,
@@ -37,6 +39,14 @@ namespace Meowdoku.Gameplay
                         1f,
                         SettingsPageContract.PopupOpenFadeSeconds)
                     .SetEase(Ease.Linear));
+            if (overlayGroup != null)
+            {
+                _tween.Insert(0f,
+                    overlayGroup.DOFade(
+                            1f,
+                            SettingsPageContract.PopupOpenFadeSeconds)
+                        .SetEase(Ease.Linear));
+            }
             _tween.OnComplete(() => _tween = null);
         }
 
@@ -56,6 +66,7 @@ namespace Meowdoku.Gameplay
 
             content.localScale = Vector3.one;
             contentGroup.alpha = 1f;
+            if (overlayGroup != null) overlayGroup.alpha = 1f;
             _tween = DOTween.Sequence().SetLink(gameObject);
             _tween.Append(content.DOScale(
                     1.05f,
@@ -66,6 +77,12 @@ namespace Meowdoku.Gameplay
             _tween.Insert(
                 SettingsPageContract.PopupCloseFadeStartSeconds,
                 contentGroup.DOFade(0f, fadeSeconds).SetEase(Ease.Linear));
+            if (overlayGroup != null)
+            {
+                _tween.Insert(
+                    SettingsPageContract.PopupCloseFadeStartSeconds,
+                    overlayGroup.DOFade(0f, fadeSeconds).SetEase(Ease.Linear));
+            }
             _tween.OnComplete(() => completed = true);
             while (!completed && _tween != null && _tween.IsActive())
                 yield return null;

@@ -3,6 +3,7 @@
     "rootNamespace": "Meowdoku.Core",
     "references": [
         "UnityEngine.UI",
+        "Unity.InputSystem",
         "DOTween.Modules"
     ],
     "includePlatforms": [],

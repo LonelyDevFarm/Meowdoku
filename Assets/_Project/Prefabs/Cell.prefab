@@ -518,6 +518,10 @@ MonoBehaviour:
   promptCross: {fileID: 1630135838703165734}
   roundedBackgroundShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   appearVFX: {fileID: 0}
+  catAppearFrames: []
+  catCryFrames: []
+  catFrustratedFrames: []
+  catIdleFrames: []
 --- !u!1 &7881789597179499189
 GameObject:
   m_ObjectHideFlags: 0

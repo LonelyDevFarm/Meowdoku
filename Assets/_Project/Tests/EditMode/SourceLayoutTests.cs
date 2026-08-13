@@ -8,6 +8,8 @@ namespace Meowdoku.Tests.EditMode
     {
         [TestCase(4, 462)]
         [TestCase(5, 570)]
+        [TestCase(6, 678)]
+        [TestCase(7, 786)]
         [TestCase(8, 894)]
         [TestCase(9, 1002)]
         [TestCase(10, 1110)]
@@ -83,6 +85,8 @@ namespace Meowdoku.Tests.EditMode
             float safeBottom = -viewportHeight * 0.5f + bottomInset;
             Assert.That(result.HeaderCenterY + 60f, Is.LessThanOrEqualTo(safeTop + 0.001f));
             Assert.That(result.BoardCenterY - 504f, Is.GreaterThanOrEqualTo(safeBottom - 0.001f));
+            Assert.That(result.BottomToolsCenterY - 100f,
+                Is.GreaterThanOrEqualTo(safeBottom - 0.001f));
         }
 
         [TestCase(7, false, 1008f)]
@@ -111,6 +115,8 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(result.CatHeartCenterY, Is.EqualTo(757.06f).Within(0.02f));
             Assert.That(result.RuleCenterY, Is.EqualTo(616.45f).Within(0.02f));
             Assert.That(result.BoardCenterY, Is.EqualTo(-5.22f).Within(0.02f));
+            Assert.That(result.BottomToolsCenterY,
+                Is.EqualTo(-655.36f).Within(0.02f));
             Assert.That(result.RuleCenterY -
                         (result.BoardCenterY + SourceGameplayPageLayout.BoardHeight * 0.5f),
                 Is.EqualTo(117.67f).Within(0.02f));

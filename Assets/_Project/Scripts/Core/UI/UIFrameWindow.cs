@@ -20,7 +20,7 @@ namespace Meowdoku.Core.UI
         [Header("UGUI adapter")]
         [SerializeField] private Canvas rootCanvas;
         [SerializeField] private CanvasGroup rootCanvasGroup;
-        [SerializeField] private Button closeButton;
+        [SerializeField] private Button frameCloseButton;
 
         private UIManager _owner;
         private bool _occluded;
@@ -52,8 +52,8 @@ namespace Meowdoku.Core.UI
             UiName = uiName;
             EnsureCanvasComponents();
             ResolveCloseButton();
-            if (closeButton != null)
-                closeButton.onClick.AddListener(CloseFromButton);
+            if (frameCloseButton != null)
+                frameCloseButton.onClick.AddListener(CloseFromButton);
             CreateLifecycle(owner);
         }
 
@@ -87,10 +87,10 @@ namespace Meowdoku.Core.UI
 
         internal bool Escape()
         {
-            if (closeButton != null && closeButton.isActiveAndEnabled &&
-                closeButton.interactable)
+            if (frameCloseButton != null && frameCloseButton.isActiveAndEnabled &&
+                frameCloseButton.interactable)
             {
-                closeButton.onClick.Invoke();
+                frameCloseButton.onClick.Invoke();
                 return true;
             }
 
@@ -102,6 +102,12 @@ namespace Meowdoku.Core.UI
         protected virtual bool OnBackRequest() => false;
         protected virtual void OnCloseButtonPressed() { }
 
+        /// <summary>
+        /// Pages with a source-specific close button can opt out of the
+        /// convention that resolves a child named <c>CloseBtn</c>.
+        /// </summary>
+        protected virtual bool UsesDefaultCloseButton => true;
+
         protected virtual IEnumerator PlayCloseAnimation()
         {
             yield break;
@@ -109,8 +115,8 @@ namespace Meowdoku.Core.UI
 
         protected override void OnDestroyWindow()
         {
-            if (closeButton != null)
-                closeButton.onClick.RemoveListener(CloseFromButton);
+            if (frameCloseButton != null)
+                frameCloseButton.onClick.RemoveListener(CloseFromButton);
             base.OnDestroyWindow();
         }
 
@@ -136,12 +142,13 @@ namespace Meowdoku.Core.UI
 
         private void ResolveCloseButton()
         {
-            if (closeButton != null) return;
+            if (!UsesDefaultCloseButton) return;
+            if (frameCloseButton != null) return;
             Button[] buttons = GetComponentsInChildren<Button>(true);
             foreach (Button button in buttons)
             {
                 if (button.name != "CloseBtn") continue;
-                closeButton = button;
+                frameCloseButton = button;
                 return;
             }
         }

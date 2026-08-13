@@ -12,7 +12,8 @@ using UnityEngine.UI;
 namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
-    public sealed class HowToPlayPagedPagePresenter : UIFrameWindow
+    public sealed class HowToPlayPagedPagePresenter : UIFrameWindow,
+        ISoundServiceConsumer
     {
         public event Action Closed;
 
@@ -35,6 +36,10 @@ namespace Meowdoku.Gameplay
 
         public int PageIndex => _page;
         public string FailureReason { get; private set; } = string.Empty;
+
+#if UNITY_INCLUDE_TESTS
+        internal bool DemoRunningForTests => _demoCoroutine != null;
+#endif
 
         protected override void OnCreate()
         {

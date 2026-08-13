@@ -15,7 +15,8 @@ namespace Meowdoku.Gameplay
     [DisallowMultipleComponent]
     public sealed class SettingsPagePresenter : UIFrameWindow,
         IAbConfigRuntimeConsumer,
-        ISettingsExternalServicesConsumer
+        ISettingsExternalServicesConsumer,
+        ISoundServiceConsumer
     {
         public override string GetTrackingDialogName() => _isGameMode
             ? TrackerCatalog.Dialog.Options
@@ -379,8 +380,8 @@ namespace Meowdoku.Gameplay
             {
                 if (_onVibrationPreview != null)
                     _onVibrationPreview.Invoke();
-                else if (Application.isMobilePlatform)
-                    Handheld.Vibrate();
+                else
+                    VibrationRuntime.Current.Play(VibrationLevel.Level3);
             }
             TrackSwitch(TrackerCatalog.Switch.Vibration, value);
         }

@@ -137,7 +137,7 @@ namespace Meowdoku.Editor
                 if (_platformActive)
                     filter.groupNames = new[]
                     {
-                        @"^Meowdoku\.Tests\.EditMode\.(AppRuntimeCompositionTests|PlatformPermissionTests)"
+                        @"^Meowdoku\.Tests\.EditMode\.(AppRuntimeCompositionTests|PlatformPermissionTests|ProductServiceTests|SaveStoreTests|GameStateRepositoryTests)"
                     };
                 _runner.Execute(new ExecutionSettings(filter));
             }

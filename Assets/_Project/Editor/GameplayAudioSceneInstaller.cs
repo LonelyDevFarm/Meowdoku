@@ -114,6 +114,8 @@ namespace Meowdoku.Editor
             EditorSceneManager.SaveScene(scene);
         }
 
+        internal static SoundCatalog GetOrCreateCatalog() => EnsureCatalog();
+
         private static SoundCatalog EnsureCatalog()
         {
             SoundCatalog catalog = AssetDatabase.LoadAssetAtPath<SoundCatalog>(CatalogPath);

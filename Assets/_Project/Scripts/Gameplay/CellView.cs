@@ -33,6 +33,8 @@ namespace Meowdoku.Gameplay
         private Sequence _visualSequence;
         private Sequence _hintSequence;
         private Sequence _previewSequence;
+        private Vector4 _configuredCornerRadii;
+        private bool _configuredHardEdge;
 
         private const float HintAlphaMin = 50f / 255f;
         private const float HintHalfCycle = 0.65f;
@@ -88,6 +90,8 @@ namespace Meowdoku.Gameplay
 
         public void ConfigureBackgroundShape(Vector4 cornerRadii, bool hardEdge)
         {
+            _configuredCornerRadii = cornerRadii;
+            _configuredHardEdge = hardEdge;
             if (bgImage == null || roundedBackgroundShader == null) return;
             bgImage.material = RoundedRectMaterialCache.Get(
                 roundedBackgroundShader,
@@ -120,6 +124,10 @@ namespace Meowdoku.Gameplay
         public void ChangeState(CellStateType newState, bool playAnim = true)
         {
             if (_currentState == newState) return;
+            // cell_view.gd treats LOCKED_MARK as immutable. Pool/reset code
+            // writes the backing state directly and therefore remains able to
+            // recycle a locked cell.
+            if (_currentState == CellStateType.LOCKED_MARK) return;
 
             _currentState = newState;
             UpdateVisuals(playAnim);
@@ -133,20 +141,6 @@ namespace Meowdoku.Gameplay
         {
             ResetToEmpty();
             ChangeState(CellStateType.CAT, animate);
-            if (!animate || catIcon == null) return;
-
-            _visualSequence?.Kill(false);
-            catIcon.rectTransform.localScale = Vector3.one * 0.7f;
-            _visualSequence = DOTween.Sequence()
-                .SetUpdate(true)
-                .SetLink(gameObject);
-            _visualSequence.Append(
-                catIcon.rectTransform.DOScale(1.08f, 0.17f)
-                    .SetEase(Ease.OutQuad));
-            _visualSequence.Append(
-                catIcon.rectTransform.DOScale(1f, 0.08f)
-                    .SetEase(Ease.InOutQuad));
-            _visualSequence.OnComplete(() => _visualSequence = null);
         }
 
         /// <summary>
@@ -215,6 +209,10 @@ namespace Meowdoku.Gameplay
             _visualSequence?.Kill(false);
             _visualSequence = null;
             HideHint(true);
+            if (appearVFX != null)
+                appearVFX.Stop(
+                    true,
+                    ParticleSystemStopBehavior.StopEmittingAndClear);
             _currentState = CellStateType.EMPTY;
             UpdateVisuals(false);
             ResetImageTransform(catIcon);
@@ -243,7 +241,7 @@ namespace Meowdoku.Gameplay
                 case CellStateType.CAT:
                     if (catIcon != null) catIcon.gameObject.SetActive(true);
                     if (playAnim && appearVFX != null) appearVFX.Play();
-                    // TODO: Gọi thư viện DOTween để làm hiệu ứng nảy (Bounce) ở đây sau này
+                    if (playAnim) PlaySourceCatAppear();
                     break;
 
                 case CellStateType.MARK:
@@ -261,6 +259,30 @@ namespace Meowdoku.Gameplay
             RefreshPatternVisibility();
         }
 
+        private void PlaySourceCatAppear()
+        {
+            if (catIcon == null) return;
+            SetImageAlpha(catIcon, 0f);
+
+            _visualSequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+            _visualSequence.Insert(0.033333335f,
+                catIcon.DOFade(1f, 0.033333335f).SetEase(Ease.Linear));
+            if (bgImage != null)
+            {
+                RectTransform background = bgImage.rectTransform;
+                background.localScale = Vector3.one;
+                _visualSequence.Insert(0f,
+                    background.DOScale(0.95f, 0.07216451f).SetEase(Ease.Linear));
+                _visualSequence.Insert(0.07216451f,
+                    background.DOScale(1.05f, 0.13045123f).SetEase(Ease.Linear));
+                _visualSequence.Insert(0.8673619f,
+                    background.DOScale(1f, 0.0826381f).SetEase(Ease.Linear));
+            }
+            _visualSequence.AppendInterval(
+                Mathf.Max(0f, 1.3333334f - _visualSequence.Duration()));
+            _visualSequence.OnComplete(() => _visualSequence = null);
+        }
+
         private void RefreshPatternVisibility()
         {
             if (patternImage == null) return;
@@ -273,6 +295,19 @@ namespace Meowdoku.Gameplay
 #if UNITY_INCLUDE_TESTS
         internal bool IsPatternVisibleForTests =>
             patternImage != null && patternImage.gameObject.activeSelf;
+        internal bool IsCatVisibleForTests =>
+            catIcon != null && catIcon.gameObject.activeSelf;
+        internal bool IsCrossVisibleForTests =>
+            crossIcon != null && crossIcon.gameObject.activeSelf;
+        internal bool IsErrorVisibleForTests =>
+            errorIcon != null && errorIcon.gameObject.activeSelf;
+        internal bool IsHintVisibleForTests =>
+            hintLight != null && hintLight.gameObject.activeSelf;
+        internal bool IsPromptVisibleForTests =>
+            (promptFrame != null && promptFrame.gameObject.activeSelf) ||
+            (promptCross != null && promptCross.gameObject.activeSelf);
+        internal Vector4 CornerRadiiForTests => _configuredCornerRadii;
+        internal bool HardEdgeForTests => _configuredHardEdge;
 #endif
 
         public void PlayHint()

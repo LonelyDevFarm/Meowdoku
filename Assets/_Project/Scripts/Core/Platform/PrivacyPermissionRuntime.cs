@@ -29,6 +29,7 @@ namespace Meowdoku.Core.Platform
         [SerializeField] private LocalizationCatalog localization;
         [SerializeField] private AbConfigRuntime abConfigRuntime;
         [SerializeField] private TrackingRuntime trackingRuntime;
+        [SerializeField] private ProductServiceRuntime productServiceRuntime;
         [SerializeField] private MonoBehaviour providerAdapter;
 
         private IPlatformPermissionProvider _provider;
@@ -38,7 +39,7 @@ namespace Meowdoku.Core.Platform
         private bool _privacyAndPushCompleted;
         private int _lifetimeVersion;
 
-        public bool IsOnline => Provider.IsOnline;
+        public bool IsOnline => productServiceRuntime?.IsOnline ?? Provider.IsOnline;
         public bool IsConsentManagementRequired =>
             Provider.IsConsentManagementRequired;
         public bool IsDataSyncAvailable => false;
@@ -153,9 +154,17 @@ namespace Meowdoku.Core.Platform
             yield break;
         }
 
-        public bool TryHandleShortcut() => Provider.TryHandleShortcut();
+        public bool TryHandleShortcut()
+        {
+            if (productServiceRuntime?.TryHandleShortcut() == true)
+                return true;
+            return Provider.TryHandleShortcut();
+        }
 
-        public void OpenFeedbackFaq() { }
+        public void OpenFeedbackFaq()
+        {
+            productServiceRuntime?.OpenFeedbackFaq();
+        }
 
         public void ShowConsentManagement()
         {
@@ -270,6 +279,11 @@ namespace Meowdoku.Core.Platform
             providerAdapter = adapter;
             _provider = adapter as IPlatformPermissionProvider ??
                         OfflinePlatformPermissionProvider.Instance;
+        }
+
+        public void BindProductServiceRuntime(ProductServiceRuntime runtime)
+        {
+            productServiceRuntime = runtime;
         }
 
         internal void ConfigureForTests(

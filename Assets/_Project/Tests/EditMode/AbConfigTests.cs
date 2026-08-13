@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Meowdoku.Core;
 using Meowdoku.Core.Config;
+using Meowdoku.Gameplay;
 using NUnit.Framework;
 
 namespace Meowdoku.Tests.EditMode
@@ -12,15 +13,16 @@ namespace Meowdoku.Tests.EditMode
         [Test]
         public void DefaultProfile_ContainsAllPortedSourceConfigs()
         {
-            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(59));
+            Assert.That(DefaultConfigProfile.All.Count, Is.EqualTo(63));
             Assert.That(DefaultConfigProfile.All.Select(item => item.Key), Is.Unique);
             Assert.That(
                 DefaultConfigProfile.All.Count(item => item.RegisteredBySource),
-                Is.EqualTo(53));
+                Is.EqualTo(57));
         }
 
         [TestCase("region_color", 2, AbConfigTiming.AppStart, true)]
         [TestCase("size_cycle", 2, AbConfigTiming.GameStartNormal, true)]
+        [TestCase("normal_level_10", 0, AbConfigTiming.GameStartNormal, true)]
         [TestCase("swipe_protect", 0, AbConfigTiming.GameStart, true)]
         [TestCase("doubletap_protect", 0, AbConfigTiming.AppStart, true)]
         [TestCase("tutorial_diagonal", 0, AbConfigTiming.AppStart, true)]
@@ -36,6 +38,7 @@ namespace Meowdoku.Tests.EditMode
         [TestCase("rule_text", 0, AbConfigTiming.GameStart, true)]
         [TestCase("meow_feedback", 0, AbConfigTiming.AppStart, true)]
         [TestCase("thumb_up", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("daily_first_level_difficulty", 0, AbConfigTiming.AppStart, true)]
         [TestCase("daily_streak", 1, AbConfigTiming.AppStart, true)]
         [TestCase("leaderboard_func", 0, AbConfigTiming.AppStart, true)]
         [TestCase("hard_button", 0, AbConfigTiming.AppStart, true)]
@@ -53,6 +56,8 @@ namespace Meowdoku.Tests.EditMode
         [TestCase("att_dlg_logic", 0, AbConfigTiming.AppStart, true)]
         [TestCase("push_permission", 0, AbConfigTiming.GameEndNormal20, true)]
         [TestCase("push_local_text", 0, AbConfigTiming.AppStart, true)]
+        [TestCase("rate_us_pop", 0, AbConfigTiming.GameStart, true)]
+        [TestCase("rate_us_pop_ui", 0, AbConfigTiming.GameStart, true)]
         public void DefaultProfile_MatchesSource(
             string key,
             int expectedDefault,
@@ -155,6 +160,10 @@ namespace Meowdoku.Tests.EditMode
             provider.IntValues["daily_streak"] = DailyStreakConfig.ValueNoReward;
             provider.IntValues["swipe_protect"] =
                 SwipeProtectConfig.ValueHotzone20;
+            provider.IntValues["tutorial_diagonal"] =
+                TutorialDiagonalConfig.ValueDiagonalCopy;
+            provider.IntValues["guide_feedback"] =
+                GuideFeedbackConfig.ValueIq;
             var appStart = new DailyStreakConfig();
             var gameStart = new SwipeProtectConfig();
             using var service = new AbConfigService(
@@ -239,6 +248,85 @@ namespace Meowdoku.Tests.EditMode
 
             Assert.That(regionColor.IsNewCellOnlyPalette(), Is.True);
             Assert.That(sizeCycle.IsCycleEnabled(), Is.False);
+        }
+
+        [Test]
+        public void BoardConfigSet_LoadsSharedValuesAtSourceTimings()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true,
+                IsRemoteReadyValue = true
+            };
+            provider.IntValues["region_color"] =
+                RegionColorConfig.ValuePaletteV8;
+            provider.IntValues["game_grid_ui"] =
+                GameGridUiConfig.ValueSingleLine;
+            provider.IntValues["board_size_big"] =
+                BoardSizeBigConfig.ValueEnlarged;
+            var configs = new BoardConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+
+            Assert.That(configs.RegionColor.Value,
+                Is.EqualTo(RegionColorConfig.ValuePaletteV8));
+            Assert.That(configs.GameGridUi.Value,
+                Is.EqualTo(GameGridUiConfig.ValueSingleLine));
+            Assert.That(configs.BoardSizeBig.IsValueLoaded, Is.False);
+
+            service.ReloadTiming(AbConfigTiming.GameStart);
+
+            Assert.That(configs.BoardSizeBig.Value,
+                Is.EqualTo(BoardSizeBigConfig.ValueEnlarged));
+            Assert.That(provider.DyedKeys,
+                Is.EqualTo(new[]
+                {
+                    "region_color",
+                    "game_grid_ui",
+                    "board_size_big"
+                }));
+        }
+
+        [Test]
+        public void InputConfigSet_LoadsAppAndGameStartValuesFromOneCatalog()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true,
+                IsRemoteReadyValue = true
+            };
+            provider.IntValues["doubletap_protect"] =
+                DoubleTapProtectConfig.ValueShorten;
+            provider.IntValues["swipe_protect"] =
+                SwipeProtectConfig.ValueHotzone20;
+            provider.IntValues["tutorial_diagonal"] =
+                TutorialDiagonalConfig.ValueDiagonalCopy;
+            provider.IntValues["guide_feedback"] =
+                GuideFeedbackConfig.ValueIq;
+            var configs = new InputConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+
+            Assert.That(configs.DoubleTapProtect.Value,
+                Is.EqualTo(DoubleTapProtectConfig.ValueShorten));
+            Assert.That(configs.TutorialDiagonal.IsDiagonalCopy(), Is.True);
+            Assert.That(configs.GuideFeedback.IsIqGuide(), Is.True);
+            Assert.That(configs.SwipeProtect.IsValueLoaded, Is.False);
+
+            service.ReloadTiming(AbConfigTiming.GameStart);
+
+            Assert.That(configs.SwipeProtect.Value,
+                Is.EqualTo(SwipeProtectConfig.ValueHotzone20));
+            Assert.That(provider.DyedKeys,
+                Is.EqualTo(new[]
+                {
+                    "doubletap_protect",
+                    "tutorial_diagonal",
+                    "guide_feedback",
+                    "swipe_protect"
+                }));
         }
 
         [Test]
@@ -406,6 +494,15 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void WinToastMessage_ConvertsSourceBbCodeWithoutDamagingUnityTags()
+        {
+            Assert.That(
+                GameplayWinToastPresenter.ConvertGodotBbCode(
+                    "[b]Top[/b] <color=#FF83FB>20%</color>"),
+                Is.EqualTo("<b>Top</b> <color=#FF83FB>20%</color>"));
+        }
+
+        [Test]
         public void PassTextStrategy_SelectsSourceBranchesDeterministically()
         {
             var input = new PassTextStrategyInput
@@ -566,6 +663,161 @@ namespace Meowdoku.Tests.EditMode
                 "push_local_text",
                 "push_permission"
             }));
+        }
+
+        [Test]
+        public void LevelSelectionConfigSet_ReloadsPreCatOnlyAtNormalLevel21Timing()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true
+            };
+            provider.IntValues["size_cycle"] = SizeCycleConfig.ValueCycleV3A;
+            provider.IntValues["pre_cat"] = PreCatConfig.ValueAlways;
+            var configs = new LevelSelectionConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+            service.ReloadTiming(AbConfigTiming.GameStartNormal);
+
+            Assert.That(configs.SizeCycle.Value,
+                Is.EqualTo(SizeCycleConfig.ValueCycleV3A));
+            Assert.That(configs.PreCat.IsValueLoaded, Is.False);
+
+            service.ReloadTiming(AbConfigTiming.GameStartNormal21);
+
+            Assert.That(configs.PreCat.Value,
+                Is.EqualTo(PreCatConfig.ValueAlways));
+            Assert.That(provider.DyedKeys,
+                Is.EqualTo(new[] { "size_cycle", "single_region_num", "normal_level_10", "pre_cat" }));
+        }
+
+        [Test]
+        public void GameplayConfigSet_ReloadsSharedValuesAtSourceTimings()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true
+            };
+            provider.IntValues["daily_first_level_difficulty"] =
+                DailyFirstLevelDifficultyConfig.ValueReduceOne;
+            provider.IntValues["mark_sound"] = MarkSoundConfig.ValueSoft2;
+            provider.IntValues["dda_rank"] = DdaRankConfig.ValueAnyAction;
+            provider.IntValues["reward_unlock_level"] = 8;
+            provider.IntValues["prop_highlight"] =
+                PropHighlightConfig.ValueControlRepeatable;
+            provider.IntValues["rule_highlight"] =
+                RuleHighlightConfig.ValueHighlightAllLevels;
+            provider.IntValues["vibrate_combo"] =
+                VibrateComboConfig.ValueWeakerToStrong;
+            provider.IntValues["combo_voice"] =
+                ComboVoiceConfig.ValueRealFemaleMeowText3;
+            provider.IntValues["meow_feedback"] =
+                MeowFeedbackConfig.ValueCrescendo;
+            provider.IntValues["thumb_up"] =
+                ThumbUpConfig.ValueLikeOnly;
+            var configs = new GameplayConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+
+            Assert.That(configs.DailyFirstLevelDifficulty.IsEnabled(), Is.True);
+            Assert.That(configs.MarkSound.IsSoftVariant2(), Is.True);
+            Assert.That(configs.MeowFeedback.Value,
+                Is.EqualTo(MeowFeedbackConfig.ValueCrescendo));
+            Assert.That(configs.DdaRank.IsValueLoaded, Is.False);
+            Assert.That(configs.RuleHighlight.IsValueLoaded, Is.False);
+
+            service.ReloadTiming(AbConfigTiming.GameStart);
+            Assert.That(configs.RewardUnlockLevel.Value, Is.EqualTo(8));
+            Assert.That(configs.PropHighlight.IsRepeatable(), Is.True);
+            Assert.That(configs.RuleHighlight.IsAllLevels(), Is.True);
+            Assert.That(configs.VibrateCombo.Value,
+                Is.EqualTo(VibrateComboConfig.ValueWeakerToStrong));
+            Assert.That(configs.ComboVoice.Value,
+                Is.EqualTo(ComboVoiceConfig.ValueRealFemaleMeowText3));
+            Assert.That(configs.ThumbUp.Value,
+                Is.EqualTo(ThumbUpConfig.ValueLikeOnly));
+
+            service.ReloadTiming(AbConfigTiming.GameStartNormal);
+            Assert.That(configs.DdaRank.IsAnyActionDemote(), Is.True);
+            Assert.That(provider.DyedKeys, Is.EqualTo(new[]
+            {
+                "daily_first_level_difficulty",
+                "mark_sound",
+                "meow_feedback",
+                "reward_unlock_level",
+                "prop_highlight",
+                "rule_highlight",
+                "vibrate_combo",
+                "combo_voice",
+                "thumb_up",
+                "dda_rank"
+            }));
+        }
+
+        [Test]
+        public void ResultConfigSet_ReloadsAppGameAndFailTimingsSeparately()
+        {
+            var provider = new RecordingRuntimeProvider
+            {
+                IsInitializedValue = true
+            };
+            provider.IntValues["revive_free_logic"] =
+                ReviveFreeLogicConfig.ValueFirstEverOnce;
+            provider.IntValues["revive_life"] =
+                ReviveLifeConfig.ValueGroup3;
+            provider.IntValues["win_toast"] = WinToastConfig.ValueP20;
+            provider.IntValues["pass_page"] = PassPageConfig.ValueG4;
+            provider.IntValues["pass_text"] = PassTextConfig.ValueV3G3;
+            provider.IntValues["fail_text"] =
+                FailTextConfig.ValueRevivePromote;
+            var configs = new ResultConfigSet();
+            using var service = new AbConfigService(provider, configs.All);
+
+            service.Initialize();
+            Assert.That(configs.ReviveFreeLogic.Value,
+                Is.EqualTo(ReviveFreeLogicConfig.ValueFirstEverOnce));
+            Assert.That(configs.ReviveLife.IsValueLoaded, Is.False);
+            Assert.That(configs.FailText.IsValueLoaded, Is.False);
+
+            service.ReloadTiming(AbConfigTiming.GameStart);
+            Assert.That(configs.ReviveLife.IsAlternateButtonText(), Is.True);
+            Assert.That(configs.WinToast.Value, Is.EqualTo(WinToastConfig.ValueP20));
+            Assert.That(configs.PassPage.Value, Is.EqualTo(PassPageConfig.ValueG4));
+            Assert.That(configs.PassText.Value, Is.EqualTo(PassTextConfig.ValueV3G3));
+            Assert.That(configs.FailText.IsValueLoaded, Is.False);
+
+            service.ReloadTiming(AbConfigTiming.GameEnd);
+            Assert.That(configs.FailText.ShouldShowRevivePromote(), Is.True);
+            Assert.That(provider.DyedKeys, Is.EqualTo(new[]
+            {
+                "revive_free_logic",
+                "pass_text",
+                "revive_life",
+                "win_toast",
+                "pass_page",
+                "fail_text"
+            }));
+        }
+
+        [TestCase(RuleHighlightConfig.ValueControl, false, 1, false)]
+        [TestCase(RuleHighlightConfig.ValueHighlightViolated, false, 1, false)]
+        [TestCase(RuleHighlightConfig.ValueHighlightViolated, true, 5, true)]
+        [TestCase(RuleHighlightConfig.ValueHighlightViolated, true, 6, false)]
+        [TestCase(RuleHighlightConfig.ValueHighlightAllLevels, false, 100, true)]
+        public void RuleHighlight_PolicyMatchesSource(
+            int value,
+            bool tutorialDone,
+            int level,
+            bool expected)
+        {
+            var config = new RuleHighlightConfig();
+            config.SetDebugOverride(value);
+
+            Assert.That(
+                config.ShouldHighlight(tutorialDone, level),
+                Is.EqualTo(expected));
         }
 
         [TestCase(SingleRegionNumConfig.ValueDefault, 200, 5, -1)]

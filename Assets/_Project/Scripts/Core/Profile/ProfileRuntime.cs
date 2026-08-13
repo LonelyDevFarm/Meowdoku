@@ -25,5 +25,10 @@ namespace Meowdoku.Core.Profile
         {
             return Service.GrantFrame(frameId, count);
         }
+
+        internal void ConfigureForTests(ProfileService service)
+        {
+            _service = service;
+        }
     }
 }

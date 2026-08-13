@@ -1,5 +1,34 @@
+using System.Collections.Generic;
+
 namespace Meowdoku.Core.Config
 {
+    public sealed class ResultConfigSet
+    {
+        private readonly IAbConfig[] _all;
+
+        public ResultConfigSet()
+        {
+            // Preserve ABTestManager registration order for source timing/dye.
+            _all = new IAbConfig[]
+            {
+                FailText,
+                PassText,
+                ReviveFreeLogic,
+                ReviveLife,
+                WinToast,
+                PassPage
+            };
+        }
+
+        public FailTextConfig FailText { get; } = new();
+        public PassTextConfig PassText { get; } = new();
+        public ReviveFreeLogicConfig ReviveFreeLogic { get; } = new();
+        public ReviveLifeConfig ReviveLife { get; } = new();
+        public WinToastConfig WinToast { get; } = new();
+        public PassPageConfig PassPage { get; } = new();
+        public IReadOnlyList<IAbConfig> All => _all;
+    }
+
     public sealed class WinToastConfig : AbConfigBase<int>
     {
         public const int ValueControl = 0;

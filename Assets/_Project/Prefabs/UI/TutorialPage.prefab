@@ -172,6 +172,8 @@ MonoBehaviour:
   target: {fileID: 6113102597505286067}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 32
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &3541203418581875791
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -278,6 +280,8 @@ MonoBehaviour:
   target: {fileID: 3756669194400159853}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 20
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &363639800380242289
 GameObject:
   m_ObjectHideFlags: 0
@@ -586,7 +590,7 @@ RectTransform:
   m_GameObject: {fileID: 1069767109964132569}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3143913162714838817}
@@ -669,7 +673,7 @@ MonoBehaviour:
   playOpenSound: 0
   rootCanvas: {fileID: 1016711327267579058}
   rootCanvasGroup: {fileID: 1014622579992050169}
-  closeButton: {fileID: 0}
+  frameCloseButton: {fileID: 0}
   boardView: {fileID: 5276965798801492000}
   layoutSpace: {fileID: 650204214420631282}
   boardContainer: {fileID: 4396100474218092602}
@@ -1330,6 +1334,8 @@ MonoBehaviour:
   target: {fileID: 5037419944372703235}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 32
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &1052414192738056569
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1520,6 +1526,8 @@ MonoBehaviour:
   target: {fileID: 9107798266249837733}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 40
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &6860296828242275465
 GameObject:
   m_ObjectHideFlags: 0
@@ -1611,6 +1619,8 @@ MonoBehaviour:
   target: {fileID: 2385863975310527355}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 35
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!1 &7020959309140133378
 GameObject:
   m_ObjectHideFlags: 0
@@ -1704,6 +1714,8 @@ MonoBehaviour:
   target: {fileID: 4762949940039159045}
   roundedShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   cornerRadius: 32
+  usePerCornerRadii: 0
+  cornerRadii: {x: 32, y: 32, z: 32, w: 32}
 --- !u!114 &7961902981176724732
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2114,6 +2126,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.TutorialFinishEffects
   effectRoot: {fileID: 4024656457353560527}
+  lineSprite: {fileID: 5112795135943615386, guid: ab065fc0363b2b44a894784eaf156f5b, type: 3}
+  ribbonSprites:
+  - {fileID: 7309865821966294846, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  - {fileID: -6775254807992578624, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  - {fileID: 8453593653797419183, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  - {fileID: -8176820020048969991, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  starSprite: {fileID: -6271099958345818895, guid: c0c7dee2b37fa534aa0611d9be171a26, type: 3}
+  glowSprite: {fileID: -2216546548889014436, guid: 7470c47d177599f43aa0907d60dcb842, type: 3}
 --- !u!1 &7827349723726849521
 GameObject:
   m_ObjectHideFlags: 0
@@ -2268,6 +2288,7 @@ MonoBehaviour:
   inputSystemUiModule: {fileID: 0}
   regionColors: []
   roundedBackgroundShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
+  patternIcons: []
 --- !u!1 &9035757813848924505
 GameObject:
   m_ObjectHideFlags: 0

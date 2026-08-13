@@ -12,6 +12,7 @@ using Meowdoku.Core.Rank;
 using Meowdoku.Core.Robot;
 using Meowdoku.Core.UI;
 using Meowdoku.Gameplay;
+using Meowdoku.Services;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -80,7 +81,7 @@ namespace Meowdoku.Editor
                 AssetDatabase.LoadAssetAtPath<GameObject>(GamePagePath);
         }
 
-        internal static void InstallIfReady()
+        public static void InstallIfReady()
         {
             if (!CanEdit())
             {
@@ -89,9 +90,13 @@ namespace Meowdoku.Editor
                 return;
             }
 
-            if (!File.Exists(GameplayScenePath)) return;
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(GameplayScenePath) ==
+                null)
+                return;
+            NormalizeAppSceneUiScale();
             if (SplashPagePrefabInstaller.InstallIfReady() == null) return;
             if (!PlatformGuidePrefabInstaller.InstallIfReady()) return;
+            if (!ProductServicePrefabInstaller.InstallIfReady()) return;
             GameObject gamePrefab =
                 AssetDatabase.LoadAssetAtPath<GameObject>(GamePagePath);
             if ((gamePrefab == null ||
@@ -99,6 +104,8 @@ namespace Meowdoku.Editor
                 !BuildGamePage())
                 return;
             UpgradeGamePageDailyPresentation();
+            UpgradeGamePageSharedAudio();
+            UpgradeGamePageLifeEffects();
 
             UIRegistry registry = UIRegistryAssetInstaller.InstallIfReady();
             LocalizationCatalog localization =
@@ -120,6 +127,48 @@ namespace Meowdoku.Editor
                    !EditorApplication.isPlayingOrWillChangePlaymode;
         }
 
+        internal static void NormalizeAppSceneUiScale()
+        {
+            if (!CanEdit()) return;
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(AppScenePath) == null)
+                return;
+
+            Scene app = SceneManager.GetSceneByPath(AppScenePath);
+            bool openedForUpgrade = !app.IsValid() || !app.isLoaded;
+            List<Behaviour> suspendedSceneLights = null;
+            try
+            {
+                if (openedForUpgrade)
+                {
+                    suspendedSceneLights = SuspendLoadedSceneLights();
+                    app = EditorSceneManager.OpenScene(
+                        AppScenePath,
+                        OpenSceneMode.Additive);
+                }
+                if (!app.IsValid() || !app.isLoaded) return;
+
+                GameObject appRoot = FindRoot(app, "App");
+                Transform ui = appRoot != null
+                    ? appRoot.transform.Find("UI")
+                    : null;
+                if (ui == null) return;
+
+                bool changed = NormalizeScale(ui);
+                changed |= NormalizeScale(ui.Find("Windows"));
+                changed |= NormalizeScale(ui.Find("SharedOverlays"));
+                if (!changed) return;
+
+                EditorSceneManager.MarkSceneDirty(app);
+                EditorSceneManager.SaveScene(app, AppScenePath);
+            }
+            finally
+            {
+                if (openedForUpgrade && app.IsValid() && app.isLoaded)
+                    EditorSceneManager.CloseScene(app, true);
+                RestoreSceneLights(suspendedSceneLights);
+            }
+        }
+
         private static bool BuildGamePage()
         {
             Scene preview = default;
@@ -136,6 +185,8 @@ namespace Meowdoku.Editor
                 if (canvas == null || manager == null) return false;
                 GameplayPresentationSceneInstaller.ConfigureBoardPatterns(
                     manager.boardView);
+                GameplayFeedbackSceneInstaller.ConfigureLifeEffects(
+                    canvasObject.transform);
 
                 canvasObject.name = "GamePage";
                 systems.transform.SetParent(canvasObject.transform, false);
@@ -416,6 +467,8 @@ namespace Meowdoku.Editor
                     systems.AddComponent<AbConfigRuntime>();
                 PrivacyPermissionRuntime platformRuntime =
                     systems.AddComponent<PrivacyPermissionRuntime>();
+                ProductServiceRuntime productServiceRuntime =
+                    systems.AddComponent<ProductServiceRuntime>();
                 AuthRuntime authRuntime =
                     systems.AddComponent<AuthRuntime>();
                 AdRuntime adRuntime = systems.AddComponent<AdRuntime>();
@@ -466,6 +519,10 @@ namespace Meowdoku.Editor
                     .objectReferenceValue = rankRuntime;
                 dataSyncData.ApplyModifiedPropertiesWithoutUndo();
 
+                SoundRuntime soundRuntime = CreateSharedAudio(
+                    systems.transform,
+                    null);
+
                 var uiObject = new GameObject(
                     "UI",
                     typeof(RectTransform),
@@ -475,6 +532,7 @@ namespace Meowdoku.Editor
                     typeof(UIManager));
                 RectTransform uiRect = (RectTransform)uiObject.transform;
                 uiRect.SetParent(appRoot.transform, false);
+                uiRect.localScale = Vector3.one;
                 Stretch(uiRect);
                 Canvas rootCanvas = uiObject.GetComponent<Canvas>();
                 rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -504,6 +562,11 @@ namespace Meowdoku.Editor
                     true);
 
                 UIManager uiManager = uiObject.GetComponent<UIManager>();
+                soundRuntime.BindUIManager(uiManager);
+                SerializedObject soundRuntimeData = new(soundRuntime);
+                soundRuntimeData.FindProperty("uiManager").objectReferenceValue =
+                    uiManager;
+                soundRuntimeData.ApplyModifiedPropertiesWithoutUndo();
                 SerializedObject platformData = new(platformRuntime);
                 platformData.FindProperty("uiManager").objectReferenceValue =
                     uiManager;
@@ -514,6 +577,16 @@ namespace Meowdoku.Editor
                 platformData.FindProperty("trackingRuntime")
                     .objectReferenceValue = trackingRuntime;
                 platformData.ApplyModifiedPropertiesWithoutUndo();
+                SerializedObject productData = new(productServiceRuntime);
+                productData.FindProperty("uiManager").objectReferenceValue =
+                    uiManager;
+                productData.FindProperty("localization")
+                    .objectReferenceValue = localization;
+                productData.FindProperty("abConfigRuntime")
+                    .objectReferenceValue = abConfigRuntime;
+                productData.FindProperty("trackingRuntime")
+                    .objectReferenceValue = trackingRuntime;
+                productData.ApplyModifiedPropertiesWithoutUndo();
                 dailyMetaData.FindProperty("uiManager")
                     .objectReferenceValue = uiManager;
                 dailyMetaData.ApplyModifiedPropertiesWithoutUndo();
@@ -539,6 +612,8 @@ namespace Meowdoku.Editor
                     .objectReferenceValue = dataSyncRuntime;
                 managerData.FindProperty("platformRuntime")
                     .objectReferenceValue = platformRuntime;
+                managerData.FindProperty("productServiceRuntime")
+                    .objectReferenceValue = productServiceRuntime;
                 managerData.FindProperty("maskCanvas").objectReferenceValue =
                     maskCanvas;
                 managerData.FindProperty("maskGroup").objectReferenceValue =
@@ -561,6 +636,8 @@ namespace Meowdoku.Editor
                     .objectReferenceValue = dataSyncRuntime;
                 bootstrapData.FindProperty("platformRuntime")
                     .objectReferenceValue = platformRuntime;
+                bootstrapData.FindProperty("productServiceRuntime")
+                    .objectReferenceValue = productServiceRuntime;
                 bootstrapData.FindProperty("runOnStart").boolValue = true;
                 bootstrapData.ApplyModifiedPropertiesWithoutUndo();
 
@@ -580,7 +657,8 @@ namespace Meowdoku.Editor
 
         private static void UpgradeAppSceneClockTicker()
         {
-            if (!File.Exists(AppScenePath)) return;
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(AppScenePath) == null)
+                return;
 
             Scene app = SceneManager.GetSceneByPath(AppScenePath);
             bool openedForUpgrade = !app.IsValid() || !app.isLoaded;
@@ -606,6 +684,16 @@ namespace Meowdoku.Editor
                 if (systems == null || manager == null) return;
 
                 bool changed = false;
+                changed |= NormalizeScale(manager.transform);
+                Transform windows = manager.transform.Find("Windows");
+                changed |= NormalizeScale(windows);
+                Transform overlays = manager.transform.Find("SharedOverlays");
+                changed |= NormalizeScale(overlays);
+                if (overlays != null)
+                {
+                    changed |= NormalizeScale(overlays.Find("ModalMask"));
+                    changed |= NormalizeScale(overlays.Find("InputGuard"));
+                }
                 ClockTicker ticker = systems.GetComponent<ClockTicker>();
                 if (ticker == null)
                 {
@@ -658,6 +746,15 @@ namespace Meowdoku.Editor
                     changed = true;
                 }
 
+                ProductServiceRuntime productServiceRuntime =
+                    systems.GetComponent<ProductServiceRuntime>();
+                if (productServiceRuntime == null)
+                {
+                    productServiceRuntime = systems.gameObject
+                        .AddComponent<ProductServiceRuntime>();
+                    changed = true;
+                }
+
                 AuthRuntime authRuntime =
                     systems.GetComponent<AuthRuntime>();
                 if (authRuntime == null)
@@ -672,6 +769,27 @@ namespace Meowdoku.Editor
                 {
                     adRuntime = systems.gameObject.AddComponent<AdRuntime>();
                     changed = true;
+                }
+
+                SoundRuntime soundRuntime =
+                    systems.GetComponentInChildren<SoundRuntime>(true);
+                if (soundRuntime == null)
+                {
+                    soundRuntime = CreateSharedAudio(systems, manager);
+                    changed = soundRuntime != null;
+                }
+                else
+                {
+                    SerializedObject soundRuntimeData = new(soundRuntime);
+                    changed |= SetReference(
+                        soundRuntimeData,
+                        "uiManager",
+                        manager);
+                    changed |= SetReference(
+                        soundRuntimeData,
+                        "soundService",
+                        soundRuntime.GetComponent<SoundService>());
+                    soundRuntimeData.ApplyModifiedPropertiesWithoutUndo();
                 }
                 SerializedObject adData = new(adRuntime);
                 changed |= SetReference(
@@ -804,6 +922,22 @@ namespace Meowdoku.Editor
                     trackingRuntime);
                 platformData.ApplyModifiedPropertiesWithoutUndo();
 
+                SerializedObject productData = new(productServiceRuntime);
+                changed |= SetReference(productData, "uiManager", manager);
+                changed |= SetReference(
+                    productData,
+                    "localization",
+                    LocalizationCatalogAssetInstaller.GetOrCreate());
+                changed |= SetReference(
+                    productData,
+                    "abConfigRuntime",
+                    abConfigRuntime);
+                changed |= SetReference(
+                    productData,
+                    "trackingRuntime",
+                    trackingRuntime);
+                productData.ApplyModifiedPropertiesWithoutUndo();
+
                 SerializedObject managerData = new(manager);
                 SerializedProperty tickerProperty =
                     managerData.FindProperty("clockTicker");
@@ -871,6 +1005,10 @@ namespace Meowdoku.Editor
                     managerData,
                     "platformRuntime",
                     platformRuntime);
+                changed |= SetReference(
+                    managerData,
+                    "productServiceRuntime",
+                    productServiceRuntime);
                 managerData.ApplyModifiedPropertiesWithoutUndo();
 
                 AppBootstrap bootstrap =
@@ -897,6 +1035,10 @@ namespace Meowdoku.Editor
                     bootstrapData,
                     "platformRuntime",
                     platformRuntime);
+                changed |= SetReference(
+                    bootstrapData,
+                    "productServiceRuntime",
+                    productServiceRuntime);
                 bootstrapData.ApplyModifiedPropertiesWithoutUndo();
 
                 SerializedProperty dailyUiProperty =
@@ -959,6 +1101,96 @@ namespace Meowdoku.Editor
             }
         }
 
+        private static SoundRuntime CreateSharedAudio(
+            Transform systems,
+            UIManager manager)
+        {
+            if (systems == null) return null;
+            SoundCatalog catalog =
+                GameplayAudioSceneInstaller.GetOrCreateCatalog();
+            if (catalog == null) return null;
+
+            Transform audio = systems.Find("Audio");
+            if (audio == null)
+            {
+                var audioObject = new GameObject("Audio");
+                audio = audioObject.transform;
+                audio.SetParent(systems, false);
+            }
+
+            SoundService service = audio.GetComponent<SoundService>();
+            if (service == null)
+                service = audio.gameObject.AddComponent<SoundService>();
+            SoundRuntime runtime = audio.GetComponent<SoundRuntime>();
+            if (runtime == null)
+                runtime = audio.gameObject.AddComponent<SoundRuntime>();
+
+            Transform bgmTransform = audio.Find("Bgm");
+            if (bgmTransform == null)
+            {
+                var bgmObject = new GameObject("Bgm");
+                bgmTransform = bgmObject.transform;
+                bgmTransform.SetParent(audio, false);
+            }
+            AudioSource bgm = bgmTransform.GetComponent<AudioSource>();
+            if (bgm == null) bgm = bgmTransform.gameObject.AddComponent<AudioSource>();
+            bgm.playOnAwake = false;
+            bgm.loop = true;
+
+            SerializedObject serviceData = new(service);
+            SetReference(serviceData, "catalog", catalog);
+            SetReference(serviceData, "bgmSource", bgm);
+            serviceData.ApplyModifiedPropertiesWithoutUndo();
+
+            SerializedObject runtimeData = new(runtime);
+            SetReference(runtimeData, "uiManager", manager);
+            SetReference(runtimeData, "soundService", service);
+            runtimeData.ApplyModifiedPropertiesWithoutUndo();
+            return runtime;
+        }
+
+        private static void UpgradeGamePageSharedAudio()
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(GamePagePath);
+            bool changed = false;
+            try
+            {
+                SoundService[] embedded =
+                    root.GetComponentsInChildren<SoundService>(true);
+                for (int index = embedded.Length - 1; index >= 0; index--)
+                {
+                    SoundService service = embedded[index];
+                    if (service == null) continue;
+                    UnityEngine.Object.DestroyImmediate(service.gameObject);
+                    changed = true;
+                }
+
+                if (changed)
+                    PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void UpgradeGamePageLifeEffects()
+        {
+            if (!File.Exists(GamePagePath)) return;
+            GameObject root = PrefabUtility.LoadPrefabContents(GamePagePath);
+            try
+            {
+                if (!GameplayFeedbackSceneInstaller.ConfigureLifeEffects(root.transform))
+                    return;
+                PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
         private static void CreateMask(
             string name,
             Transform parent,
@@ -1000,11 +1232,15 @@ namespace Meowdoku.Editor
                 bool patternChanged =
                     GameplayPresentationSceneInstaller.ConfigureBoardPatterns(
                         gameplay != null ? gameplay.boardView : null);
+                bool toolBarChanged =
+                    GameplayPresentationSceneInstaller.ConfigureToolBar(
+                        root.transform,
+                        gameplay);
                 DailyPresentationRefs daily = EnsureDailyPresentation(
                     root.transform);
                 if (daily.DateRoot == null || daily.TimerRoot == null)
                 {
-                    if (patternChanged)
+                    if (patternChanged || toolBarChanged)
                     {
                         PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
                         AssetDatabase.SaveAssets();
@@ -1013,7 +1249,7 @@ namespace Meowdoku.Editor
                 }
 
                 SerializedObject data = new(presenter);
-                bool changed = daily.Created || patternChanged;
+                bool changed = daily.Created || patternChanged || toolBarChanged;
                 changed |= SetReference(data, "mainLevelDisplay", daily.MainLevel);
                 changed |= SetReference(data, "mainScoreDisplay", daily.MainScore);
                 changed |= SetReference(data, "dailyDateDisplay", daily.DateRoot);
@@ -1210,7 +1446,15 @@ namespace Meowdoku.Editor
             var gameObject = new GameObject(name, typeof(RectTransform));
             var rect = (RectTransform)gameObject.transform;
             rect.SetParent(parent, false);
+            rect.localScale = Vector3.one;
             return rect;
+        }
+
+        private static bool NormalizeScale(Transform value)
+        {
+            if (value == null || value.localScale == Vector3.one) return false;
+            value.localScale = Vector3.one;
+            return true;
         }
 
         private static void Stretch(RectTransform rect)
@@ -1251,21 +1495,10 @@ namespace Meowdoku.Editor
 
         private static void EnsureBuildSettings()
         {
-            var paths = new List<string> { AppScenePath };
-            foreach (EditorBuildSettingsScene scene in
-                     EditorBuildSettings.scenes)
+            EditorBuildSettings.scenes = new[]
             {
-                if (string.Equals(
-                        scene.path,
-                        AppScenePath,
-                        StringComparison.OrdinalIgnoreCase))
-                    continue;
-                paths.Add(scene.path);
-            }
-            var scenes = new EditorBuildSettingsScene[paths.Count];
-            for (int index = 0; index < paths.Count; index++)
-                scenes[index] = new EditorBuildSettingsScene(paths[index], true);
-            EditorBuildSettings.scenes = scenes;
+                new EditorBuildSettingsScene(AppScenePath, true)
+            };
         }
     }
 }

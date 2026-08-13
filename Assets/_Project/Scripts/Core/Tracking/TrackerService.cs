@@ -556,6 +556,11 @@ namespace Meowdoku.Core.Tracking
                 });
         }
 
+        public void TrackRemoveAppStart() =>
+            Send(
+                TrackerCatalog.Event.RemoveAppStart,
+                new Dictionary<string, object>());
+
         public static string TransformToQuestionRotation(int transform)
         {
             int normalized = Math.Max(0, transform);

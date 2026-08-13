@@ -1082,7 +1082,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.426923, g: 0.3251181, b: 0.34547916, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1471,8 +1471,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 80, y: -7}
-  m_SizeDelta: {x: 235, y: 86}
+  m_AnchoredPosition: {x: 110, y: -7}
+  m_SizeDelta: {x: 174, y: 86}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &8935243406697970677
 CanvasRenderer:
@@ -1495,7 +1495,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.576, g: 0.353, b: 0.353, a: 1}
+  m_Color: {r: 0.7372549, g: 0.60784316, b: 0.5411765, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1548,11 +1548,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 4594891218724202603}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 110, y: -13.5}
+  m_SizeDelta: {x: 174, y: 73}
+  m_Pivot: {x: 0, y: 1}
 --- !u!222 &3252396580691661413
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1574,7 +1574,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.9843137, b: 0.96862745, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2269,8 +2269,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 80, y: -7}
-  m_SizeDelta: {x: 235, y: 86}
+  m_AnchoredPosition: {x: 112, y: -6}
+  m_SizeDelta: {x: 170, y: 88}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &3342036910599914726
 CanvasRenderer:
@@ -2293,7 +2293,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 0.576, g: 0.353, b: 0.353, a: 1}
+  m_Color: {r: 0.7372549, g: 0.60784316, b: 0.5411765, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3074,7 +3074,7 @@ MonoBehaviour:
   playOpenSound: 0
   rootCanvas: {fileID: 4288377348465807574}
   rootCanvasGroup: {fileID: 2392160825767509092}
-  closeButton: {fileID: 0}
+  frameCloseButton: {fileID: 0}
   content: {fileID: 1027590451351305309}
   popupAnimator: {fileID: 3218562095732479641}
   actionCloseButton: {fileID: 832577605530634560}
@@ -3125,6 +3125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.GenericPopupAnimator
   content: {fileID: 1027590451351305309}
   contentGroup: {fileID: 7862454944219314178}
+  overlayGroup: {fileID: 0}
 --- !u!1 &7503848528887175662
 GameObject:
   m_ObjectHideFlags: 0
@@ -3391,11 +3392,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 7019406372889584713}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 110, y: -7}
+  m_SizeDelta: {x: 170, y: 88}
+  m_Pivot: {x: 0, y: 1}
 --- !u!222 &2036953040222801272
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3417,7 +3418,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.9843137, b: 0.96862745, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3892,7 +3893,7 @@ MonoBehaviour:
   m_MinWidth: -1
   m_MinHeight: -1
   m_PreferredWidth: -1
-  m_PreferredHeight: 10
+  m_PreferredHeight: 0
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
@@ -4301,7 +4302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.723077, g: 0.508657, b: 0.36571, a: 1}
+  m_Color: {r: 0.9764706, g: 0.9254902, b: 0.88235295, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

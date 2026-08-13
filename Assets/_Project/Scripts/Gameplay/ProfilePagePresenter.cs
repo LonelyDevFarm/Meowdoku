@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using Meowdoku.Core.Localization;
 using Meowdoku.Core.Profile;
+using Meowdoku.Core.Rank;
 using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
 using UnityEngine;
@@ -13,7 +14,8 @@ namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
     public sealed class ProfilePagePresenter : UIFrameWindow,
-        IProfileConsumer
+        IProfileConsumer,
+        IRankActivityConsumer
     {
         public override string GetTrackingDialogName() =>
             TrackerCatalog.Dialog.Avatar;
@@ -21,6 +23,11 @@ namespace Meowdoku.Gameplay
         private const float LockTipAutoCloseSeconds = 3f;
         private const float TipArrowCenterX = 390f;
         private const float LockTipFixedY = -365f;
+        private const float AvatarScrollBottomExtend = 20f;
+        private const float FrameScrollTopDown = 10f;
+        private const float FrameScrollBottomExtend = 10f;
+        private const float TipTextWidthWithGo = 500f;
+        private const float TipTextWidthWithoutGo = 700f;
 
         [Header("Popup")]
         [SerializeField] private RectTransform content;
@@ -72,12 +79,37 @@ namespace Meowdoku.Gameplay
 
         private readonly List<ProfileSelectionCell> _cells = new();
         private ProfileRuntime _runtime;
+        private RankActivityRuntime _rankActivityRuntime;
         private Sequence _lockTipTween;
         private int _lockTipGeneration;
         private int _pendingAvatarId;
         private int _pendingFrameId;
         private bool _showingFrames;
         private bool _serviceSubscribed;
+        private bool _fromRankOpenGuide;
+        private Vector2 _scrollOriginalPosition;
+        private Vector2 _scrollOriginalSize;
+
+#if UNITY_INCLUDE_TESTS
+        internal int PendingAvatarIdForTests => _pendingAvatarId;
+        internal int PendingFrameIdForTests => _pendingFrameId;
+        internal bool ShowingFramesForTests => _showingFrames;
+        internal bool FrameRedDotVisibleForTests =>
+            frameRedDot != null && frameRedDot.activeSelf;
+        internal bool LockTipVisibleForTests =>
+            lockTipRoot != null && lockTipRoot.activeSelf;
+        internal bool LockTipGoVisibleForTests =>
+            lockTipGoRoot != null && lockTipGoRoot.activeSelf;
+        internal Vector2 ScrollViewportPositionForTests =>
+            scroll?.viewport != null
+                ? scroll.viewport.anchoredPosition
+                : Vector2.zero;
+        internal Vector2 ScrollViewportSizeForTests =>
+            scroll?.viewport != null
+                ? scroll.viewport.sizeDelta
+                : Vector2.zero;
+        internal int CellCountForTests => _cells.Count;
+#endif
 
         protected override void OnCreate()
         {
@@ -96,6 +128,11 @@ namespace Meowdoku.Gameplay
             }
             if (localization != null)
                 localization.LocaleChanged += RefreshText;
+            if (scroll?.viewport != null)
+            {
+                _scrollOriginalPosition = scroll.viewport.anchoredPosition;
+                _scrollOriginalSize = scroll.viewport.sizeDelta;
+            }
             RefreshText();
         }
 
@@ -108,6 +145,9 @@ namespace Meowdoku.Gameplay
 
             _pendingAvatarId = service.AvatarId;
             _pendingFrameId = service.FrameId;
+            _fromRankOpenGuide = ReadBool(
+                parameters,
+                "from_rank_open_guide");
             if (nicknameInput != null)
             {
                 nicknameInput.text = service.Nickname;
@@ -137,6 +177,7 @@ namespace Meowdoku.Gameplay
             CloseLockTipImmediate();
             UnsubscribeService();
             ClearCells();
+            _fromRankOpenGuide = false;
             yield break;
         }
 
@@ -168,6 +209,11 @@ namespace Meowdoku.Gameplay
             UnsubscribeService();
             _runtime = runtime;
             if (IsShowing) SubscribeService();
+        }
+
+        public void BindRankActivityRuntime(RankActivityRuntime runtime)
+        {
+            _rankActivityRuntime = runtime;
         }
 
         public void BindLocalization(LocalizationCatalog catalog)
@@ -212,7 +258,29 @@ namespace Meowdoku.Gameplay
             gridBackground?.SetCornerRadii(_showingFrames
                 ? new Vector4(30f, 0f, 30f, 30f)
                 : new Vector4(0f, 30f, 30f, 30f));
+            ApplyScrollLayout();
             RefreshFrameRedDot();
+        }
+
+        private void ApplyScrollLayout()
+        {
+            RectTransform viewport = scroll?.viewport;
+            if (viewport == null) return;
+
+            if (_showingFrames)
+            {
+                viewport.anchoredPosition = _scrollOriginalPosition +
+                    new Vector2(0f, -FrameScrollTopDown);
+                viewport.sizeDelta = _scrollOriginalSize + new Vector2(
+                    0f,
+                    FrameScrollBottomExtend - FrameScrollTopDown);
+            }
+            else
+            {
+                viewport.anchoredPosition = _scrollOriginalPosition;
+                viewport.sizeDelta = _scrollOriginalSize +
+                    new Vector2(0f, AvatarScrollBottomExtend);
+            }
         }
 
         private void BuildAvatarCells()
@@ -355,7 +423,7 @@ namespace Meowdoku.Gameplay
                 0f,
                 Mathf.Max(0f, content.rect.width - lockTipBubble.rect.width));
             lockTipBubble.anchoredPosition = new Vector2(x, LockTipFixedY);
-            if (lockTipGoRoot != null) lockTipGoRoot.SetActive(false);
+            ApplyLockTipLayout();
             lockTipRoot.SetActive(true);
             lockTipBubble.localScale = Vector3.one * 0.5f;
             if (lockTipGroup != null) lockTipGroup.alpha = 0f;
@@ -410,9 +478,53 @@ namespace Meowdoku.Gameplay
 
         private void OpenRankFromTip()
         {
-            // Source only exposes this action while RankActivityManager runs.
-            // It remains hidden until the real R15 Rank boundary is composed.
-            CloseLockTip();
+            RankActivityManager manager = _rankActivityRuntime?.Manager;
+            if (manager == null || !manager.IsRunning ||
+                _fromRankOpenGuide || Owner == null)
+                return;
+            StartManagedCoroutine(OpenRankHomeEntry(manager));
+        }
+
+        private void ApplyLockTipLayout()
+        {
+            bool rankOn = _rankActivityRuntime?.Manager?.IsRunning == true &&
+                          !_fromRankOpenGuide;
+            if (lockTipGoRoot != null) lockTipGoRoot.SetActive(rankOn);
+            if (lockTipText == null) return;
+            RectTransform rect = lockTipText.rectTransform;
+            Vector2 size = rect.sizeDelta;
+            size.x = rankOn
+                ? TipTextWidthWithGo
+                : TipTextWidthWithoutGo;
+            rect.sizeDelta = size;
+            lockTipText.alignment = rankOn
+                ? TextAnchor.MiddleLeft
+                : TextAnchor.MiddleCenter;
+        }
+
+        private IEnumerator OpenRankHomeEntry(RankActivityManager manager)
+        {
+            CloseLockTipImmediate();
+            Owner.Hide(UiName.Profile);
+
+            if (manager.IsOpenNotJoined)
+            {
+                RequestHomeRankPopup();
+                yield break;
+            }
+
+            UIFrameWindow page = Owner.Show(UiName.RankActivityPage);
+            if (page == null) yield break;
+            yield return Owner.AwaitHidden(UiName.RankActivityPage);
+            yield return null;
+            yield return null;
+            RequestHomeRankPopup();
+        }
+
+        private void RequestHomeRankPopup()
+        {
+            if (Owner?.Get(UiName.Home) is HomePagePresenter home)
+                home.RequestRankOpenPopup();
         }
 
         private void RefreshHeader()
@@ -543,6 +655,25 @@ namespace Meowdoku.Gameplay
             UnityEngine.Events.UnityAction action)
         {
             if (button != null) button.onClick.RemoveListener(action);
+        }
+
+        private static bool ReadBool(
+            IReadOnlyDictionary<string, object> parameters,
+            string key)
+        {
+            if (parameters == null ||
+                !parameters.TryGetValue(key, out object value) ||
+                value == null)
+                return false;
+            if (value is bool flag) return flag;
+            try
+            {
+                return Convert.ToBoolean(value);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
     }
 }

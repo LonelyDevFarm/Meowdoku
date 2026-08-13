@@ -211,6 +211,72 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void BothPlayerSlotsCorrupt_LoadsSourceDefaultsSafely()
+        {
+            var repository = new GameStateRepository(_directory);
+            Assert.That(repository.SavePlayer(new GameStateData
+            {
+                CurrentLevel = 17,
+                CurrentStrategy = 3,
+                ToolHint = 1
+            }), Is.True);
+            Assert.That(repository.SavePlayer(new GameStateData
+            {
+                CurrentLevel = 18,
+                CurrentStrategy = 4,
+                ToolHint = 0
+            }), Is.True);
+
+            string saveDirectory = Path.Combine(_directory, "save_store");
+            File.WriteAllText(Path.Combine(saveDirectory, "save_a.cfg"),
+                "corrupt-slot-a");
+            File.WriteAllText(Path.Combine(saveDirectory, "save_b.cfg"),
+                "corrupt-slot-b");
+
+            GameStateData restored =
+                new GameStateRepository(_directory).Load();
+
+            Assert.That(restored, Is.Not.Null);
+            Assert.That(restored.CurrentLevel, Is.EqualTo(1));
+            Assert.That(restored.CurrentStrategy, Is.EqualTo(1));
+            Assert.That(restored.ToolHint, Is.EqualTo(5));
+            Assert.That(restored.IsFirstSession, Is.True);
+        }
+
+        [Test]
+        public void CorruptEndgame_DoesNotDiscardValidPlayerState()
+        {
+            var repository = new GameStateRepository(_directory);
+            var source = new GameStateData
+            {
+                CurrentLevel = 31,
+                CurrentStrategy = 4,
+                TutorialDone = true,
+                EndgameSnapshot = new Dictionary<string, object>
+                {
+                    { "level", 31 },
+                    { "lives", 2 }
+                },
+                MainGameId = "durable-player"
+            };
+            Assert.That(repository.SavePlayer(source), Is.True);
+            Assert.That(repository.SaveEndgame(source), Is.True);
+
+            File.WriteAllText(
+                Path.Combine(_directory, "save_store", "endgame.cfg"),
+                "corrupt-endgame");
+
+            GameStateData restored =
+                new GameStateRepository(_directory).Load();
+
+            Assert.That(restored.CurrentLevel, Is.EqualTo(31));
+            Assert.That(restored.CurrentStrategy, Is.EqualTo(4));
+            Assert.That(restored.TutorialDone, Is.True);
+            Assert.That(restored.EndgameSnapshot, Is.Empty);
+            Assert.That(restored.MainGameId, Is.Empty);
+        }
+
+        [Test]
         public void WrongTypedPlayerFields_FallBackIndependently()
         {
             var player = new Dictionary<string, object>

@@ -8,18 +8,21 @@ namespace Meowdoku.Gameplay
             float headerCenterY,
             float catHeartCenterY,
             float ruleCenterY,
-            float boardCenterY)
+            float boardCenterY,
+            float bottomToolsCenterY)
         {
             HeaderCenterY = headerCenterY;
             CatHeartCenterY = catHeartCenterY;
             RuleCenterY = ruleCenterY;
             BoardCenterY = boardCenterY;
+            BottomToolsCenterY = bottomToolsCenterY;
         }
 
         public float HeaderCenterY { get; }
         public float CatHeartCenterY { get; }
         public float RuleCenterY { get; }
         public float BoardCenterY { get; }
+        public float BottomToolsCenterY { get; }
     }
 
     /// <summary>
@@ -98,6 +101,8 @@ namespace Meowdoku.Gameplay
             float catAdapt = CatAdaptMinimum + catRatio * unit;
             float ruleAdapt = ruleMinimum + ruleRatio * unit;
             float boardAdapt = BoardAdaptMinimum + boardRatio * unit;
+            float functionAdapt = functionMinimum + FunctionAdaptRatio * unit;
+            float bottomAdapt = bottomMinimum + bottomRatio * unit;
 
             float ruleTop = headerAdapt + HeaderHeight + catAdapt +
                             CatHeartHeight + ruleAdapt;
@@ -112,8 +117,16 @@ namespace Meowdoku.Gameplay
                                 (ruleTop + RuleBarHeight * 0.5f);
             float boardCenterY = halfViewport - topInset -
                                  (boardTop + boardContainerHeight * 0.5f);
+            float bottomToolsTop = boardTop + boardContainerHeight +
+                                   functionAdapt + bottomAdapt;
+            float bottomToolsCenterY = halfViewport - topInset -
+                                       (bottomToolsTop + BottomToolsHeight * 0.5f);
             return new SourceGameplayPageLayoutResult(
-                headerCenterY, catHeartCenterY, ruleCenterY, boardCenterY);
+                headerCenterY,
+                catHeartCenterY,
+                ruleCenterY,
+                boardCenterY,
+                bottomToolsCenterY);
         }
 
         public static float HeaderAdaptiveMinimumFor(float viewportHeight)

@@ -13,6 +13,7 @@ namespace Meowdoku.Gameplay
         [SerializeField] private RectTransform catHeartRow;
         [SerializeField] private RectTransform ruleBar;
         [SerializeField] private RectTransform board;
+        [SerializeField] private RectTransform bottomTools;
         [SerializeField] private BoardView boardView;
 
         private void OnEnable()
@@ -47,11 +48,22 @@ namespace Meowdoku.Gameplay
                 return;
 
             GetSafeInsets(out float topInset, out float bottomInset);
+            ApplyLayout(layoutSpace.rect.height, topInset, bottomInset);
+        }
+
+        private void ApplyLayout(
+            float viewportHeight,
+            float topInset,
+            float bottomInset)
+        {
+            if (layoutSpace == null || viewportHeight <= 0f)
+                return;
+
             float boardHeight = boardView != null
                 ? boardView.VisibleBoardPixels
                 : SourceGameplayPageLayout.BoardHeight;
             SourceGameplayPageLayoutResult result = SourceGameplayPageLayout.Calculate(
-                layoutSpace.rect.height,
+                viewportHeight,
                 topInset,
                 bottomInset,
                 boardHeight,
@@ -61,6 +73,8 @@ namespace Meowdoku.Gameplay
                 SetCenteredPosition(catHeartRow, result.CatHeartCenterY);
             if (ruleBar != null) SetCenteredPosition(ruleBar, result.RuleCenterY);
             if (board != null) SetCenteredPosition(board, result.BoardCenterY);
+            if (bottomTools != null)
+                SetCenteredPosition(bottomTools, result.BottomToolsCenterY);
         }
 
         private static void SetCenteredPosition(RectTransform rect, float y)
@@ -82,5 +96,21 @@ namespace Meowdoku.Gameplay
             topInset = Mathf.Max(0f, Screen.height - safeArea.yMax) * canvasUnitsPerPixel;
             bottomInset = Mathf.Max(0f, safeArea.yMin) * canvasUnitsPerPixel;
         }
+
+#if UNITY_INCLUDE_TESTS
+        internal void ApplyLayoutForTests(
+            float viewportHeight,
+            float topInset,
+            float bottomInset)
+        {
+            ApplyLayout(viewportHeight, topInset, bottomInset);
+        }
+
+        internal RectTransform HeaderForTests => header;
+        internal RectTransform CatHeartRowForTests => catHeartRow;
+        internal RectTransform RuleBarForTests => ruleBar;
+        internal RectTransform BoardForTests => board;
+        internal RectTransform BottomToolsForTests => bottomTools;
+#endif
     }
 }

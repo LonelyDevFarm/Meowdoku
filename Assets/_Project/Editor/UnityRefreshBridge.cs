@@ -65,7 +65,15 @@ namespace Meowdoku.Editor
                     !EditorApplication.isUpdating)
                 {
                     _refreshPending = false;
+                    AppRuntimeSceneInstaller.NormalizeAppSceneUiScale();
+                    GameplayPresentationSceneInstaller.UpgradeCellPrefab();
+                    ProductServicePrefabInstaller.InstallIfReady();
                     PlatformGuidePrefabInstaller.InstallIfReady();
+                    ConfirmDialogPrefabInstaller.InstallIfReady();
+                    ProfilePagePrefabInstaller.InstallIfReady();
+                    TutorialPagePrefabInstaller.InstallIfReady();
+                    HowToPlayPagePrefabInstaller.InstallIfReady();
+                    PortfolioBuildSettingsInstaller.InstallIfReady();
                     AppRuntimeSceneInstaller.InstallIfReady();
                     AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
                 }

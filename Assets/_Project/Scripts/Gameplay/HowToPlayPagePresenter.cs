@@ -9,7 +9,8 @@ using UnityEngine.UI;
 namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
-    public sealed class HowToPlayPagePresenter : UIFrameWindow
+    public sealed class HowToPlayPagePresenter : UIFrameWindow,
+        ISoundServiceConsumer
     {
         [SerializeField] private GenericPopupAnimator popupAnimator;
         [SerializeField] private Button tapCatcher;
@@ -20,6 +21,10 @@ namespace Meowdoku.Gameplay
         private int _demoToken;
 
         public string FailureReason { get; private set; } = string.Empty;
+
+#if UNITY_INCLUDE_TESTS
+        internal bool DemoRunningForTests => _demoCoroutine != null;
+#endif
 
         protected override void OnCreate()
         {

@@ -25,7 +25,8 @@ namespace Meowdoku.Gameplay
         IProfileConsumer,
         IRankActivityConsumer,
         IAbConfigRuntimeConsumer,
-        IDataSyncConsumer
+        IDataSyncConsumer,
+        ISoundServiceConsumer
     {
         public override string GetTrackingScreenName() =>
             TrackerCatalog.Screen.Home;
@@ -81,6 +82,7 @@ namespace Meowdoku.Gameplay
         private DataSyncRuntime _dataSyncRuntime;
         private ClockTicker _clockTicker;
         private bool _rankPopupPending;
+        private Action _quitAction = Application.Quit;
 
         public bool IsExiting => _isExiting;
         public float SettingsButtonCenterY => settingsButton != null
@@ -163,11 +165,24 @@ namespace Meowdoku.Gameplay
 
             var parameters = new Dictionary<string, object>(1)
             {
-                ["on_confirm"] = (Action)Application.Quit
+                ["on_confirm"] = _quitAction ?? (Action)Application.Quit
             };
             Owner.Show(UiName.Confirm, parameters);
             return true;
         }
+
+#if UNITY_INCLUDE_TESTS
+        internal void ConfigureQuitForTests(Action quit)
+        {
+            _quitAction = quit ?? Application.Quit;
+        }
+
+        internal string LevelTextForTests => levelText != null
+            ? levelText.text
+            : string.Empty;
+        internal LocalizationCatalog LocalizationForTests => localization;
+        internal bool PopupQueueRunningForTests => _popupQueue.IsRunning;
+#endif
 
         protected override void OnDestroyWindow()
         {
@@ -444,6 +459,12 @@ namespace Meowdoku.Gameplay
             StartManagedCoroutine(manager.IsOpenNotJoined
                 ? ShowRankOpenPopup()
                 : ShowRankPageThenTryOpen());
+        }
+
+        public void RequestRankOpenPopup()
+        {
+            if (_isExiting || Owner == null || _rankPopupPending) return;
+            StartManagedCoroutine(ShowRankOpenPopup());
         }
 
         private IEnumerator ShowRankPageThenTryOpen()

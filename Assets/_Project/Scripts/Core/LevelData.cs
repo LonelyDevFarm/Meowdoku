@@ -124,10 +124,18 @@ namespace Meowdoku.Core
             int overrideSize = 0,
             GameStateService gameState = null,
             SingleRegionNumConfig singleRegionConfig = null,
-            IInclusiveRandom random = null)
+            IInclusiveRandom random = null,
+            NormalLevel10Config normalLevel10Config = null)
         {
-            if (SpecialLevels.TryGetValue(levelNumber, out (string source, int index) special))
+            bool useSp57 = levelNumber == 10 &&
+                           normalLevel10Config?.IsSp57AtLevel10() == true;
+            (string source, int index) special = default;
+            bool isMappedSpecial = SpecialLevels.TryGetValue(
+                levelNumber,
+                out special);
+            if (useSp57 || isMappedSpecial)
             {
+                if (useSp57) special = ("sp", 57);
                 IReadOnlyList<LevelEntry> levels = special.source == "lk"
                     ? BankData.GetLkLevels()
                     : BankData.GetSpecialLevels();
@@ -361,7 +369,7 @@ namespace Meowdoku.Core
 
                 if (IsValid(last, size))
                 {
-                    AdvanceForEntry(last, size, state);
+                    AdvanceForEntry(last, size, state, false);
                     return last;
                 }
                 if (remaining <= 1) return last;
@@ -442,27 +450,52 @@ namespace Meowdoku.Core
             return entry;
         }
 
-        private static void AdvanceForEntry(LevelEntry entry, int size, GameStateService state)
+        public static void AdvanceForEntry(
+            LevelEntry entry,
+            int size,
+            GameStateService state = null,
+            bool persist = true)
         {
+            if (entry == null)
+                throw new System.ArgumentNullException(nameof(entry));
+            state = state ?? GameStateRuntime.Current;
             if (string.IsNullOrEmpty(entry.BankSourceMain))
             {
-                state.AdvanceBankIndex(size, entry.BankRank, entry.BankTier, false);
+                state.AdvanceBankIndex(
+                    size,
+                    entry.BankRank,
+                    entry.BankTier,
+                    persist);
                 return;
             }
             if (entry.BankSourceMain == "lk_mod")
             {
                 Dictionary<string, object> lkProgress = state.GetLkModifiedProgress(size, entry.BankRank);
                 lkProgress["idx"] = ReadProgressInt(lkProgress, "idx", 0) + 1;
-                state.SetLkModifiedProgress(size, entry.BankRank, lkProgress, false);
+                state.SetLkModifiedProgress(
+                    size,
+                    entry.BankRank,
+                    lkProgress,
+                    persist);
                 Dictionary<string, object> progress = state.GetMainProgress(size, entry.BankRank, entry.BankTier);
                 progress["since_lk"] = 0;
-                state.SetMainProgress(size, entry.BankRank, entry.BankTier, progress, false);
+                state.SetMainProgress(
+                    size,
+                    entry.BankRank,
+                    entry.BankTier,
+                    progress,
+                    persist);
                 return;
             }
             Dictionary<string, object> mainProgress = state.GetMainProgress(size, entry.BankRank, entry.BankTier);
             mainProgress["idx"] = ReadProgressInt(mainProgress, "idx", 0) + 1;
             mainProgress["since_lk"] = ReadProgressInt(mainProgress, "since_lk", 0) + 1;
-            state.SetMainProgress(size, entry.BankRank, entry.BankTier, mainProgress, false);
+            state.SetMainProgress(
+                size,
+                entry.BankRank,
+                entry.BankTier,
+                mainProgress,
+                persist);
         }
 
         private static void AdvanceRejectedMainEntry(

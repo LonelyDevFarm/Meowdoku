@@ -50,6 +50,40 @@ namespace Meowdoku.Core.Config
         public bool IsNewPool2() => Value == ValueNewPool2;
     }
 
+    public sealed class RateUsPopConfig : AbConfigBase<int>
+    {
+        public const int ValueGateLevel8 = 0;
+        public const int ValueGateLevel15 = 1;
+        public const int ValueHomeAfterWin = 2;
+        public const int ValueWinStreak5 = 3;
+
+        public RateUsPopConfig()
+            : base("rate_us_pop", ValueGateLevel8, AbConfigTiming.GameStart) { }
+
+        public bool IsEligibleAtGameWin(
+            int level,
+            int sessionConsecutiveWins)
+        {
+            return Value switch
+            {
+                ValueGateLevel8 => level >= 8,
+                ValueWinStreak5 => level >= 15 && sessionConsecutiveWins >= 5,
+                _ => false
+            };
+        }
+    }
+
+    public sealed class RateUsPopUiConfig : AbConfigBase<int>
+    {
+        public const int ValueOldUi = 0;
+        public const int ValueNewUi = 1;
+
+        public RateUsPopUiConfig()
+            : base("rate_us_pop_ui", ValueOldUi, AbConfigTiming.GameStart) { }
+
+        public bool IsNewUi() => Value == ValueNewUi;
+    }
+
     public sealed class PlatformConfigSet
     {
         private readonly IAbConfig[] _all;
@@ -60,13 +94,17 @@ namespace Meowdoku.Core.Config
             {
                 AttDialogLogic,
                 PushPermission,
-                PushLocalText
+                PushLocalText,
+                RateUsPop,
+                RateUsPopUi
             };
         }
 
         public AttDialogLogicConfig AttDialogLogic { get; } = new();
         public PushPermissionConfig PushPermission { get; } = new();
         public PushLocalTextConfig PushLocalText { get; } = new();
+        public RateUsPopConfig RateUsPop { get; } = new();
+        public RateUsPopUiConfig RateUsPopUi { get; } = new();
         public IReadOnlyList<IAbConfig> All => _all;
     }
 }

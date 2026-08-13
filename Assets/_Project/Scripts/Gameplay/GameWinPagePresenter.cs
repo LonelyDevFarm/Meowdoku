@@ -24,7 +24,9 @@ namespace Meowdoku.Gameplay
         IDailyMetaConsumer,
         IProfileConsumer,
         IRankActivityConsumer,
-        IPlatformPermissionRuntimeConsumer
+        IPlatformPermissionRuntimeConsumer,
+        IProductServiceRuntimeConsumer,
+        IAbConfigRuntimeConsumer
     {
         public override string GetTrackingScreenName() =>
             _selfName == UiName.DailyWin
@@ -87,8 +89,8 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Button dailyContinueButton;
         [SerializeField] private LocalizationCatalog localization;
 
-        private readonly PassPageConfig _passPageConfig = new();
-        private readonly PassTextConfig _passTextConfig = new();
+        private PassPageConfig _passPageConfig = new();
+        private PassTextConfig _passTextConfig = new();
         private GameplayManager _gameplayManager;
         private Sequence _openTween;
         private Tween _rayTween;
@@ -103,8 +105,9 @@ namespace Meowdoku.Gameplay
         private RankActivityRuntime _rankActivityRuntime;
         private bool _continuing;
         private PrivacyPermissionRuntime _platformRuntime;
+        private ProductServiceRuntime _productRuntime;
         private int _pushFlowGeneration;
-        private const float PushGuideAppearDelaySeconds = 2.467f;
+        private const float ProductFlowAppearDelaySeconds = 2.467f;
 
         protected override void OnCreate()
         {
@@ -114,6 +117,17 @@ namespace Meowdoku.Gameplay
             if (dailyContinueButton != null)
                 dailyContinueButton.onClick.AddListener(Continue);
         }
+
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _passPageConfig = runtime?.Result.PassPage ?? new PassPageConfig();
+            _passTextConfig = runtime?.Result.PassText ?? new PassTextConfig();
+        }
+
+#if UNITY_INCLUDE_TESTS
+        internal int PassPageValueForTests => _passPageConfig.Value;
+        internal int PassTextValueForTests => _passTextConfig.Value;
+#endif
 
         protected override void OnShow(
             IReadOnlyDictionary<string, object> parameters)
@@ -161,14 +175,20 @@ namespace Meowdoku.Gameplay
                 _gameplayManager?.PlayResultSound(SoundKind.LevelWin);
             }
             _platformRuntime?.PrepareNormalGameEnd(transition.Level);
-            if (_platformRuntime?.IsPushGuideEligible(transition.Level) == true)
+            bool rateUsEligible = _productRuntime?.IsRateUsEligible(
+                transition.Level) == true;
+            bool pushGuideEligible = _platformRuntime?.IsPushGuideEligible(
+                transition.Level) == true;
+            if (rateUsEligible || pushGuideEligible)
             {
                 Owner?.BlockInputBriefly(
                     transform as RectTransform,
-                    PushGuideAppearDelaySeconds);
-                StartManagedCoroutine(ShowPushGuideAfterAppear(
+                    ProductFlowAppearDelaySeconds);
+                StartManagedCoroutine(ShowProductFlowsAfterAppear(
                     _pushFlowGeneration,
-                    transition.Level));
+                    transition.Level,
+                    rateUsEligible,
+                    pushGuideEligible));
             }
         }
 
@@ -216,16 +236,28 @@ namespace Meowdoku.Gameplay
             _platformRuntime = runtime;
         }
 
-        private IEnumerator ShowPushGuideAfterAppear(
+        public void BindProductServiceRuntime(ProductServiceRuntime runtime)
+        {
+            _productRuntime = runtime;
+        }
+
+        private IEnumerator ShowProductFlowsAfterAppear(
             int generation,
-            int level)
+            int level,
+            bool rateUsEligible,
+            bool pushGuideEligible)
         {
             yield return new WaitForSecondsRealtime(
-                PushGuideAppearDelaySeconds);
+                ProductFlowAppearDelaySeconds);
             if (generation != _pushFlowGeneration || !IsShowing ||
-                _platformRuntime == null)
+                (_platformRuntime == null && _productRuntime == null))
                 yield break;
-            yield return _platformRuntime.TryShowPushGuide(level);
+            if (rateUsEligible && _productRuntime != null)
+                yield return _productRuntime.TryShowRateUs(level);
+            if (generation != _pushFlowGeneration || !IsShowing)
+                yield break;
+            if (pushGuideEligible && _platformRuntime != null)
+                yield return _platformRuntime.TryShowPushGuide(level);
         }
 
         private bool RefreshText(MainGameTransitionData transition)

@@ -33,8 +33,6 @@ namespace Meowdoku.Editor
             "Assets/_Project/Sprites/common/btn_close.png";
         private const string BackButtonPath =
             "Assets/_Project/Sprites/common/btn_orange_round.png";
-        private const string BackIconPath =
-            "Assets/_Project/Sprites/common/btn_back_white.svg";
         private const string MainButtonPath =
             "Assets/_Project/Sprites/common/btn_orange_capsule.png";
 
@@ -53,6 +51,11 @@ namespace Meowdoku.Editor
         {
             EditorApplication.delayCall += InstallIfMissing;
             EditorApplication.playModeStateChanged += HandlePlayModeChanged;
+        }
+
+        internal static void InstallIfReady()
+        {
+            InstallIfMissing();
         }
 
         [MenuItem("Meowdoku/Port/Create How-to-play Page Prefabs")]
@@ -84,6 +87,7 @@ namespace Meowdoku.Editor
                 AssetDatabase.LoadAssetAtPath<GameObject>(PagedPrefabPath) == null;
             if (!needsFull && !needsPaged)
             {
+                UpgradePagedBackIcon();
                 UIRegistryAssetInstaller.InstallIfReady();
                 return;
             }
@@ -123,6 +127,7 @@ namespace Meowdoku.Editor
                 SaveAndDestroy(paged, PagedPrefabPath);
             }
             AssetDatabase.SaveAssets();
+            UpgradePagedBackIcon();
             UIRegistryAssetInstaller.InstallIfReady();
         }
 
@@ -427,12 +432,13 @@ namespace Meowdoku.Editor
                 Vector2.zero, new Vector2(220f, 220f));
             backBackground.texture =
                 AssetDatabase.LoadAssetAtPath<Texture2D>(BackButtonPath);
-            Image backIcon = CreateImage("BackIcon", back.transform);
-            SetCentered(backIcon.rectTransform,
+            RectTransform backIconRect = CreateRect("BackIcon", back.transform);
+            SetCentered(backIconRect,
                 new Vector2(-2f, 0f), new Vector2(50f, 83f));
-            backIcon.sprite =
-                AssetDatabase.LoadAssetAtPath<Sprite>(BackIconPath);
-            backIcon.preserveAspect = true;
+            SourceBackChevronGraphic backIcon =
+                backIconRect.gameObject.AddComponent<SourceBackChevronGraphic>();
+            backIcon.color = Color.white;
+            backIcon.raycastTarget = false;
 
             Button main = CreateTransparentButton("MainBtn", buttonRow);
             SetTopLeft((RectTransform)main.transform,
@@ -744,6 +750,48 @@ namespace Meowdoku.Editor
             finally
             {
                 Object.DestroyImmediate(root);
+            }
+        }
+
+        private static void UpgradePagedBackIcon()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(PagedPrefabPath) == null)
+                return;
+
+            GameObject root = PrefabUtility.LoadPrefabContents(PagedPrefabPath);
+            try
+            {
+                Transform icon = root.transform.Find(
+                    "Root/Content/ButtonRow/BackBtn/BackIcon");
+                if (icon == null) return;
+                bool changed = false;
+                Image oldImage = icon.GetComponent<Image>();
+                if (oldImage != null)
+                {
+                    Object.DestroyImmediate(oldImage);
+                    changed = true;
+                }
+
+                SourceBackChevronGraphic graphic =
+                    icon.GetComponent<SourceBackChevronGraphic>();
+                if (graphic == null)
+                {
+                    graphic = icon.gameObject.AddComponent<SourceBackChevronGraphic>();
+                    changed = true;
+                }
+                if (graphic.color != Color.white || graphic.raycastTarget)
+                {
+                    graphic.color = Color.white;
+                    graphic.raycastTarget = false;
+                    changed = true;
+                }
+                if (!changed) return;
+                PrefabUtility.SaveAsPrefabAsset(root, PagedPrefabPath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
             }
         }
 

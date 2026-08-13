@@ -48,6 +48,17 @@ namespace Meowdoku.Gameplay
             _comboVoiceConfig = new ComboVoiceConfig();
         }
 
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _comboVoiceConfig = runtime?.Gameplay.ComboVoice ??
+                                new ComboVoiceConfig();
+        }
+
+        public void BindSoundService(SoundService service)
+        {
+            soundService = service;
+        }
+
         private void OnEnable()
         {
             if (gameplayManager == null) return;

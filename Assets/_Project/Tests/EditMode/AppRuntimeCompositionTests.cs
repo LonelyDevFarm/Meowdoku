@@ -1,13 +1,19 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using Meowdoku.Core;
 using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.Online;
 using Meowdoku.Core.Platform;
+using Meowdoku.Core.Rank;
 using Meowdoku.Core.UI;
 using Meowdoku.Gameplay;
+using Meowdoku.Services;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -52,6 +58,16 @@ namespace Meowdoku.Tests.EditMode
             "Assets/_Project/Prefabs/UI/PreAttGuidePageV2.prefab";
         private const string PrePushPath =
             "Assets/_Project/Prefabs/UI/PrePushGuidePage.prefab";
+        private const string FeedbackPath =
+            "Assets/_Project/Prefabs/UI/FeedbackPage.prefab";
+        private const string RateUsPath =
+            "Assets/_Project/Prefabs/UI/RateUsPage.prefab";
+        private const string RateUsV2Path =
+            "Assets/_Project/Prefabs/UI/RateUsPageV2.prefab";
+        private const string ConfirmPath =
+            "Assets/_Project/Prefabs/UI/ConfirmDialog.prefab";
+        private const string ProfilePath =
+            "Assets/_Project/Prefabs/UI/ProfilePage.prefab";
         private const string AppScenePath =
             "Assets/_Project/Scenes/AppScene.unity";
 
@@ -126,6 +142,98 @@ namespace Meowdoku.Tests.EditMode
                 registry, UiName.PreAttGuideV2, PreAttV2Path);
             AssertRegistryPage<PrePushGuidePresenter>(
                 registry, UiName.PrePushGuide, PrePushPath);
+        }
+
+        [Test]
+        public void Registry_ContainsProductServicePages()
+        {
+            UIRegistry registry =
+                AssetDatabase.LoadAssetAtPath<UIRegistry>(RegistryPath);
+            AssertRegistryPage<FeedbackPagePresenter>(
+                registry, UiName.Feedback, FeedbackPath);
+            AssertRegistryPage<RateUsPagePresenter>(
+                registry, UiName.RateUs, RateUsPath);
+            AssertRegistryPage<RateUsPagePresenter>(
+                registry, UiName.RateUsV2, RateUsV2Path);
+        }
+
+        [Test]
+        public void Registry_ContainsSourceConfirmDialog()
+        {
+            UIRegistry registry =
+                AssetDatabase.LoadAssetAtPath<UIRegistry>(RegistryPath);
+            AssertRegistryPage<ConfirmDialogPresenter>(
+                registry, UiName.Confirm, ConfirmPath);
+
+            GameObject prefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(ConfirmPath);
+            Assert.That(prefab.transform.Find(
+                    "Root/Content/DialogRoot/CloseButton"),
+                Is.Not.Null);
+            Assert.That(prefab.transform.Find(
+                    "Root/Content/DialogRoot/ActionButton"),
+                Is.Not.Null);
+        }
+
+        [Test]
+        public void ConfirmDialog_HasRequiredSourceBindings()
+        {
+            AssertBindings<ConfirmDialogPresenter>(
+                ConfirmPath,
+                "popupAnimator",
+                "titleText",
+                "contentText",
+                "actionText",
+                "actionButton",
+                "confirmCloseButton",
+                "localization");
+            GameObject prefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(ConfirmPath);
+            GenericPopupAnimator animator =
+                prefab.GetComponent<GenericPopupAnimator>();
+            Assert.That(animator, Is.Not.Null);
+            SerializedProperty overlay = new SerializedObject(animator)
+                .FindProperty("overlayGroup");
+            Assert.That(overlay, Is.Not.Null);
+            Assert.That(overlay.objectReferenceValue, Is.Not.Null);
+        }
+
+        [Test]
+        public void ProductServicePrefabs_HaveSourceBindings()
+        {
+            AssertBindings<FeedbackPagePresenter>(
+                FeedbackPath,
+                "popupAnimator",
+                "titleText",
+                "descriptionText",
+                "submitText",
+                "thanksText",
+                "inputField",
+                "submitButton",
+                "feedbackCloseButton",
+                "localization");
+            AssertBindings<RateUsPagePresenter>(
+                RateUsPath,
+                "popupAnimator",
+                "titleText",
+                "questionText",
+                "litStar",
+                "dimStar",
+                "rateButton",
+                "rateCloseButton",
+                "localization");
+            AssertBindings<RateUsPagePresenter>(
+                RateUsV2Path,
+                "popupAnimator",
+                "titleText",
+                "questionText",
+                "litStar",
+                "dimStar",
+                "rateButton",
+                "rateCloseButton",
+                "localization");
+            AssertArraySize<RateUsPagePresenter>(RateUsPath, "stars", 5);
+            AssertArraySize<RateUsPagePresenter>(RateUsV2Path, "stars", 5);
         }
 
         [Test]
@@ -208,6 +316,26 @@ namespace Meowdoku.Tests.EditMode
                 "cellPrefab",
                 "hintButton",
                 "confirmButton");
+            GameObject tutorialPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(TutorialPath);
+            Assert.That(
+                tutorialPrefab.GetComponent<TutorialPagePresenter>(),
+                Is.InstanceOf<IAbConfigRuntimeConsumer>(),
+                "Tutorial must receive the shared region_color config used by BoardView.");
+            TutorialFinishEffects tutorialEffects =
+                tutorialPrefab.GetComponentInChildren<TutorialFinishEffects>(true);
+            Assert.That(tutorialEffects, Is.Not.Null);
+            var tutorialEffectData = new SerializedObject(tutorialEffects);
+            Assert.That(tutorialEffectData.FindProperty("effectRoot")
+                .objectReferenceValue, Is.Not.Null);
+            Assert.That(tutorialEffectData.FindProperty("lineSprite")
+                .objectReferenceValue, Is.Not.Null);
+            Assert.That(tutorialEffectData.FindProperty("starSprite")
+                .objectReferenceValue, Is.Not.Null);
+            Assert.That(tutorialEffectData.FindProperty("glowSprite")
+                .objectReferenceValue, Is.Not.Null);
+            Assert.That(tutorialEffectData.FindProperty("ribbonSprites")
+                .arraySize, Is.EqualTo(4));
             AssertBindings<SettingsPagePresenter>(
                 SettingPath,
                 "popupAnimator",
@@ -256,6 +384,16 @@ namespace Meowdoku.Tests.EditMode
                 "caption",
                 "backButton",
                 "mainButton");
+            GameObject pagedHowToPlay =
+                AssetDatabase.LoadAssetAtPath<GameObject>(HowToPlayPagedPath);
+            Transform pagedBackIcon = pagedHowToPlay.transform.Find(
+                "Root/Content/ButtonRow/BackBtn/BackIcon");
+            Assert.That(pagedBackIcon, Is.Not.Null);
+            Assert.That(
+                pagedBackIcon.GetComponent<SourceBackChevronGraphic>(),
+                Is.Not.Null,
+                "Paged HTP must adapt the source SVG instead of showing a null-sprite Image.");
+            Assert.That(pagedBackIcon.GetComponent<Image>(), Is.Null);
             AssertArraySize<HowToPlayPagedPagePresenter>(
                 HowToPlayPagedPath,
                 "boards",
@@ -304,6 +442,33 @@ namespace Meowdoku.Tests.EditMode
                     icons.GetArrayElementAtIndex(index).objectReferenceValue,
                     Is.Not.Null,
                     "patternIcons[" + index + "] is not assigned.");
+            }
+        }
+
+        [Test]
+        public void GameplayLifeSlots_HaveSourceParticlePools()
+        {
+            GameObject game =
+                AssetDatabase.LoadAssetAtPath<GameObject>(GamePath);
+            GameplayLifeSlotView[] slots =
+                game.GetComponentsInChildren<GameplayLifeSlotView>(true);
+            Assert.That(slots, Has.Length.EqualTo(3));
+            foreach (GameplayLifeSlotView slot in slots)
+            {
+                var data = new SerializedObject(slot);
+                Assert.That(data.FindProperty("reviveGlow").objectReferenceValue,
+                    Is.Not.Null);
+                SerializedProperty fish = data.FindProperty("fishParticles");
+                SerializedProperty glow = data.FindProperty("glowParticles");
+                Assert.That(fish.arraySize, Is.EqualTo(6));
+                Assert.That(glow.arraySize, Is.EqualTo(6));
+                for (int index = 0; index < 6; index++)
+                {
+                    Assert.That(fish.GetArrayElementAtIndex(index)
+                        .objectReferenceValue, Is.Not.Null);
+                    Assert.That(glow.GetArrayElementAtIndex(index)
+                        .objectReferenceValue, Is.Not.Null);
+                }
             }
         }
 
@@ -365,6 +530,64 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void ProfilePrefab_UsesSourcePopupAndTabGeometry()
+        {
+            GameObject profile =
+                AssetDatabase.LoadAssetAtPath<GameObject>(ProfilePath);
+            Assert.That(profile, Is.Not.Null);
+            ProfilePagePresenter presenter =
+                profile.GetComponent<ProfilePagePresenter>();
+            Assert.That(presenter, Is.Not.Null);
+            Assert.That(presenter, Is.InstanceOf<IRankActivityConsumer>());
+            Assert.That(
+                GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(
+                    profile),
+                Is.Zero);
+
+            RectTransform content = profile.transform.Find("Content") as
+                RectTransform;
+            Assert.That(content, Is.Not.Null);
+            Assert.That(content.anchorMin,
+                Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(content.anchorMax,
+                Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(content.pivot,
+                Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(content.anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(content.sizeDelta,
+                Is.EqualTo(new Vector2(900f, 1253f)));
+
+            Image title = profile.transform.Find("Content/Title")
+                .GetComponent<Image>();
+            Text titleText = profile.transform.Find(
+                    "Content/Title/PopupTitle")
+                .GetComponent<Text>();
+            AssertColor(title.color,
+                new Color(0.9764706f, 0.9254902f, 0.88235295f, 1f));
+            AssertColor(titleText.color,
+                new Color(0.426923f, 0.3251181f, 0.34547916f, 1f));
+
+            AssertTopLeft(
+                profile.transform.Find(
+                    "Content/TabGroup/AvatarTab/Label") as RectTransform,
+                110f,
+                7f,
+                174f,
+                86f);
+            AssertTopLeft(
+                profile.transform.Find(
+                    "Content/TabGroup/FrameTab/Label") as RectTransform,
+                112f,
+                6f,
+                170f,
+                88f);
+            LayoutElement bottomPad = profile.transform.Find(
+                    "Content/AvatarScroll/Content/BottomPad")
+                .GetComponent<LayoutElement>();
+            Assert.That(bottomPad.preferredHeight, Is.Zero);
+        }
+
+        [Test]
         public void AppScene_HasSerializedBootstrapAndUiManager()
         {
             Scene scene = EditorSceneManager.OpenPreviewScene(AppScenePath);
@@ -379,6 +602,8 @@ namespace Meowdoku.Tests.EditMode
                 DataSyncRuntime dataSyncRuntime = Find<DataSyncRuntime>(scene);
                 PrivacyPermissionRuntime platformRuntime =
                     Find<PrivacyPermissionRuntime>(scene);
+                ProductServiceRuntime productRuntime =
+                    Find<ProductServiceRuntime>(scene);
                 Assert.That(bootstrap, Is.Not.Null);
                 Assert.That(manager, Is.Not.Null);
                 Assert.That(adRuntime, Is.Not.Null);
@@ -387,6 +612,7 @@ namespace Meowdoku.Tests.EditMode
                 Assert.That(dataSyncApi, Is.Not.Null);
                 Assert.That(dataSyncRuntime, Is.Not.Null);
                 Assert.That(platformRuntime, Is.Not.Null);
+                Assert.That(productRuntime, Is.Not.Null);
                 Assert.That(platformRuntime.transform.parent.name,
                     Is.EqualTo("App"));
                 Assert.That(platformRuntime.transform.name,
@@ -400,6 +626,10 @@ namespace Meowdoku.Tests.EditMode
                     bootstrapData.FindProperty("platformRuntime")
                         .objectReferenceValue,
                     Is.SameAs(platformRuntime));
+                Assert.That(
+                    bootstrapData.FindProperty("productServiceRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(productRuntime));
                 var syncData = new SerializedObject(dataSyncRuntime);
                 Assert.That(
                     syncData.FindProperty("authRuntime").objectReferenceValue,
@@ -416,6 +646,10 @@ namespace Meowdoku.Tests.EditMode
                     managerData.FindProperty("platformRuntime")
                         .objectReferenceValue,
                     Is.SameAs(platformRuntime));
+                Assert.That(
+                    managerData.FindProperty("productServiceRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(productRuntime));
                 var platformData = new SerializedObject(platformRuntime);
                 Assert.That(
                     platformData.FindProperty("uiManager")
@@ -433,8 +667,110 @@ namespace Meowdoku.Tests.EditMode
                     platformData.FindProperty("trackingRuntime")
                         .objectReferenceValue,
                     Is.Not.Null);
+                var productData = new SerializedObject(productRuntime);
+                Assert.That(
+                    productData.FindProperty("uiManager")
+                        .objectReferenceValue,
+                    Is.SameAs(manager));
+                Assert.That(
+                    productData.FindProperty("abConfigRuntime")
+                        .objectReferenceValue,
+                    Is.SameAs(abRuntime));
                 Assert.That(FindRoot(scene, "App"), Is.Not.Null);
                 Assert.That(FindRoot(scene, "EventSystem"), Is.Not.Null);
+            }
+            finally
+            {
+                if (scene.IsValid())
+                    EditorSceneManager.ClosePreviewScene(scene);
+            }
+        }
+
+        [Test]
+        public void StartupPrefabs_HaveRenderableRootScale()
+        {
+            UIRegistry registry = AssetDatabase.LoadAssetAtPath<UIRegistry>(
+                RegistryPath);
+            Assert.That(registry, Is.Not.Null);
+            foreach (UiName name in new[]
+            {
+                UiName.Splash,
+                UiName.Home,
+                UiName.Tutorial
+            })
+            {
+                Assert.That(registry.TryGetPrefab(
+                    name,
+                    out UIFrameWindow prefab), Is.True);
+                Assert.That(prefab.transform.localScale,
+                    Is.EqualTo(Vector3.one),
+                    $"Startup prefab {name} root is not renderable.");
+            }
+        }
+
+        [Test]
+        public void AppScene_OwnsOneSharedSoundRuntimeAndGamePageOwnsNone()
+        {
+            Scene scene = EditorSceneManager.OpenPreviewScene(AppScenePath);
+            try
+            {
+                UIManager manager = Find<UIManager>(scene);
+                SoundRuntime runtime = Find<SoundRuntime>(scene);
+                SoundService service = Find<SoundService>(scene);
+                Assert.That(manager, Is.Not.Null);
+                Assert.That(runtime, Is.Not.Null);
+                Assert.That(service, Is.Not.Null);
+                Assert.That(Count<SoundRuntime>(scene), Is.EqualTo(1));
+                Assert.That(Count<SoundService>(scene), Is.EqualTo(1));
+                Assert.That(runtime.Service, Is.SameAs(service));
+                Assert.That(runtime.transform.name, Is.EqualTo("Audio"));
+                Assert.That(runtime.transform.parent.name, Is.EqualTo("Systems"));
+
+                var runtimeData = new SerializedObject(runtime);
+                Assert.That(runtimeData.FindProperty("uiManager")
+                        .objectReferenceValue,
+                    Is.SameAs(manager));
+                Assert.That(runtimeData.FindProperty("soundService")
+                        .objectReferenceValue,
+                    Is.SameAs(service));
+                var serviceData = new SerializedObject(service);
+                Assert.That(serviceData.FindProperty("catalog")
+                        .objectReferenceValue,
+                    Is.Not.Null);
+                Assert.That(serviceData.FindProperty("bgmSource")
+                        .objectReferenceValue,
+                    Is.Not.Null);
+            }
+            finally
+            {
+                if (scene.IsValid())
+                    EditorSceneManager.ClosePreviewScene(scene);
+            }
+
+            GameObject game =
+                AssetDatabase.LoadAssetAtPath<GameObject>(GamePath);
+            Assert.That(game, Is.Not.Null);
+            Assert.That(game.GetComponentInChildren<SoundRuntime>(true), Is.Null);
+            Assert.That(game.GetComponentInChildren<SoundService>(true), Is.Null,
+                "GamePage must consume the App-scoped SoundManager equivalent.");
+            Assert.That(game.GetComponent<GameplayPagePresenter>(),
+                Is.InstanceOf<ISoundServiceConsumer>());
+        }
+
+        [Test]
+        public void AppScene_ExcludesLegacyPrototypeServices()
+        {
+            Scene scene = EditorSceneManager.OpenPreviewScene(AppScenePath);
+            try
+            {
+                Assert.That(
+                    Find<SceneLoader>(scene),
+                    Is.Null,
+                    "Production AppScene must not depend on prototype SceneLoader.");
+                Assert.That(
+                    Find<PoolManager>(scene),
+                    Is.Null,
+                    "Production AppScene must use BoardView-owned pools instead of the prototype PoolManager.");
             }
             finally
             {
@@ -447,9 +783,92 @@ namespace Meowdoku.Tests.EditMode
         public void BuildSettings_StartWithAppScene()
         {
             EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes;
-            Assert.That(scenes, Is.Not.Empty);
+            Assert.That(scenes, Has.Length.EqualTo(1),
+                "Prototype scenes must stay out of the portfolio player.");
             Assert.That(scenes[0].path, Is.EqualTo(AppScenePath));
             Assert.That(scenes[0].enabled, Is.True);
+
+            var enabledPaths = new HashSet<string>(StringComparer.Ordinal);
+            foreach (EditorBuildSettingsScene scene in scenes)
+            {
+                if (!scene.enabled) continue;
+                Assert.That(
+                    File.Exists(scene.path),
+                    Is.True,
+                    "Enabled build scene is missing: " + scene.path);
+                Assert.That(
+                    enabledPaths.Add(scene.path),
+                    Is.True,
+                    "Enabled build scene is duplicated: " + scene.path);
+            }
+        }
+
+        [Test]
+        public void PortfolioPlayerSettings_MatchSourcePortraitContract()
+        {
+            Assert.That(PlayerSettings.companyName,
+                Is.EqualTo("Meowdoku Portfolio"));
+            Assert.That(PlayerSettings.productName, Is.EqualTo("Meowdoku"));
+            Assert.That(PlayerSettings.bundleVersion, Is.EqualTo("0.0.1"));
+            Assert.That(PlayerSettings.defaultScreenWidth, Is.EqualTo(540));
+            Assert.That(PlayerSettings.defaultScreenHeight, Is.EqualTo(960));
+            Assert.That(PlayerSettings.fullScreenMode,
+                Is.EqualTo(FullScreenMode.Windowed));
+            Assert.That(PlayerSettings.resizableWindow, Is.True);
+            Assert.That(PlayerSettings.defaultInterfaceOrientation,
+                Is.EqualTo(UIOrientation.Portrait));
+            Assert.That(PlayerSettings.allowedAutorotateToPortrait, Is.True);
+            Assert.That(
+                PlayerSettings.allowedAutorotateToPortraitUpsideDown,
+                Is.False);
+            Assert.That(PlayerSettings.allowedAutorotateToLandscapeLeft,
+                Is.False);
+            Assert.That(PlayerSettings.allowedAutorotateToLandscapeRight,
+                Is.False);
+            Assert.That(
+                PlayerSettings.GetApplicationIdentifier(
+                    NamedBuildTarget.Standalone),
+                Is.EqualTo("com.meowdoku.portfolio"));
+            Assert.That(
+                PlayerSettings.GetApplicationIdentifier(
+                    NamedBuildTarget.Android),
+                Is.EqualTo("com.meowdoku.portfolio"));
+            Assert.That(PlayerSettings.Android.targetArchitectures,
+                Is.EqualTo(AndroidArchitecture.ARM64));
+            Assert.That(PlayerSettings.Android.minSdkVersion,
+                Is.EqualTo(AndroidSdkVersions.AndroidApiLevel25));
+            Assert.That(
+                PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android),
+                Is.EqualTo(ScriptingImplementation.IL2CPP));
+        }
+
+        [Test]
+        public void BuildSettingsScenes_HaveNoMissingScripts()
+        {
+            foreach (EditorBuildSettingsScene buildScene in
+                EditorBuildSettings.scenes)
+            {
+                if (!buildScene.enabled) continue;
+
+                Scene scene = EditorSceneManager.OpenPreviewScene(buildScene.path);
+                try
+                {
+                    foreach (GameObject root in scene.GetRootGameObjects())
+                    {
+                        Assert.That(
+                            GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(
+                                root),
+                            Is.Zero,
+                            buildScene.path + " contains a missing script under " +
+                            root.name + ".");
+                    }
+                }
+                finally
+                {
+                    if (scene.IsValid())
+                        EditorSceneManager.ClosePreviewScene(scene);
+                }
+            }
         }
 
         [Test]
@@ -489,6 +908,133 @@ namespace Meowdoku.Tests.EditMode
             }
         }
 
+        [Test]
+        public void BoardPool_SetupClearReusesCellsAndResetsState()
+        {
+            var boardRoot = new GameObject(
+                "BoardPoolLifecycleRoot",
+                typeof(RectTransform),
+                typeof(GridLayoutGroup));
+            var cellPrefab = new GameObject(
+                "BoardPoolLifecycleCell",
+                typeof(RectTransform),
+                typeof(CellView));
+            try
+            {
+                BoardView board = boardRoot.AddComponent<BoardView>();
+                board.cellPrefab = cellPrefab;
+                board.cellsContainer = boardRoot.transform;
+
+                int[][] regions =
+                {
+                    new[] { 0, 1 },
+                    new[] { 1, 0 }
+                };
+                int[] colorMap = { 0, 1 };
+                board.SetupBoard(2, regions, colorMap);
+
+                CellView[] firstCells =
+                    boardRoot.GetComponentsInChildren<CellView>(true);
+                Assert.That(firstCells, Has.Length.EqualTo(4));
+                board.SetCellState(0, 0, CellStateType.CAT, false);
+                Assert.That(firstCells[0].GetState(), Is.EqualTo(CellStateType.CAT));
+
+                board.ClearBoard();
+                Assert.That(
+                    boardRoot.GetComponentsInChildren<CellView>(true),
+                    Has.Length.EqualTo(4));
+                foreach (CellView cell in firstCells)
+                {
+                    Assert.That(cell.gameObject.activeSelf, Is.False);
+                    Assert.That(cell.GetState(), Is.EqualTo(CellStateType.EMPTY));
+                }
+
+                board.SetupBoard(2, regions, colorMap);
+                CellView[] secondCells =
+                    boardRoot.GetComponentsInChildren<CellView>(true);
+                Assert.That(secondCells, Has.Length.EqualTo(4));
+                foreach (CellView cell in secondCells)
+                {
+                    Assert.That(firstCells, Does.Contain(cell));
+                    Assert.That(cell.gameObject.activeSelf, Is.True);
+                    Assert.That(cell.GetState(), Is.EqualTo(CellStateType.EMPTY));
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(boardRoot);
+                Object.DestroyImmediate(cellPrefab);
+            }
+        }
+
+        [Test]
+        public void BoardGrid_AllSourceSizesRemainSquareAndRowMajorAfterResize()
+        {
+            var boardRoot = new GameObject(
+                "BoardSizeOrderRoot",
+                typeof(RectTransform),
+                typeof(GridLayoutGroup));
+            var cellPrefab = new GameObject(
+                "BoardSizeOrderCell",
+                typeof(RectTransform),
+                typeof(CellView));
+            try
+            {
+                BoardView board = boardRoot.AddComponent<BoardView>();
+                board.cellPrefab = cellPrefab;
+                board.cellsContainer = boardRoot.transform;
+                int[] resizeSequence = { 4, 7, 5, 10, 6, 9, 8 };
+
+                foreach (int size in resizeSequence)
+                {
+                    var regions = new int[size][];
+                    var colorMap = new int[size];
+                    for (int row = 0; row < size; row++)
+                    {
+                        regions[row] = new int[size];
+                        colorMap[row] = row;
+                        for (int column = 0; column < size; column++)
+                            regions[row][column] = row;
+                    }
+
+                    board.SetupBoard(size, regions, colorMap);
+
+                    GridLayoutGroup grid = boardRoot.GetComponent<GridLayoutGroup>();
+                    Assert.That(board.PuzzleSize, Is.EqualTo(size));
+                    Assert.That(grid.constraint,
+                        Is.EqualTo(GridLayoutGroup.Constraint.FixedColumnCount));
+                    Assert.That(grid.constraintCount, Is.EqualTo(size));
+                    Assert.That(grid.startCorner,
+                        Is.EqualTo(GridLayoutGroup.Corner.UpperLeft));
+                    Assert.That(grid.startAxis,
+                        Is.EqualTo(GridLayoutGroup.Axis.Horizontal));
+
+                    CellView[] activeCells =
+                        boardRoot.GetComponentsInChildren<CellView>(false);
+                    Assert.That(activeCells, Has.Length.EqualTo(size * size));
+                    for (int row = 0; row < size; row++)
+                    {
+                        for (int column = 0; column < size; column++)
+                        {
+                            int rowMajorIndex = row * size + column;
+                            CellView cell = board.GetCellForTests(row, column);
+                            Assert.That(cell, Is.Not.Null);
+                            Assert.That(activeCells[rowMajorIndex], Is.SameAs(cell));
+                            Assert.That(cell.Row, Is.EqualTo(row));
+                            Assert.That(cell.Col, Is.EqualTo(column));
+                            Assert.That(cell.name,
+                                Is.EqualTo($"Cell_{row}_{column}"));
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(boardRoot);
+                Object.DestroyImmediate(cellPrefab);
+            }
+        }
+
         private static T Find<T>(Scene scene) where T : Component
         {
             foreach (GameObject root in scene.GetRootGameObjects())
@@ -497,6 +1043,14 @@ namespace Meowdoku.Tests.EditMode
                 if (component != null) return component;
             }
             return null;
+        }
+
+        private static int Count<T>(Scene scene) where T : Component
+        {
+            int count = 0;
+            foreach (GameObject root in scene.GetRootGameObjects())
+                count += root.GetComponentsInChildren<T>(true).Length;
+            return count;
         }
 
         private static GameObject FindRoot(Scene scene, string name)
@@ -582,6 +1136,31 @@ namespace Meowdoku.Tests.EditMode
                     typeof(T).Name + "." + propertyName +
                     "[" + index + "] is not assigned.");
             }
+        }
+
+        private static void AssertTopLeft(
+            RectTransform rect,
+            float x,
+            float y,
+            float width,
+            float height)
+        {
+            Assert.That(rect, Is.Not.Null);
+            Assert.That(rect.anchorMin, Is.EqualTo(new Vector2(0f, 1f)));
+            Assert.That(rect.anchorMax, Is.EqualTo(new Vector2(0f, 1f)));
+            Assert.That(rect.pivot, Is.EqualTo(new Vector2(0f, 1f)));
+            Assert.That(rect.anchoredPosition,
+                Is.EqualTo(new Vector2(x, -y)));
+            Assert.That(rect.sizeDelta,
+                Is.EqualTo(new Vector2(width, height)));
+        }
+
+        private static void AssertColor(Color actual, Color expected)
+        {
+            Assert.That(actual.r, Is.EqualTo(expected.r).Within(0.00001f));
+            Assert.That(actual.g, Is.EqualTo(expected.g).Within(0.00001f));
+            Assert.That(actual.b, Is.EqualTo(expected.b).Within(0.00001f));
+            Assert.That(actual.a, Is.EqualTo(expected.a).Within(0.00001f));
         }
 
         private readonly struct PrimaryPageSpec

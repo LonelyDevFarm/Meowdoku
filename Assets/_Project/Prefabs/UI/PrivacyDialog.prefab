@@ -394,7 +394,7 @@ RectTransform:
   m_GameObject: {fileID: 4356381839091739347}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6451266880880164340}
@@ -476,7 +476,7 @@ MonoBehaviour:
   playOpenSound: 1
   rootCanvas: {fileID: 2427930749065611504}
   rootCanvasGroup: {fileID: 7749504957118967843}
-  closeButton: {fileID: 0}
+  frameCloseButton: {fileID: 0}
   popupAnimator: {fileID: 1881272935403846009}
   titleText: {fileID: 3846487882197019983}
   contentText: {fileID: 5054755030284022852}
@@ -499,6 +499,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.GenericPopupAnimator
   content: {fileID: 7648822835523417722}
   contentGroup: {fileID: 7286648593209434702}
+  overlayGroup: {fileID: 0}
 --- !u!1 &4802628677668880917
 GameObject:
   m_ObjectHideFlags: 0

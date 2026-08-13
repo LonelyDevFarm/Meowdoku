@@ -560,7 +560,7 @@ RectTransform:
   m_GameObject: {fileID: 8264985744645208522}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1418132558611746238}
@@ -643,7 +643,7 @@ MonoBehaviour:
   playOpenSound: 0
   rootCanvas: {fileID: 7638095571358442344}
   rootCanvasGroup: {fileID: 23327004995389052}
-  closeButton: {fileID: 0}
+  frameCloseButton: {fileID: 0}
   progressFill: {fileID: 9121275170378467401}
   catFace: {fileID: 8377281328905791417}
   quoteLabel: {fileID: 3799344973015036301}

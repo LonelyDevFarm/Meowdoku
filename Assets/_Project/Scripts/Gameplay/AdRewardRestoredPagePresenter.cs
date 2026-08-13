@@ -62,6 +62,8 @@ namespace Meowdoku.Gameplay
                 "Collect"));
             Render(_batch);
             if (collectButton != null) collectButton.interactable = _batch != null;
+            if (actionCloseButton != null)
+                actionCloseButton.interactable = true;
             PlayAppear();
         }
 

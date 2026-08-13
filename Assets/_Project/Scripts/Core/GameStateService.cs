@@ -41,7 +41,7 @@ namespace Meowdoku.Core
         private readonly IVibrationStateSink _vibrationSink;
         private readonly string _applicationVersion;
         private readonly ICurrentDateProvider _dateProvider;
-        private readonly DdaRankConfig _ddaRankConfig;
+        private DdaRankConfig _ddaRankConfig;
         private bool _dailyFirstEasyAvailable;
         private bool _dailyFirstEasyEvaluated;
         private bool _isCurrentLevelDailyFirstEasy;
@@ -81,6 +81,13 @@ namespace Meowdoku.Core
         public GameStateData Data { get; }
         public event Action<string, int> ToolCountChanged;
 
+        public void BindDdaRankConfig(DdaRankConfig config)
+        {
+            _ddaRankConfig = config ?? new DdaRankConfig();
+        }
+
+        internal int DdaRankValueForTests => _ddaRankConfig.Value;
+
         public int CurrentLevel => Data.CurrentLevel;
         public bool TutorialDone => Data.TutorialDone;
         public bool IsFirstSession => _firstSessionRuntime;
@@ -117,6 +124,10 @@ namespace Meowdoku.Core
         public int PushGuideShownCount => Data.PushGuideShownCount;
         public int PushGuidePopupCount => Data.PushGuidePopupCount;
         public bool HasShownAttGuide => Data.HasShownAttGuide;
+        public bool HasShownRateUs => Data.HasShownRateUs;
+        public long HelpLastOpenTime => Data.HelpLastOpenTime;
+        public string InstallVersion => Data.InstallVersion;
+        public int ActiveDays => Data.ActiveDays;
         public bool IsCurrentLevelDirty => _currentLevelDirty;
         public bool IsCurrentLevelRetried => _currentLevelRetried;
         public bool WasDdaToolOrReviveUsed => _ddaToolOrReviveUsed;
@@ -506,6 +517,35 @@ namespace Meowdoku.Core
         {
             if (Data.HasShownAttGuide) return;
             Data.HasShownAttGuide = true;
+            SavePlayer();
+        }
+
+        public void MarkRateUsShown()
+        {
+            if (Data.HasShownRateUs) return;
+            Data.HasShownRateUs = true;
+            SavePlayer();
+        }
+
+        public void ResetRateUsShown()
+        {
+            if (!Data.HasShownRateUs) return;
+            Data.HasShownRateUs = false;
+            SavePlayer();
+        }
+
+        public void SetHelpLastOpenTime(long unixSeconds)
+        {
+            Data.HelpLastOpenTime = Math.Max(0L, unixSeconds);
+            SavePlayer();
+        }
+
+        public void EnsureInstallVersion(string version)
+        {
+            if (!string.IsNullOrEmpty(Data.InstallVersion) ||
+                string.IsNullOrEmpty(version))
+                return;
+            Data.InstallVersion = version;
             SavePlayer();
         }
 
@@ -1427,7 +1467,7 @@ namespace Meowdoku.Core
                 _current = new GameStateService(
                     repository.Load(),
                     repository,
-                    null,
+                    VibrationRuntime.Current,
                     repository,
                     UnityEngine.Application.version);
                 RegisterQuittingHook();

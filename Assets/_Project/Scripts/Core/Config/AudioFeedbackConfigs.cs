@@ -3,6 +3,51 @@ using System.Collections.Generic;
 
 namespace Meowdoku.Core.Config
 {
+    public sealed class VibrateComboConfig : AbConfigBase<int>
+    {
+        public const int ValueControl = 0;
+        public const int ValueStrong = 1;
+        public const int ValueStronger = 2;
+        public const int ValueWeakToStrong = 3;
+        public const int ValueWeakerToStrong = 4;
+
+        public VibrateComboConfig()
+            : base("vibrate_combo", ValueControl, AbConfigTiming.GameStart) { }
+
+        public bool IsEnabled() => Value != ValueControl;
+
+        public int ComboVibrationLevel(int combo)
+        {
+            int value = Math.Max(combo, 1);
+            switch (Value)
+            {
+                case ValueStrong:
+                    return value <= 2
+                        ? (int)VibrationLevel.Level3
+                        : (int)VibrationLevel.Level5;
+                case ValueStronger:
+                    if (value <= 2) return (int)VibrationLevel.Level3;
+                    return value <= 4
+                        ? (int)VibrationLevel.Level5
+                        : (int)VibrationLevel.Level6;
+                case ValueWeakToStrong:
+                    if (value == 1) return (int)VibrationLevel.Level2;
+                    return value == 2
+                        ? (int)VibrationLevel.Level3
+                        : (int)VibrationLevel.Level5;
+                case ValueWeakerToStrong:
+                    if (value == 1) return (int)VibrationLevel.Level1;
+                    if (value == 2) return (int)VibrationLevel.Level2;
+                    if (value == 3) return (int)VibrationLevel.Level3;
+                    return value == 4
+                        ? (int)VibrationLevel.Level5
+                        : (int)VibrationLevel.Level6;
+                default:
+                    return -1;
+            }
+        }
+    }
+
     public sealed class ComboVoiceConfig : AbConfigBase<int>
     {
         public const int ValueRealMale1 = 6;

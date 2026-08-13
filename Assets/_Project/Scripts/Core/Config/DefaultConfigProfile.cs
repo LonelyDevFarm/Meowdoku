@@ -42,6 +42,7 @@ namespace Meowdoku.Core.Config
         {
             new AbConfigDefinition("region_color", 2, AbConfigTiming.AppStart),
             new AbConfigDefinition("size_cycle", 2, AbConfigTiming.GameStartNormal),
+            new AbConfigDefinition("normal_level_10", 0, AbConfigTiming.GameStartNormal),
             new AbConfigDefinition("rule_highlight", 0, AbConfigTiming.GameStart),
             new AbConfigDefinition("rule_text", 0, AbConfigTiming.GameStart),
             new AbConfigDefinition("goal_emphasis", 0, AbConfigTiming.GameStartNormal11),
@@ -66,6 +67,10 @@ namespace Meowdoku.Core.Config
             new AbConfigDefinition("combo_voice", 6, AbConfigTiming.GameStart),
             new AbConfigDefinition("meow_feedback", 0, AbConfigTiming.AppStart),
             new AbConfigDefinition("thumb_up", 0, AbConfigTiming.GameStart),
+            new AbConfigDefinition(
+                "daily_first_level_difficulty",
+                0,
+                AbConfigTiming.AppStart),
             new AbConfigDefinition("daily_streak", 1, AbConfigTiming.AppStart),
             new AbConfigDefinition("leaderboard_func", 0, AbConfigTiming.AppStart),
             new AbConfigDefinition("hard_button", 0, AbConfigTiming.AppStart),
@@ -92,6 +97,8 @@ namespace Meowdoku.Core.Config
             ,new AbConfigDefinition("att_dlg_logic", 0, AbConfigTiming.AppStart)
             ,new AbConfigDefinition("push_permission", 0, AbConfigTiming.GameEndNormal20)
             ,new AbConfigDefinition("push_local_text", 0, AbConfigTiming.AppStart)
+            ,new AbConfigDefinition("rate_us_pop", 0, AbConfigTiming.GameStart)
+            ,new AbConfigDefinition("rate_us_pop_ui", 0, AbConfigTiming.GameStart)
             ,new AbConfigDefinition("inter_unlock_level", 11, AbConfigTiming.GameStart)
             ,new AbConfigDefinition("inter_unlock_session", 2, AbConfigTiming.GameStart)
             ,new AbConfigDefinition("inter_unlock_memory", 300, AbConfigTiming.GameStart)

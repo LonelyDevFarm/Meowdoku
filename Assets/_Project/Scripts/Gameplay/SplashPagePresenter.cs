@@ -35,6 +35,12 @@ namespace Meowdoku.Gameplay
         private bool _running;
         private bool _finishing;
 
+#if UNITY_INCLUDE_TESTS
+        internal float MinimumSecondsForTests => _minimumSeconds;
+        internal float ProgressForTests => _progress;
+        internal bool IsRunningForTests => _running;
+#endif
+
         protected override void OnShow(
             IReadOnlyDictionary<string, object> parameters)
         {

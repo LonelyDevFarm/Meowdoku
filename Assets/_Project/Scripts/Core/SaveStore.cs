@@ -39,6 +39,7 @@ namespace Meowdoku.Core
         private readonly string _pathB;
         private readonly string _flagPath;
         private readonly string _legacyPath;
+        private readonly Action<string> _beforeVerify;
 
         public SaveStore(
             string password,
@@ -48,6 +49,27 @@ namespace Meowdoku.Core
             string pathB = "",
             string flagPath = "",
             string legacyPath = "")
+            : this(
+                password,
+                directory,
+                dualSlot,
+                pathA,
+                pathB,
+                flagPath,
+                legacyPath,
+                null)
+        {
+        }
+
+        internal SaveStore(
+            string password,
+            string directory,
+            bool dualSlot,
+            string pathA,
+            string pathB,
+            string flagPath,
+            string legacyPath,
+            Action<string> beforeVerify)
         {
             if (string.IsNullOrEmpty(password))
                 throw new ArgumentException("Save password cannot be empty.", nameof(password));
@@ -65,6 +87,7 @@ namespace Meowdoku.Core
             _pathB = pathB;
             _flagPath = flagPath;
             _legacyPath = legacyPath;
+            _beforeVerify = beforeVerify;
         }
 
         public bool SaveConfig(IDictionary<string, object> config)
@@ -182,6 +205,7 @@ namespace Meowdoku.Core
                 byte[] plainText = Encoding.UTF8.GetBytes(serializedConfig);
                 byte[] encrypted = Encrypt(plainText);
                 WriteAllBytesFlushed(temporaryPath, encrypted);
+                _beforeVerify?.Invoke(temporaryPath);
 
                 if (TryRead(temporaryPath) == null)
                 {

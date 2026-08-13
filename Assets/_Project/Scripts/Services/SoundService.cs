@@ -49,11 +49,17 @@ namespace Meowdoku.Services
         private bool _bgmDucking;
         private bool _bgmPausedForAd;
         private float _markCatLength = -1f;
+        private int _bgmDuckGeneration;
 
         public bool Silent => _silent;
         public bool BgmStarted => _bgmStarted;
         public bool BgmPausedForDialog => _bgmPausedForDialog;
         public bool BgmPausedForAd => _bgmPausedForAd;
+        internal bool BgmDucking => _bgmDucking;
+        internal int FixedVoiceCount(SoundKind kind) =>
+            _fixedPools.TryGetValue(kind, out VoicePool pool) ? pool.Count : 0;
+        internal int FixedPlayCount(SoundKind kind) =>
+            _fixedPools.TryGetValue(kind, out VoicePool pool) ? pool.PlayCount : 0;
 
         private ISoundSettingsReader Settings
         {
@@ -73,7 +79,10 @@ namespace Meowdoku.Services
 
         private void OnDisable()
         {
+            _bgmDuckGeneration++;
+            _bgmDucking = false;
             StopAllCoroutines();
+            ApplyBgmPlayback();
         }
 
         private void OnDestroy()
@@ -92,12 +101,20 @@ namespace Meowdoku.Services
         {
             if (!SoundContract.CanPlaySfx(_silent, Settings.SoundOn, kind)) return;
             if (!_fixedPools.TryGetValue(kind, out VoicePool pool)) return;
-            if (SoundContract.DucksBgm(kind))
+            bool shouldDuck = SoundContract.DucksBgm(kind) && _bgmStarted;
+            if (shouldDuck)
             {
-                _bgmDucking = _bgmStarted;
+                _bgmDucking = true;
                 ApplyBgmPlayback();
             }
             pool.Play();
+            if (shouldDuck)
+            {
+                int generation = ++_bgmDuckGeneration;
+                StartCoroutine(ReleaseBgmDuckAfter(
+                    generation,
+                    pool.ClipLength));
+            }
         }
 
         public void Stop(SoundKind kind)
@@ -162,6 +179,14 @@ namespace Meowdoku.Services
             if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
             if (_silent || !Settings.SoundOn) yield break;
             pool.Play();
+        }
+
+        private IEnumerator ReleaseBgmDuckAfter(int generation, float delay)
+        {
+            if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
+            if (generation != _bgmDuckGeneration) yield break;
+            _bgmDucking = false;
+            ApplyBgmPlayback();
         }
 
         private float MarkCatLength()
@@ -260,6 +285,7 @@ namespace Meowdoku.Services
             private readonly AudioSource[] _voices;
             private readonly double[] _startedAt;
             private readonly AudioClip _clip;
+            private int _playCount;
 
             public VoicePool(AudioSource[] voices, AudioClip clip)
             {
@@ -269,6 +295,8 @@ namespace Meowdoku.Services
             }
 
             public float ClipLength => _clip != null ? _clip.length : 0f;
+            public int Count => _voices.Length;
+            public int PlayCount => _playCount;
 
             public void Play()
             {
@@ -290,6 +318,7 @@ namespace Meowdoku.Services
                 voice.clip = _clip;
                 voice.Play();
                 _startedAt[selected] = AudioSettings.dspTime;
+                _playCount++;
             }
 
             public void Stop()

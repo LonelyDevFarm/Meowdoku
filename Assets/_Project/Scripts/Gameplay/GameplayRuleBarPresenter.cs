@@ -17,11 +17,8 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Image[] highlights = new Image[3];
 
         private readonly Tween[] _highlightTweens = new Tween[3];
-        private RuleHighlightConfig _config;
-
         private void Awake()
         {
-            _config = new RuleHighlightConfig();
             HideHighlights();
         }
 
@@ -40,7 +37,10 @@ namespace Meowdoku.Gameplay
 
         private void HandleFeedback(IReadOnlyList<GameplayFeedbackData> feedback)
         {
-            if (_config == null || !_config.IsEnabled() || feedback == null) return;
+            if (gameplayManager == null ||
+                !gameplayManager.ShouldHighlightRuleViolation() ||
+                feedback == null)
+                return;
             for (int index = 0; index < feedback.Count; index++)
             {
                 GameplayFeedbackData item = feedback[index];
@@ -70,6 +70,15 @@ namespace Meowdoku.Gameplay
                     SetAlpha(image, 0f);
                     image.gameObject.SetActive(false);
                 });
+        }
+
+        internal bool IsHighlightVisibleForTests(QueendokuCore.Rule rule)
+        {
+            int index = (int)rule - 1;
+            return index >= 0 &&
+                   index < highlights.Length &&
+                   highlights[index] != null &&
+                   highlights[index].gameObject.activeSelf;
         }
 
         private void HideHighlights()

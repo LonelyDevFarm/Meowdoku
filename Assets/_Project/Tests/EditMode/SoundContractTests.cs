@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Meowdoku.Services;
 using NUnit.Framework;
+using UnityEditor;
 
 namespace Meowdoku.Tests.EditMode
 {
@@ -76,6 +77,30 @@ namespace Meowdoku.Tests.EditMode
                 "res://assets/audio/sfx/combo_nice_s6.ogg"), Is.True);
             Assert.That(SoundContract.DynamicSourcePaths.Contains(
                 "res://assets/audio/sfx/meow_rand_7.ogg"), Is.True);
+        }
+
+        [Test]
+        public void SerializedCatalog_ContainsEveryMappedClipAndDynamicPath()
+        {
+            SoundCatalog catalog = AssetDatabase.LoadAssetAtPath<SoundCatalog>(
+                "Assets/_Project/Settings/SoundCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            Assert.That(catalog.FixedClips, Has.Count.EqualTo(27));
+            Assert.That(catalog.PathClips, Has.Count.EqualTo(39));
+
+            foreach (SoundClipEntry entry in catalog.FixedClips)
+            {
+                Assert.That(entry, Is.Not.Null);
+                Assert.That(entry.clip, Is.Not.Null, entry.kind.ToString());
+                Assert.That(SoundContract.SourcePath(entry.kind), Is.Not.Empty);
+            }
+            foreach (string sourcePath in SoundContract.DynamicSourcePaths)
+            {
+                Assert.That(catalog.TryGetPathClip(sourcePath, out var clip),
+                    Is.True,
+                    sourcePath);
+                Assert.That(clip, Is.Not.Null, sourcePath);
+            }
         }
     }
 }

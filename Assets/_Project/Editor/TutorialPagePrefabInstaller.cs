@@ -29,6 +29,14 @@ namespace Meowdoku.Editor
             "Assets/_Project/Sprites/Effects/ui_guide/ui_guide_hand.png";
         private const string PrimaryButtonPath =
             "Assets/_Project/Sprites/common/btn_primary.png";
+        private const string FireworkLinePath =
+            "Assets/_Project/Sprites/Effects/line/et_line_001.png";
+        private const string FireworkRibbonPath =
+            "Assets/_Project/Sprites/Effects/obj/et_ribbon_001.png";
+        private const string FireworkStarPath =
+            "Assets/_Project/Sprites/Effects/star/et_star_2.png";
+        private const string FireworkGlowPath =
+            "Assets/_Project/Sprites/Effects/glow/et_glow_003.png";
 
         private static readonly Color SourceBackground =
             new Color(0.969f, 0.949f, 0.933f, 1f);
@@ -40,6 +48,12 @@ namespace Meowdoku.Editor
         static TutorialPagePrefabInstaller()
         {
             EditorApplication.delayCall += InstallIfMissing;
+            EditorApplication.playModeStateChanged += HandlePlayModeChanged;
+        }
+
+        internal static void InstallIfReady()
+        {
+            InstallIfMissing();
         }
 
         [MenuItem("Meowdoku/Port/Create Tutorial Page Prefab")]
@@ -57,9 +71,16 @@ namespace Meowdoku.Editor
                 EditorApplication.delayCall += InstallIfMissing;
                 return;
             }
-            if (EditorApplication.isPlayingOrWillChangePlaymode ||
-                AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null)
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
                 return;
+
+            GameObject existing =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (existing != null)
+            {
+                UpgradeExisting();
+                return;
+            }
 
             GameObject cellPrefab =
                 AssetDatabase.LoadAssetAtPath<GameObject>(CellPrefabPath);
@@ -251,7 +272,7 @@ namespace Meowdoku.Editor
             TutorialFinishEffects finishEffects =
                 effects.gameObject.AddComponent<TutorialFinishEffects>();
             SerializedObject effectData = new SerializedObject(finishEffects);
-            effectData.FindProperty("effectRoot").objectReferenceValue = effects;
+            ConfigureFinishEffects(effectData, effects);
             effectData.ApplyModifiedPropertiesWithoutUndo();
 
             TutorialPagePresenter presenter =
@@ -476,11 +497,73 @@ namespace Meowdoku.Editor
             return null;
         }
 
+        private static void UpgradeExisting()
+        {
+            GameObject contents = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                TutorialFinishEffects effects =
+                    contents.GetComponentInChildren<TutorialFinishEffects>(true);
+                if (effects == null) return;
+                SerializedObject data = new SerializedObject(effects);
+                RectTransform root = data.FindProperty("effectRoot")
+                    .objectReferenceValue as RectTransform;
+                if (root == null) root = effects.transform as RectTransform;
+                ConfigureFinishEffects(data, root);
+                if (!data.ApplyModifiedPropertiesWithoutUndo()) return;
+                PrefabUtility.SaveAsPrefabAsset(contents, PrefabPath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        private static void ConfigureFinishEffects(
+            SerializedObject data,
+            RectTransform root)
+        {
+            data.FindProperty("effectRoot").objectReferenceValue = root;
+            data.FindProperty("lineSprite").objectReferenceValue =
+                LoadSprite(FireworkLinePath, "et_line_001_0");
+            data.FindProperty("starSprite").objectReferenceValue =
+                LoadSprite(FireworkStarPath, "et_star_2_0");
+            data.FindProperty("glowSprite").objectReferenceValue =
+                LoadSprite(FireworkGlowPath, "et_glow_003_0");
+
+            Sprite[] ribbons = LoadSprites(FireworkRibbonPath);
+            SerializedProperty ribbonProperty = data.FindProperty("ribbonSprites");
+            ribbonProperty.arraySize = ribbons.Length;
+            for (int index = 0; index < ribbons.Length; index++)
+                ribbonProperty.GetArrayElementAtIndex(index).objectReferenceValue =
+                    ribbons[index];
+        }
+
+        private static Sprite[] LoadSprites(string path)
+        {
+            Object[] assets = AssetDatabase.LoadAllAssetsAtPath(path);
+            var sprites = new System.Collections.Generic.List<Sprite>();
+            for (int index = 0; index < assets.Length; index++)
+            {
+                if (assets[index] is Sprite sprite) sprites.Add(sprite);
+            }
+            sprites.Sort((left, right) =>
+                string.CompareOrdinal(left.name, right.name));
+            return sprites.ToArray();
+        }
+
         private static void EnsureFolder(string parent, string child)
         {
             string path = parent + "/" + child;
             if (!AssetDatabase.IsValidFolder(path))
                 AssetDatabase.CreateFolder(parent, child);
+        }
+
+        private static void HandlePlayModeChanged(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.EnteredEditMode)
+                EditorApplication.delayCall += InstallIfMissing;
         }
 
         private static void SetUiLayer(GameObject target)

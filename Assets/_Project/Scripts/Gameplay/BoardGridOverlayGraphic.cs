@@ -227,6 +227,48 @@ namespace Meowdoku.Gameplay
             return true;
         }
 
+#if UNITY_INCLUDE_TESTS
+        internal int RegionBoundaryCountForTests
+        {
+            get
+            {
+                if (!RegionsAreValid()) return 0;
+                int count = 0;
+                for (int row = 0; row < _size; row++)
+                {
+                    for (int column = 0; column < _size; column++)
+                    {
+                        if (HasVerticalRegionBoundaryForTests(row, column + 1))
+                            count++;
+                        if (HasHorizontalRegionBoundaryForTests(row + 1, column))
+                            count++;
+                    }
+                }
+                return count;
+            }
+        }
+
+        internal bool HasVerticalRegionBoundaryForTests(
+            int row,
+            int boundaryColumn)
+        {
+            return RegionsAreValid() && row >= 0 && row < _size &&
+                   boundaryColumn > 0 && boundaryColumn < _size &&
+                   _regions[row][boundaryColumn - 1] !=
+                   _regions[row][boundaryColumn];
+        }
+
+        internal bool HasHorizontalRegionBoundaryForTests(
+            int boundaryRow,
+            int column)
+        {
+            return RegionsAreValid() && column >= 0 && column < _size &&
+                   boundaryRow > 0 && boundaryRow < _size &&
+                   _regions[boundaryRow - 1][column] !=
+                   _regions[boundaryRow][column];
+        }
+#endif
+
         private float LineDuration() => _synchronizedDuration > 0f
             ? Mathf.Max(_synchronizedDuration - ThinStart, 0.01f)
             : ThinDuration;

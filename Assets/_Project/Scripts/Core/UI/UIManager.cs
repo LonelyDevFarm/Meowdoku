@@ -10,6 +10,8 @@ using Meowdoku.Core.Profile;
 using Meowdoku.Core.Rank;
 using Meowdoku.Core.Tracking;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UI;
 
 namespace Meowdoku.Core.UI
@@ -39,6 +41,7 @@ namespace Meowdoku.Core.UI
         [SerializeField] private AbConfigRuntime abConfigRuntime;
         [SerializeField] private DataSyncRuntime dataSyncRuntime;
         [SerializeField] private PrivacyPermissionRuntime platformRuntime;
+        [SerializeField] private ProductServiceRuntime productServiceRuntime;
 
         [Header("Shared mask")]
         [SerializeField] private Canvas maskCanvas;
@@ -64,12 +67,22 @@ namespace Meowdoku.Core.UI
         private UITrackerObserver _trackerObserver;
         private ISettingsExternalServices _settingsExternalServices =
             OfflineSettingsExternalServices.Instance;
+        private bool _backInputBound;
+        private bool _keyboardBackPressed;
+        private bool _gamepadBackPressed;
+        private int _lastBackInputFrame = -1;
 
         public UIEvents Events { get; } = new();
         public bool IsAnyLoading => _loading.Count > 0;
         public int CachedWindowCount => _cache.Count;
         public int MaskReferenceCount => _maskReferenceCount;
         public bool IsInputGuardActive => _guardActive;
+#if UNITY_INCLUDE_TESTS
+        internal bool IsBackInputEnabledForTests => _backInputBound;
+        internal int BackInputEventCountForTests { get; private set; }
+        internal int BackInputPressCountForTests { get; private set; }
+        internal bool LastBackRequestHandledForTests { get; private set; }
+#endif
 
         /// <summary>
         /// Source-equivalent early mask fade used while a reward visual flies
@@ -97,11 +110,33 @@ namespace Meowdoku.Core.UI
         private void Awake()
         {
             if (windowRoot == null) windowRoot = transform as RectTransform;
+            // RectTransforms created by editor installers can be serialized at
+            // zero scale while they are not part of an active Canvas. A zero
+            // scale parent keeps the complete runtime UI invisible even though
+            // window lifecycle and navigation continue to work normally.
+            EnsureRenderableScale(transform);
+            EnsureRenderableScale(windowRoot);
+            EnsureRenderableScale(maskCanvas != null
+                ? maskCanvas.transform
+                : null);
+            EnsureRenderableScale(inputBlockerCanvas != null
+                ? inputBlockerCanvas.transform
+                : null);
             dailyMetaRuntime?.BindAbConfigRuntime(abConfigRuntime);
             rankActivityRuntime?.BindAbConfigRuntime(abConfigRuntime);
             ResetTrackerObserver();
             SetMaskVisible(false, 0f, 0);
             SetInputGuard(false);
+        }
+
+        private void OnEnable()
+        {
+            BindBackInput();
+        }
+
+        private void OnDisable()
+        {
+            UnbindBackInput();
         }
 
         internal TrackerService Tracker => trackingRuntime != null
@@ -118,6 +153,16 @@ namespace Meowdoku.Core.UI
                 if (window is ISettingsExternalServicesConsumer consumer)
                     consumer.BindSettingsExternalServices(
                         _settingsExternalServices);
+            }
+        }
+
+        public void BindProductServiceRuntime(ProductServiceRuntime runtime)
+        {
+            productServiceRuntime = runtime;
+            foreach (UIFrameWindow window in _cache.Values)
+            {
+                if (window is IProductServiceRuntimeConsumer consumer)
+                    consumer.BindProductServiceRuntime(productServiceRuntime);
             }
         }
 
@@ -443,6 +488,7 @@ namespace Meowdoku.Core.UI
             }
 
             UIFrameWindow window = Instantiate(prefab, windowRoot);
+            NormalizeWindowRect(window.transform);
             window.name = prefab.name;
             _cache[name] = window;
             _sourcePrefabs[name] = prefab;
@@ -464,12 +510,38 @@ namespace Meowdoku.Core.UI
                 dataSyncConsumer.BindDataSyncRuntime(dataSyncRuntime);
             if (window is IPlatformPermissionRuntimeConsumer platformConsumer)
                 platformConsumer.BindPlatformPermissionRuntime(platformRuntime);
+            if (window is IProductServiceRuntimeConsumer productConsumer)
+                productConsumer.BindProductServiceRuntime(productServiceRuntime);
             if (window is ISettingsExternalServicesConsumer settingsConsumer)
                 settingsConsumer.BindSettingsExternalServices(
                     _settingsExternalServices);
             window.InitializeFrame(this, name);
             Events.RaiseCreated(name, window);
             return window;
+        }
+
+        private void EnsureRenderableScale(Transform node)
+        {
+            while (node != null)
+            {
+                node.localScale = Vector3.one;
+                if (node == transform) break;
+                node = node.parent;
+            }
+        }
+
+        private static void NormalizeWindowRect(Transform window)
+        {
+            window.localPosition = Vector3.zero;
+            window.localRotation = Quaternion.identity;
+            window.localScale = Vector3.one;
+            if (window is not RectTransform rect) return;
+
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = Vector2.zero;
         }
 
         private IEnumerator HideRoutine(UiName name, UIFrameWindow window)
@@ -698,6 +770,7 @@ namespace Meowdoku.Core.UI
 
         private void OnDestroy()
         {
+            UnbindBackInput();
             StopMaskFade();
             _trackerObserver?.Dispose();
             _trackerObserver = null;
@@ -717,6 +790,73 @@ namespace Meowdoku.Core.UI
             }
             _timedInputBlocks.Clear();
             Events.Clear();
+        }
+
+        private void BindBackInput()
+        {
+            if (_backInputBound) return;
+            _keyboardBackPressed = Keyboard.current != null &&
+                                   Keyboard.current.escapeKey.isPressed;
+            _gamepadBackPressed = Gamepad.current != null &&
+                                  Gamepad.current.buttonEast.isPressed;
+            InputSystem.onEvent += HandleBackInputEvent;
+            _backInputBound = true;
+        }
+
+        private void UnbindBackInput()
+        {
+            if (!_backInputBound) return;
+            InputSystem.onEvent -= HandleBackInputEvent;
+            _backInputBound = false;
+            _keyboardBackPressed = false;
+            _gamepadBackPressed = false;
+            _lastBackInputFrame = -1;
+        }
+
+        private void HandleBackInputEvent(
+            InputEventPtr eventPtr,
+            InputDevice device)
+        {
+#if UNITY_INCLUDE_TESTS
+            if (device is Keyboard || device is Gamepad)
+                BackInputEventCountForTests++;
+#endif
+            if (device is Keyboard keyboard)
+            {
+                if (!keyboard.escapeKey.ReadValueFromEvent(
+                        eventPtr,
+                        out float value))
+                    return;
+                HandleBackButtonState(
+                    value >= InputSystem.settings.defaultButtonPressPoint,
+                    ref _keyboardBackPressed);
+                return;
+            }
+
+            if (device is not Gamepad gamepad ||
+                !gamepad.buttonEast.ReadValueFromEvent(
+                    eventPtr,
+                    out float gamepadValue))
+                return;
+
+            HandleBackButtonState(
+                gamepadValue >= InputSystem.settings.defaultButtonPressPoint,
+                ref _gamepadBackPressed);
+        }
+
+        private void HandleBackButtonState(bool pressed, ref bool wasPressed)
+        {
+            if (pressed == wasPressed) return;
+            wasPressed = pressed;
+            if (!pressed || _lastBackInputFrame == Time.frameCount) return;
+
+            _lastBackInputFrame = Time.frameCount;
+#if UNITY_INCLUDE_TESTS
+            BackInputPressCountForTests++;
+            LastBackRequestHandledForTests = RequestBack();
+#else
+            RequestBack();
+#endif
         }
 
         private void ResetTrackerObserver()

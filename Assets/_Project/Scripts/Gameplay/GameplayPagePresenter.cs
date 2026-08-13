@@ -10,6 +10,7 @@ using Meowdoku.Core.Localization;
 using Meowdoku.Core.Rank;
 using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
+using Meowdoku.Services;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,7 +23,8 @@ namespace Meowdoku.Gameplay
         IDailyMetaConsumer,
         IRankActivityConsumer,
         IAdServiceConsumer,
-        IAbConfigRuntimeConsumer
+        IAbConfigRuntimeConsumer,
+        ISoundServiceConsumer
     {
         public override string GetTrackingScreenName() => _dailyPresentation
             ? TrackerCatalog.Screen.DailyGame
@@ -74,6 +76,8 @@ namespace Meowdoku.Gameplay
                 gameplayManager.GameTrackingStarted += HandleGameTrackingStarted;
                 gameplayManager.GameplayFeedbackBatchRequested +=
                     HandleGameplayFeedbackBatch;
+                gameplayManager.SessionLoadPreparing +=
+                    HandleSessionLoadPreparing;
                 gameplayManager.SessionPresentationChanged +=
                     HandleSessionPresentationChanged;
                 gameplayManager.ToolRewardRequested += HandleToolRewardRequested;
@@ -100,7 +104,6 @@ namespace Meowdoku.Gameplay
             bool fromBank = ReadBool(parameters, "from_bank_browser");
             _dailyPresentation = ReadBool(parameters, "daily_mode") ||
                                  ReadBool(parameters, "is_daily");
-            ReloadGameStartConfigs();
             SubscribeClock();
             ApplySessionPresentation();
             if (returnBankButton != null)
@@ -147,6 +150,8 @@ namespace Meowdoku.Gameplay
                 gameplayManager.GameTrackingStarted -= HandleGameTrackingStarted;
                 gameplayManager.GameplayFeedbackBatchRequested -=
                     HandleGameplayFeedbackBatch;
+                gameplayManager.SessionLoadPreparing -=
+                    HandleSessionLoadPreparing;
                 gameplayManager.SessionPresentationChanged -=
                     HandleSessionPresentationChanged;
                 gameplayManager.ToolRewardRequested -= HandleToolRewardRequested;
@@ -186,10 +191,16 @@ namespace Meowdoku.Gameplay
             gameplayManager?.BindAdService(service);
         }
 
+        public void BindSoundService(SoundService service)
+        {
+            gameplayManager?.BindSoundService(service);
+        }
+
         public void BindAbConfigRuntime(AbConfigRuntime runtime)
         {
             _abConfigRuntime = runtime;
             gameplayManager?.BindAbConfigRuntime(runtime);
+            winToast?.BindAbConfigRuntime(runtime);
         }
 
         private RuleTextConfig RuleTextConfig =>
@@ -354,6 +365,7 @@ namespace Meowdoku.Gameplay
             switch (transition.Kind)
             {
                 case MainGameTransitionKind.Failed:
+                    _abConfigRuntime?.ReloadTiming(AbConfigTiming.GameEnd);
                     Owner.Show(
                         transition.IsDailySession
                             ? UiName.DailyFail
@@ -410,8 +422,22 @@ namespace Meowdoku.Gameplay
             ApplySessionPresentation();
             if (returnBankButton != null)
                 returnBankButton.gameObject.SetActive(fromBankBrowser);
+            if (infoButton != null)
+                infoButton.gameObject.SetActive(RuleTextConfig.IsInfoPopup());
             SubscribeClock();
             if (_dailyPresentation) RefreshDailyPresentation();
+        }
+
+        private void HandleSessionLoadPreparing(
+            GameplaySessionMode mode,
+            int level)
+        {
+            // Godot dyes configs from GamePage.on_show before it selects and
+            // builds the puzzle. Unity keeps the same page visible across
+            // Next/Restart, so every internal load needs the same pre-load
+            // boundary instead of waiting for the presentation callback.
+            _dailyPresentation = mode == GameplaySessionMode.Daily;
+            ReloadGameStartConfigs(mode, level);
         }
 
         private void HandleGameplayFeedbackBatch(
@@ -463,17 +489,18 @@ namespace Meowdoku.Gameplay
                     segment.Count));
         }
 
-        private void ReloadGameStartConfigs()
+        private void ReloadGameStartConfigs(
+            GameplaySessionMode mode,
+            int level)
         {
             if (_abConfigRuntime == null) return;
             _abConfigRuntime.ReloadTiming(AbConfigTiming.GameStart);
-            if (_dailyPresentation)
+            if (mode == GameplaySessionMode.Daily)
             {
                 _abConfigRuntime.ReloadTiming(AbConfigTiming.GameStartDaily);
                 return;
             }
             _abConfigRuntime.ReloadTiming(AbConfigTiming.GameStartNormal);
-            int level = GameStateRuntime.Current.CurrentLevel;
             if (level >= 11)
                 _abConfigRuntime.ReloadTiming(
                     AbConfigTiming.GameStartNormal11);

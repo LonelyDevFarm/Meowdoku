@@ -12,7 +12,8 @@ using UnityEngine.UI;
 namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
-    public sealed class TutorialPagePresenter : UIFrameWindow
+    public sealed class TutorialPagePresenter : UIFrameWindow,
+        IAbConfigRuntimeConsumer
     {
         private const float SourceMaskFadeSeconds = 0.12f;
         private const float SourceCheckSeconds = 0.95f;
@@ -67,9 +68,17 @@ namespace Meowdoku.Gameplay
         private float _feedbackDelay;
         private bool _finishEffectPlayed;
         private bool _routeCommitted;
+        private AbConfigRuntime _abConfigRuntime;
+        private Vector2Int _gestureStartCell = new(-1, -1);
+        private CellStateType _gestureStartState;
 
         public string FailureReason { get; private set; } = string.Empty;
         public TutorialPhase Phase => _machine?.Phase ?? TutorialPhase.PlaceFirstCat;
+
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _abConfigRuntime = runtime;
+        }
 
         protected override void OnCreate()
         {
@@ -97,9 +106,14 @@ namespace Meowdoku.Gameplay
                 return;
             }
 
-            _feedbackConfig = new GuideFeedbackConfig();
-            var diagonalConfig = new TutorialDiagonalConfig();
-            var doubleTapConfig = new DoubleTapProtectConfig();
+            _feedbackConfig = _abConfigRuntime?.Input.GuideFeedback ??
+                              new GuideFeedbackConfig();
+            TutorialDiagonalConfig diagonalConfig =
+                _abConfigRuntime?.Input.TutorialDiagonal ??
+                new TutorialDiagonalConfig();
+            DoubleTapProtectConfig doubleTapConfig =
+                _abConfigRuntime?.Input.DoubleTapProtect ??
+                new DoubleTapProtectConfig();
             _machine = new TutorialStateMachine(
                 puzzle,
                 _feedbackConfig,
@@ -112,9 +126,12 @@ namespace Meowdoku.Gameplay
                 TutorialPuzzle.SourceSize,
                 puzzle.Regions,
                 puzzle.ColorMap,
-                regionColorConfig: new RegionColorConfig(),
-                gridUiConfig: new GameGridUiConfig(),
-                boardSizeBigConfig: new BoardSizeBigConfig(),
+                regionColorConfig: _abConfigRuntime?.Board.RegionColor ??
+                                   new RegionColorConfig(),
+                gridUiConfig: _abConfigRuntime?.Board.GameGridUi ??
+                              new GameGridUiConfig(),
+                boardSizeBigConfig: _abConfigRuntime?.Board.BoardSizeBig ??
+                                    new BoardSizeBigConfig(),
                 visibleBoardPixelsOverride: TutorialPuzzle.SourceBoardWidth);
 
             InitializeIqBar();
@@ -190,19 +207,33 @@ namespace Meowdoku.Gameplay
             Vector2Int cell,
             int timestampMilliseconds)
         {
-            _machine?.BeginGesture(cell.y, cell.x);
+            _gestureStartCell = new Vector2Int(cell.y, cell.x);
+            _gestureStartState = _machine != null && cell.x >= 0
+                ? _machine.GetCellState(cell.y, cell.x)
+                : CellStateType.EMPTY;
+            if (_machine?.BeginGesture(cell.y, cell.x) != true)
+                _gestureStartCell = new Vector2Int(-1, -1);
         }
 
         private void HandleGestureMoved(Vector2 boardPosition, int timestampMilliseconds)
         {
             if (_machine == null || boardView == null) return;
             Vector2Int cell = boardView.PointerToCell(boardPosition);
-            if (cell.x >= 0) _machine.DragOver(cell.y, cell.x);
+            if (cell.x >= 0 && _machine.DragOver(cell.y, cell.x))
+                VibrationRuntime.Current.Play(VibrationLevel.Level2);
         }
 
         private void HandleGestureEnded()
         {
-            _machine?.EndGesture(Time.unscaledTimeAsDouble);
+            if (_machine == null)
+            {
+                ClearGestureState();
+                return;
+            }
+            TutorialPhase phaseBefore = _machine.Phase;
+            bool accepted = _machine.EndGesture(Time.unscaledTimeAsDouble);
+            PlayTapVibration(phaseBefore, accepted);
+            ClearGestureState();
         }
 
         private void HandleBoardChanged(IReadOnlyList<BoardStateChange> changes)
@@ -275,7 +306,45 @@ namespace Meowdoku.Gameplay
 
         private void ShowHint()
         {
-            _machine?.PressHint();
+            if (_machine == null) return;
+            int hintPhaseBefore = _machine.HintPhase;
+            TutorialPhase phaseBefore = _machine.Phase;
+            if (!_machine.PressHint()) return;
+            if (hintPhaseBefore == 1 || hintPhaseBefore == 2)
+                VibrationRuntime.Current.Play(VibrationLevel.Level2);
+            else if (hintPhaseBefore == 3)
+            {
+                VibrationRuntime.Current.Play(VibrationLevel.Level3);
+                if (phaseBefore == TutorialPhase.FreePlay &&
+                    _machine.Phase == TutorialPhase.FinishConfirm)
+                    VibrationRuntime.Current.Play(VibrationLevel.Level5);
+            }
+        }
+
+        private void PlayTapVibration(TutorialPhase phaseBefore, bool accepted)
+        {
+            if (!accepted || _machine == null || _gestureStartCell.x < 0) return;
+            CellStateType after = _machine.GetCellState(
+                _gestureStartCell.x,
+                _gestureStartCell.y);
+            if (after == CellStateType.CAT && _gestureStartState != CellStateType.CAT)
+            {
+                VibrationRuntime.Current.Play(VibrationLevel.Level3);
+                if (phaseBefore == TutorialPhase.FreePlay &&
+                    _machine.Phase == TutorialPhase.FinishConfirm)
+                    VibrationRuntime.Current.Play(VibrationLevel.Level5);
+            }
+            else if (after == CellStateType.MARK &&
+                     _gestureStartState != CellStateType.MARK)
+            {
+                VibrationRuntime.Current.Play(VibrationLevel.Level2);
+            }
+        }
+
+        private void ClearGestureState()
+        {
+            _gestureStartCell = new Vector2Int(-1, -1);
+            _gestureStartState = CellStateType.EMPTY;
         }
 
         private void RenderPhase(TutorialPhase phase, bool animate)
@@ -705,6 +774,10 @@ namespace Meowdoku.Gameplay
                 if (iqText != null)
                     iqText.text = $"IQ={Mathf.RoundToInt(value * 180f)}";
             }).SetEase(Ease.OutCubic));
+            sequence.AppendCallback(() => finishEffects?.PlayIqBurst(
+                iqBar != null ? iqBar.transform as RectTransform : null,
+                to,
+                after >= 180));
             sequence.AppendCallback(() => _machine?.CompleteFeedback());
             _feedbackTween = sequence;
         }
@@ -730,7 +803,9 @@ namespace Meowdoku.Gameplay
         {
             if (_finishEffectPlayed) return;
             _finishEffectPlayed = true;
-            if (_feedbackConfig == null || !_feedbackConfig.IsIqGuide())
+            if (_feedbackConfig != null && _feedbackConfig.IsIqGuide())
+                finishEffects?.PlayFireworks();
+            else
                 finishEffects?.PlayDefaultConfetti();
         }
 
@@ -772,6 +847,7 @@ namespace Meowdoku.Gameplay
             UnsubscribeMachine();
             UnsubscribeBoard();
             _machine = null;
+            ClearGestureState();
             _phaseTween?.Kill(false);
             _feedbackTween?.Kill(false);
             _maskTween?.Kill(false);
@@ -801,6 +877,28 @@ namespace Meowdoku.Gameplay
                    phase == TutorialPhase.PlaceThirdCat ||
                    phase == TutorialPhase.FreePlay;
         }
+
+#if UNITY_INCLUDE_TESTS
+        internal BoardView BoardForTests => boardView;
+        internal CanvasGroup BoardInputGroupForTests => boardInputGroup;
+        internal int MaskCellCountForTests => _maskCells.Count;
+        internal int HintPhaseForTests => _machine?.HintPhase ?? 0;
+        internal bool UsesDiagonalCopyForTests => _machine?.UsesDiagonalCopy == true;
+        internal int GuideFeedbackValueForTests =>
+            _feedbackConfig?.Value ?? GuideFeedbackConfig.ValueCurrent;
+
+        internal bool TapCellForTests(int row, int column, double nowSeconds)
+        {
+            if (_machine == null) return false;
+            _gestureStartCell = new Vector2Int(row, column);
+            _gestureStartState = _machine.GetCellState(row, column);
+            TutorialPhase phaseBefore = _machine.Phase;
+            bool accepted = _machine.Tap(row, column, nowSeconds);
+            PlayTapVibration(phaseBefore, accepted);
+            ClearGestureState();
+            return accepted;
+        }
+#endif
 
         private static float TransitionDelayAfter(TutorialPhase phase)
         {

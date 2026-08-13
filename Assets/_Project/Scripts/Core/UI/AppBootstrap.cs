@@ -73,6 +73,7 @@ namespace Meowdoku.Core.UI
         [SerializeField] private AbConfigRuntime abConfigRuntime;
         [SerializeField] private DataSyncRuntime dataSyncRuntime;
         [SerializeField] private PrivacyPermissionRuntime platformRuntime;
+        [SerializeField] private ProductServiceRuntime productServiceRuntime;
         [SerializeField] private MonoBehaviour externalServicesAdapter;
         [SerializeField] private bool runOnStart = true;
 
@@ -84,6 +85,11 @@ namespace Meowdoku.Core.UI
         public AppStartupPhase Phase { get; private set; } = AppStartupPhase.Idle;
         public bool IsComplete => Phase == AppStartupPhase.Complete;
         public string FailureReason { get; private set; } = string.Empty;
+#if UNITY_INCLUDE_TESTS
+        internal float StartupStartedAtForTests { get; private set; } = -1f;
+        internal float SplashForceRequestedAtForTests { get; private set; } = -1f;
+        internal float SplashForceCompletedAtForTests { get; private set; } = -1f;
+#endif
 
         private IEnumerator Start()
         {
@@ -96,6 +102,11 @@ namespace Meowdoku.Core.UI
             _running = true;
             FailureReason = string.Empty;
             float startupTime = Time.realtimeSinceStartup;
+#if UNITY_INCLUDE_TESTS
+            StartupStartedAtForTests = startupTime;
+            SplashForceRequestedAtForTests = -1f;
+            SplashForceCompletedAtForTests = -1f;
+#endif
 
             if (uiManager == null)
             {
@@ -138,6 +149,7 @@ namespace Meowdoku.Core.UI
                 gameState.ConsumeFirstSessionPersist();
                 _runtimeInitialized = true;
             }
+            productServiceRuntime?.InitializeProductServices();
 
             // Source delays one second only on Android before showing its UI
             // splash, while the startup timer is already running.
@@ -181,8 +193,14 @@ namespace Meowdoku.Core.UI
             float elapsed = Time.realtimeSinceStartup - startupTime;
             yield return new WaitForSecondsRealtime(
                 AppStartupContract.SplashWaitRemaining(elapsed));
+#if UNITY_INCLUDE_TESTS
+            SplashForceRequestedAtForTests = Time.realtimeSinceStartup;
+#endif
             if (splash is IStartupSplashWindow splashWindow)
                 yield return RunOptional(splashWindow.ForceCompleteAndWait());
+#if UNITY_INCLUDE_TESTS
+            SplashForceCompletedAtForTests = Time.realtimeSinceStartup;
+#endif
 
             while (uiManager.IsAnyLoading) yield return null;
 
@@ -209,7 +227,8 @@ namespace Meowdoku.Core.UI
             bool autoRun = false,
             LocalizationCatalog localization = null,
             DataSyncRuntime dataSync = null,
-            PrivacyPermissionRuntime platform = null)
+            PrivacyPermissionRuntime platform = null,
+            ProductServiceRuntime product = null)
         {
             uiManager = manager;
             externalServicesAdapter = externalAdapter;
@@ -217,6 +236,7 @@ namespace Meowdoku.Core.UI
             localizationCatalog = localization;
             dataSyncRuntime = dataSync;
             platformRuntime = platform;
+            productServiceRuntime = product;
         }
 
         private IEnumerator PrewarmGame(GameStateService gameState)

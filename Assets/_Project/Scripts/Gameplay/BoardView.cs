@@ -360,8 +360,38 @@ namespace Meowdoku.Gameplay
         // Thay đổi trạng thái của một ô cụ thể khi người chơi bấm vào
         public void SetCellState(int r, int c, CellStateType state, bool playAnim = true)
         {
+            ApplyCellVisualState(r, c, state, playAnim, false);
+        }
+
+        /// <summary>
+        /// View-only restoration path for an authoritative model rollback.
+        /// Normal gameplay still cannot overwrite a confirmed CAT, matching
+        /// board_view.gd; Unity's optional Undo adapter needs to repaint the
+        /// result already accepted by BoardStateModel.
+        /// </summary>
+        public void RestoreCellState(
+            int r,
+            int c,
+            CellStateType state,
+            bool playAnim = true)
+        {
+            ApplyCellVisualState(r, c, state, playAnim, true);
+        }
+
+        private void ApplyCellVisualState(
+            int r,
+            int c,
+            CellStateType state,
+            bool playAnim,
+            bool restoreAuthoritativeState)
+        {
             if (r < 0 || r >= _puzzleSize || c < 0 || c >= _puzzleSize) return;
             if (_cells == null || _cells[r, c] == null) return;
+            // board_view.gd never allows an already confirmed CAT to be
+            // replaced by another visual state.
+            if (_cells[r, c].GetState() == CellStateType.CAT &&
+                state != CellStateType.CAT && !restoreAuthoritativeState)
+                return;
 
             _cells[r, c].ChangeState(state, playAnim);
         }
@@ -711,6 +741,7 @@ namespace Meowdoku.Gameplay
 #if UNITY_INCLUDE_TESTS
         internal bool PatternOnForTests => _patternOn;
         internal bool PatternKeepOnFilledForTests => _patternKeepOnFilled;
+        internal BoardGridOverlayGraphic GridOverlayForTests => _gridOverlay;
 
         internal CellView GetCellForTests(int row, int column)
         {
@@ -719,6 +750,7 @@ namespace Meowdoku.Gameplay
                 ? _cells[row, column]
                 : null;
         }
+
 #endif
 
         public bool TryGetCellCenter(

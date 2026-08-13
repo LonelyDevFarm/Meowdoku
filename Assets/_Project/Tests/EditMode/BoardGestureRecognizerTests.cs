@@ -3,6 +3,9 @@ using Meowdoku.Core.Config;
 using Meowdoku.Gameplay;
 using Meowdoku.Gameplay.Input;
 using NUnit.Framework;
+using System.Reflection;
+using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Meowdoku.Tests.EditMode
 {
@@ -17,6 +20,19 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(actions, Has.Count.EqualTo(1));
             Assert.That(actions[0].Kind, Is.EqualTo(CellAction.ActionKind.SetState));
             Assert.That(actions[0].State, Is.EqualTo(CellStateType.MARK));
+        }
+
+        [Test]
+        public void SingleTapOnMark_ReturnsEmptyImmediately()
+        {
+            var recognizer = new BoardGestureRecognizer(
+                new BoardInputScheme(new MutableRowBoard(CellStateType.MARK)));
+
+            var actions = recognizer.OnDragStart(0, 0, 10f);
+
+            Assert.That(actions, Has.Count.EqualTo(1));
+            Assert.That(actions[0].Before, Is.EqualTo(CellStateType.MARK));
+            Assert.That(actions[0].State, Is.EqualTo(CellStateType.EMPTY));
         }
 
         [Test]
@@ -55,6 +71,190 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(actions[0].Column, Is.EqualTo(1));
             Assert.That(actions[1].Column, Is.EqualTo(2));
             Assert.That(actions, Has.All.Property("State").EqualTo(CellStateType.MARK));
+        }
+
+        [TestCase(CellStateType.EMPTY, CellStateType.MARK)]
+        [TestCase(CellStateType.MARK, CellStateType.EMPTY)]
+        public void SwipeStartingOnCat_UsesFirstEligibleCellAsTarget(
+            CellStateType firstEligible,
+            CellStateType expected)
+        {
+            var board = new MutableRowBoard(
+                CellStateType.CAT,
+                firstEligible,
+                firstEligible);
+            var recognizer = new BoardGestureRecognizer(
+                new BoardInputScheme(board));
+
+            Assert.That(recognizer.OnDragStart(0, 0, 1f), Is.Empty);
+            var actions = recognizer.OnDragOver(0, 2);
+
+            Assert.That(actions, Has.Count.EqualTo(2));
+            Assert.That(actions, Has.All.Property("State").EqualTo(expected));
+        }
+
+        [Test]
+        public void DiagonalInterpolation_DoesNotTouchAdjacentOffPathCells()
+        {
+            var recognizer = new BoardGestureRecognizer(
+                new BoardInputScheme(new EmptyBoard()));
+            recognizer.OnDragStart(0, 0, 1f);
+
+            var actions = recognizer.OnDragOver(2, 2);
+
+            Assert.That(actions, Has.Count.EqualTo(2));
+            Assert.That(actions[0].Row, Is.EqualTo(1));
+            Assert.That(actions[0].Column, Is.EqualTo(1));
+            Assert.That(actions[1].Row, Is.EqualTo(2));
+            Assert.That(actions[1].Column, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void LeavingBoard_EmitsNothingAndReentryContinuesFromLastValidCell()
+        {
+            var recognizer = CreateRecognizer();
+            recognizer.OnDragStart(0, 0, 1f);
+
+            Assert.That(recognizer.OnDragOver(-1, -1), Is.Empty);
+            var actions = recognizer.OnDragOver(0, 2);
+
+            Assert.That(actions, Has.Count.EqualTo(2));
+            Assert.That(actions[0].Column, Is.EqualTo(1));
+            Assert.That(actions[1].Column, Is.EqualTo(2));
+        }
+
+        [TestCase(30)]
+        [TestCase(60)]
+        [TestCase(120)]
+        public void SwipeInterpolation_IsStableAcrossSimulatedFrameRates(int fps)
+        {
+            var config = new SwipeProtectConfig();
+            var recognizer = new SwipeGuardRecognizer(
+                new BoardGestureRecognizer(
+                    new BoardInputScheme(new EmptyBoard())),
+                config,
+                position => new Vector2Int(
+                    Mathf.Clamp(Mathf.FloorToInt(position.x), 0, 4),
+                    0));
+            recognizer.ConfigureBoard(5, 1, 0, 1);
+            var columns = new System.Collections.Generic.List<int>();
+            foreach (CellAction action in recognizer.OnDragStart(
+                         Vector2.zero,
+                         0))
+                columns.Add(action.Column);
+
+            const int durationMilliseconds = 160;
+            int interval = Mathf.Max(1, Mathf.RoundToInt(1000f / fps));
+            for (int time = interval;
+                 time < durationMilliseconds;
+                 time += interval)
+            {
+                float x = 4f * time / durationMilliseconds;
+                foreach (CellAction action in recognizer.OnDragOver(
+                             new Vector2(x, 0f),
+                             time))
+                    columns.Add(action.Column);
+            }
+            foreach (CellAction action in recognizer.OnDragOver(
+                         new Vector2(4f, 0f),
+                         durationMilliseconds))
+                columns.Add(action.Column);
+
+            Assert.That(columns, Is.EqualTo(new[] { 0, 1, 2, 3, 4 }));
+        }
+
+        [Test]
+        public void PointerUpOutsideBoard_EndsTheOwnedGesture()
+        {
+            BoardView board = CreateInactiveBoardView(out GameObject root);
+            try
+            {
+                SetPrivateField(board, "_activePointerId", (int?)17);
+                int ended = 0;
+                board.OnGestureEnded += () => ended++;
+                var pointerUp = new PointerEventData(null)
+                {
+                    pointerId = 17,
+                    position = new Vector2(-10000f, -10000f),
+                    button = PointerEventData.InputButton.Left
+                };
+
+                board.OnPointerUp(pointerUp);
+
+                Assert.That(ended, Is.EqualTo(1));
+                Assert.That(GetPrivateField<int?>(board, "_activePointerId"),
+                    Is.Null);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void FocusLoss_CancelsGestureAndClearsLatchedPointerInput()
+        {
+            BoardView board = CreateInactiveBoardView(out GameObject root);
+            try
+            {
+                SetPrivateField(board, "_activePointerId", (int?)21);
+                PointerPressPositionLatch latch =
+                    GetPrivateField<PointerPressPositionLatch>(
+                        board,
+                        "_pressPositionLatch");
+                latch.RecordPressPosition(new Vector2(20f, 30f), 4);
+                int ended = 0;
+                board.OnGestureEnded += () => ended++;
+
+                InvokePrivate(board, "OnApplicationFocus", false);
+
+                Assert.That(ended, Is.EqualTo(1));
+                Assert.That(GetPrivateField<int?>(board, "_activePointerId"),
+                    Is.Null);
+                Assert.That(latch.TryConsume(4, out _), Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void SecondaryPointer_CannotTakeOverOrEndPrimaryGesture()
+        {
+            BoardView board = CreateInactiveBoardView(out GameObject root);
+            try
+            {
+                SetPrivateField(board, "_activePointerId", (int?)7);
+                int started = 0;
+                int ended = 0;
+                board.OnGesturePointerStarted += (_, _, _) => started++;
+                board.OnGestureEnded += () => ended++;
+                var secondary = new PointerEventData(null)
+                {
+                    pointerId = 8,
+                    button = PointerEventData.InputButton.Left
+                };
+
+                board.OnPointerDown(secondary);
+                board.OnPointerUp(secondary);
+
+                Assert.That(started, Is.Zero);
+                Assert.That(ended, Is.Zero);
+                Assert.That(GetPrivateField<int?>(board, "_activePointerId"),
+                    Is.EqualTo(7));
+
+                board.OnPointerUp(new PointerEventData(null)
+                {
+                    pointerId = 7,
+                    button = PointerEventData.InputButton.Left
+                });
+                Assert.That(ended, Is.EqualTo(1));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
         }
 
         [Test]
@@ -217,6 +417,78 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(result.Kind, Is.EqualTo(SessionActionKind.WrongGuess));
             Assert.That(session.GetCellState(0, 0), Is.EqualTo(CellStateType.ERROR));
             Assert.That(result.Changes[0].After, Is.EqualTo(CellStateType.ERROR));
+        }
+
+        [Test]
+        public void GameSession_CorrectDoubleTapFoldsPriorMarkIntoOneUndoStep()
+        {
+            GameSession session = CreateSession();
+            session.FinishEntering();
+            Assert.That(session.TryApplyBoardEdit(
+                0, 1, CellStateType.MARK, true, out _), Is.True);
+            session.CommitCurrentStep();
+
+            SessionActionResult result = session.DoubleTap(0, 1);
+
+            Assert.That(result.Kind, Is.EqualTo(SessionActionKind.CorrectCat));
+            Assert.That(session.GetCellState(0, 1), Is.EqualTo(CellStateType.CAT));
+            Assert.That(session.History.Count, Is.EqualTo(1));
+            Assert.That(session.History.PeekLast().Cells[0].Before,
+                Is.EqualTo(CellStateType.EMPTY));
+            Assert.That(session.History.PeekLast().Cells[0].After,
+                Is.EqualTo(CellStateType.CAT));
+
+            Assert.That(session.Undo().Accepted, Is.True);
+            Assert.That(session.GetCellState(0, 1), Is.EqualTo(CellStateType.EMPTY));
+            Assert.That(session.History.Count, Is.Zero);
+        }
+
+        [Test]
+        public void GameSession_WrongDoubleTapFoldsPriorMarkIntoOneUndoStep()
+        {
+            GameSession session = CreateSession();
+            session.FinishEntering();
+            Assert.That(session.TryApplyBoardEdit(
+                0, 0, CellStateType.MARK, true, out _), Is.True);
+            session.CommitCurrentStep();
+
+            SessionActionResult result = session.DoubleTap(0, 0);
+
+            Assert.That(result.Kind, Is.EqualTo(SessionActionKind.WrongGuess));
+            Assert.That(session.History.Count, Is.EqualTo(1));
+            Assert.That(session.History.PeekLast().Cells[0].Before,
+                Is.EqualTo(CellStateType.EMPTY));
+            Assert.That(session.History.PeekLast().Cells[0].After,
+                Is.EqualTo(CellStateType.ERROR));
+
+            session.ResolveWrongGuess();
+            Assert.That(session.Undo().Accepted, Is.True);
+            Assert.That(session.GetCellState(0, 0), Is.EqualTo(CellStateType.EMPTY));
+            Assert.That(session.History.Count, Is.Zero);
+        }
+
+        [Test]
+        public void CatErrorAndLockedCells_CannotBeChangedByNormalInput()
+        {
+            var board = new MutableRowBoard(
+                CellStateType.EMPTY,
+                CellStateType.CAT,
+                CellStateType.ERROR);
+            var recognizer = new BoardGestureRecognizer(
+                new BoardInputScheme(board));
+            recognizer.OnDragStart(0, 0, 1f);
+
+            Assert.That(recognizer.OnDragOver(0, 1), Is.Empty);
+            Assert.That(recognizer.OnDragOver(0, 2), Is.Empty);
+
+            GameSession session = CreateSession();
+            session.FinishEntering();
+            session.Board.RestoreCellState(
+                0, 0, CellStateType.LOCKED_MARK, out _);
+            Assert.That(session.TryApplyBoardEdit(
+                0, 0, CellStateType.EMPTY, true, out _), Is.False);
+            Assert.That(session.GetCellState(0, 0),
+                Is.EqualTo(CellStateType.LOCKED_MARK));
         }
 
         [Test]
@@ -417,6 +689,40 @@ namespace Meowdoku.Tests.EditMode
         private static BoardGestureRecognizer CreateRecognizer()
         {
             return new BoardGestureRecognizer(new BoardInputScheme(new EmptyBoard()));
+        }
+
+        private static BoardView CreateInactiveBoardView(out GameObject root)
+        {
+            root = new GameObject("BoardInputLifecycle", typeof(RectTransform));
+            root.SetActive(false);
+            return root.AddComponent<BoardView>();
+        }
+
+        private static void SetPrivateField<T>(object target, string name, T value)
+        {
+            FieldInfo field = target.GetType().GetField(
+                name,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "Missing private field " + name);
+            field.SetValue(target, value);
+        }
+
+        private static T GetPrivateField<T>(object target, string name)
+        {
+            FieldInfo field = target.GetType().GetField(
+                name,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "Missing private field " + name);
+            return (T)field.GetValue(target);
+        }
+
+        private static void InvokePrivate(object target, string name, object value)
+        {
+            MethodInfo method = target.GetType().GetMethod(
+                name,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, "Missing private method " + name);
+            method.Invoke(target, new[] { value });
         }
 
         private static GameSession CreateSession(GameSessionRestoreData restore = null)

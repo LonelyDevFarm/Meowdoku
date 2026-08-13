@@ -16,10 +16,12 @@ namespace Meowdoku.Gameplay
     public class GameplayManager : MonoBehaviour, IBoardStateReader
     {
         public event Action<GameToolKind> ToolRewardRequested;
+        public event Action ToolPresentationChanged;
         public event Func<GameToolKind, bool> IdleToolHintPlayRequested;
         public event Action<GameToolKind> IdleToolHintStopRequested;
         public event Action<MainGameTransitionData> GameTransitioned;
         public event Action<GameplayTrackingStartData> GameTrackingStarted;
+        public event Action<GameplaySessionMode, int> SessionLoadPreparing;
         public event Action<GameplaySessionMode, bool>
             SessionPresentationChanged;
         public event Action<GameplayFeedbackData> GameplayFeedbackRequested;
@@ -51,6 +53,12 @@ namespace Meowdoku.Gameplay
         private RewardUnlockLevelConfig _rewardUnlockConfig;
         private PropHighlightConfig _propHighlightConfig;
         private MarkSoundConfig _markSoundConfig;
+        private RuleHighlightConfig _ruleHighlightConfig;
+        private VibrateComboConfig _vibrateComboConfig;
+        private MeowFeedbackConfig _meowFeedbackConfig;
+        private SizeCycleConfig _sizeCycleConfig;
+        private SingleRegionNumConfig _singleRegionConfig;
+        private NormalLevel10Config _normalLevel10Config;
         private ToolResourceCoordinator _toolResources;
         private IdleToolHintController _idleToolHint;
         private IGameTransitionCoordinator _transitions;
@@ -83,6 +91,7 @@ namespace Meowdoku.Gameplay
         private double _elapsedPlaySeconds;
         private double _activePlayStartedAt;
         private int _toolsUsed;
+        private int _meowPrefillCatCount;
         private GameplayTrackingStartData _trackingStartData;
         private bool _dailyClockPausedForAd;
         private bool _entryAdPending;
@@ -105,6 +114,10 @@ namespace Meowdoku.Gameplay
 
 #if UNITY_INCLUDE_TESTS
         internal int LivesForTests => _session?.Lives ?? 0;
+        internal int RemainingCatsForTests => _session?.RemainingCats ?? 0;
+        internal int ScoreForTests => _session?.Score.Score ?? 0;
+        internal int ComboForTests => _session?.Score.Combo ?? 0;
+        internal int MistakeCountForTests => _session?.MistakeCount ?? 0;
         internal int RestartCountForTests => _session?.RestartCount ?? 0;
         internal double SnapshotElapsedSecondsForTests =>
             _snapshotContext?.InGameSeconds ?? 0.0;
@@ -115,6 +128,12 @@ namespace Meowdoku.Gameplay
         internal int BankIndexForTests => _snapshotContext?.BankIndex ?? 0;
         internal int BankTotalForTests =>
             _snapshotContext?.Entry?.BankTotal ?? 0;
+        internal string PuzzleIdForTests =>
+            _currentRegions != null && _currentPuzzleSize > 0
+                ? LevelData.ComputePuzzleId(
+                    _currentPuzzleSize,
+                    _currentRegions)
+                : string.Empty;
         internal BankPoolKind BankPoolForTests
         {
             get
@@ -141,6 +160,18 @@ namespace Meowdoku.Gameplay
                 : -1;
         }
 
+        internal int SwipeProtectValueForTests =>
+            _swipeProtectConfig?.Value ?? int.MinValue;
+
+        internal int DoubleTapProtectValueForTests =>
+            _doubleTapProtectConfig?.Value ?? int.MinValue;
+
+        internal int GameGridUiValueForTests =>
+            _gameGridUiConfig?.Value ?? int.MinValue;
+
+        internal int BoardSizeBigValueForTests =>
+            _boardSizeBigConfig?.Value ?? int.MinValue;
+
         internal SessionActionResult DoubleTapForTests(int row, int column)
         {
             return ConsumeDoubleTap(row, column);
@@ -152,6 +183,16 @@ namespace Meowdoku.Gameplay
             CellStateType state)
         {
             return ApplyCellState(row, column, state, false, true);
+        }
+
+        internal bool PlayIdleToolHintForTests(GameToolKind kind)
+        {
+            return DispatchIdleToolHintPlay(kind);
+        }
+
+        internal void StopIdleToolHintForTests(GameToolKind kind)
+        {
+            IdleToolHintStopRequested?.Invoke(kind);
         }
 
         internal void SuspendApplicationForTests()
@@ -201,13 +242,47 @@ namespace Meowdoku.Gameplay
             }
         }
 
+        public void BindSoundService(SoundService service)
+        {
+            soundService = service;
+            gameplayFeedbackPresenter?.BindSoundService(service);
+        }
+
         public void BindAbConfigRuntime(AbConfigRuntime runtime)
         {
             _abConfigRuntime = runtime;
+            BindLevelSelectionConfigs();
+            BindBoardConfigs();
+            BindInputConfigs();
+            BindGameplayConfigs();
+            gameplayFeedbackPresenter?.BindAbConfigRuntime(runtime);
+        }
+
+        public bool ShouldHighlightRuleViolation()
+        {
+            if (IsDailySession || _ruleHighlightConfig == null) return false;
+            GameStateService state = _gameState ?? GameStateRuntime.Current;
+            int level = _snapshotContext?.Level ?? state.CurrentLevel;
+            return _ruleHighlightConfig.ShouldHighlight(
+                state.TutorialDone,
+                level);
         }
 
         public bool IsPatternModeAvailable =>
             _abConfigRuntime?.Settings.BlindMode.IsEnabled() == true;
+
+        public bool IsSpecialBankSession =>
+            _sessionMode == GameplaySessionMode.Bank &&
+            _snapshotContext?.Entry?.BankSp == true;
+
+        public bool IsToolFree(GameToolKind kind)
+        {
+            GameStateService state = _gameState ?? GameStateRuntime.Current;
+            RewardUnlockLevelConfig config = _rewardUnlockConfig ??
+                                             new RewardUnlockLevelConfig();
+            int level = _snapshotContext?.Level ?? state.CurrentLevel;
+            return !config.IsRewardRequiredAt(level);
+        }
 
         public void ApplyPatternMode()
         {
@@ -342,12 +417,11 @@ namespace Meowdoku.Gameplay
             _regionColorConfig = new RegionColorConfig();
             _gameGridUiConfig = new GameGridUiConfig();
             _boardSizeBigConfig = new BoardSizeBigConfig();
-            _dailyFirstDifficultyConfig = new DailyFirstLevelDifficultyConfig();
             _scoreEncourageConfig = new ScoreEncourageConfig();
-            _preCatConfig = new PreCatConfig();
-            _rewardUnlockConfig = new RewardUnlockLevelConfig();
-            _propHighlightConfig = new PropHighlightConfig();
-            _markSoundConfig = new MarkSoundConfig();
+            BindLevelSelectionConfigs();
+            BindBoardConfigs();
+            BindInputConfigs();
+            BindGameplayConfigs();
             var baseRecognizer = new BoardGestureRecognizer(
                 new BoardInputScheme(this),
                 DoubleTapWindowSeconds);
@@ -442,6 +516,7 @@ namespace Meowdoku.Gameplay
                 sessionMode = directRetryParameters == null
                     ? GameplaySessionMode.Main
                     : GameplaySessionMode.Bank;
+            SessionLoadPreparing?.Invoke(sessionMode, levelNumber);
             _sessionMode = sessionMode;
 
             GameStateService state = GameStateRuntime.Current;
@@ -498,7 +573,42 @@ namespace Meowdoku.Gameplay
                 entry = TryReadCachedRetry(retryParameters);
             }
             if (entry == null && sessionMode == GameplaySessionMode.Main)
-                entry = LevelData.GetLevelEntry(levelNumber, gameState: state);
+            {
+                bool dedupRetried = false;
+                while (true)
+                {
+                    entry = LevelData.GetLevelEntry(
+                        levelNumber,
+                        overrideSize: _sizeCycleConfig.ResolveSize(levelNumber),
+                        gameState: state,
+                        singleRegionConfig: _singleRegionConfig,
+                        normalLevel10Config: _normalLevel10Config);
+                    if (entry == null) break;
+
+                    string puzzleId = LevelData.ComputePuzzleId(
+                        entry.Size,
+                        entry.RegionMap);
+                    string source = string.IsNullOrEmpty(entry.BankSourceMain)
+                        ? entry.BankSource
+                        : entry.BankSourceMain;
+                    Dictionary<string, object> previous = state.RecordPuzzle(
+                        puzzleId,
+                        levelNumber,
+                        Application.version,
+                        source ?? string.Empty);
+                    bool crossLevelDuplicate = previous.Count > 0 &&
+                        ReadParameterInt(
+                            (IDictionary<string, object>)previous,
+                            "level",
+                            -1) != levelNumber;
+                    if (!crossLevelDuplicate || dedupRetried) break;
+
+                    // Source intentionally advances once more after the normal
+                    // selector already advanced, then retries exactly once.
+                    LevelData.AdvanceForEntry(entry, entry.Size, state);
+                    dedupRetried = true;
+                }
+            }
             if (entry == null)
             {
                 Debug.LogError($"Cannot load Meowdoku level {levelNumber} from the original bank.");
@@ -571,11 +681,13 @@ namespace Meowdoku.Gameplay
             }
             else
             {
+                bool hasRetry = retryParameters != null && retryParameters.Count > 0;
+                if (sessionMode == GameplaySessionMode.Main && !hasRetry)
+                    ApplyTutorialPrefill(levelNumber, entry);
                 ApplyInitialPrefills(retryParameters);
                 if (sessionMode == GameplaySessionMode.Main)
                 {
                     ResolvePreCat(levelNumber, entry, state);
-                    bool hasRetry = retryParameters != null && retryParameters.Count > 0;
                     if (!hasRetry)
                     {
                         state.SetRetryPuzzle(
@@ -589,6 +701,7 @@ namespace Meowdoku.Gameplay
                     }
                 }
             }
+            _meowPrefillCatCount = _snapshotContext.PrefillPositions.Count;
             _transitions = sessionMode == GameplaySessionMode.Daily
                 ? new DailyGameTransitionCoordinator(state)
                 : new MainGameTransitionCoordinator(state);
@@ -624,10 +737,61 @@ namespace Meowdoku.Gameplay
                 _rankActivityRuntime?.Manager?.IsRunning == true &&
                 _rankActivityRuntime.Manager.IsJoined);
             GameTrackingStarted?.Invoke(_trackingStartData);
+            ToolPresentationChanged?.Invoke();
             if (!TryStartEntryInterstitial(
                     resolvedTrackingStatus,
                     snapshotRestore != null))
                 BeginGameplayEntry();
+        }
+
+        private void BindLevelSelectionConfigs()
+        {
+            LevelSelectionConfigSet configs =
+                _abConfigRuntime?.LevelSelection;
+            _sizeCycleConfig = configs?.SizeCycle ?? new SizeCycleConfig();
+            _singleRegionConfig = configs?.SingleRegion ??
+                                  new SingleRegionNumConfig();
+            _normalLevel10Config = configs?.NormalLevel10 ??
+                                   new NormalLevel10Config();
+            _preCatConfig = configs?.PreCat ?? new PreCatConfig();
+        }
+
+        private void BindBoardConfigs()
+        {
+            BoardConfigSet configs = _abConfigRuntime?.Board;
+            _regionColorConfig = configs?.RegionColor ??
+                                 new RegionColorConfig();
+            _gameGridUiConfig = configs?.GameGridUi ??
+                                new GameGridUiConfig();
+            _boardSizeBigConfig = configs?.BoardSizeBig ??
+                                  new BoardSizeBigConfig();
+        }
+
+        private void BindInputConfigs()
+        {
+            InputConfigSet configs = _abConfigRuntime?.Input;
+            _doubleTapProtectConfig = configs?.DoubleTapProtect ??
+                                      new DoubleTapProtectConfig();
+            _swipeProtectConfig = configs?.SwipeProtect ??
+                                  new SwipeProtectConfig();
+        }
+
+        private void BindGameplayConfigs()
+        {
+            GameplayConfigSet configs = _abConfigRuntime?.Gameplay;
+            _dailyFirstDifficultyConfig = configs?.DailyFirstLevelDifficulty ??
+                                          new DailyFirstLevelDifficultyConfig();
+            _rewardUnlockConfig = configs?.RewardUnlockLevel ??
+                                  new RewardUnlockLevelConfig();
+            _propHighlightConfig = configs?.PropHighlight ??
+                                   new PropHighlightConfig();
+            _markSoundConfig = configs?.MarkSound ?? new MarkSoundConfig();
+            _ruleHighlightConfig = configs?.RuleHighlight ??
+                                   new RuleHighlightConfig();
+            _vibrateComboConfig = configs?.VibrateCombo ??
+                                  new VibrateComboConfig();
+            _meowFeedbackConfig = configs?.MeowFeedback ??
+                                  new MeowFeedbackConfig();
         }
 
         private bool TryStartEntryInterstitial(
@@ -767,6 +931,7 @@ namespace Meowdoku.Gameplay
                     entry.Rank,
                     ReadBool(pending, "struggle"),
                     ReadBool(pending, "demote"));
+                if (scenarios.Count == 0) return;
                 PreCatDecision decision = PreCatDecider.Decide(
                     _preCatConfig.Value,
                     scenarios,
@@ -778,12 +943,33 @@ namespace Meowdoku.Gameplay
                 state.SetPreCatLock(level, preType, position);
             }
 
+            _snapshotContext.PreType = preType;
             if (position.x < 0) return;
             if (_session.ApplyPrefill(position.x, position.y, out IReadOnlyList<BoardStateChange> changes))
             {
                 _snapshotContext.PreType = preType;
                 _snapshotContext.PreCatPosition = position;
                 _snapshotContext.PrefillPositions.Add(position);
+                ApplyViewChanges(changes, false);
+            }
+        }
+
+        private void ApplyTutorialPrefill(int level, LevelEntry entry)
+        {
+            Vector2Int? position = LevelData.ComputePrefill(
+                level,
+                entry.RegionMap,
+                entry.Solution,
+                entry.Size);
+            if (!position.HasValue) return;
+
+            Vector2Int value = position.Value;
+            if (_session.ApplyPrefill(
+                    value.x,
+                    value.y,
+                    out IReadOnlyList<BoardStateChange> changes))
+            {
+                _snapshotContext.PrefillPositions.Add(value);
                 ApplyViewChanges(changes, false);
             }
         }
@@ -1028,6 +1214,8 @@ namespace Meowdoku.Gameplay
                 if (applied && action.Before == CellStateType.MARK &&
                     action.State == CellStateType.EMPTY)
                     _tracker?.IncrementStat("erase_count");
+                if (applied && action.Vibrate >= 0)
+                    VibrationRuntime.Current.Play(action.Vibrate);
             }
         }
 
@@ -1487,7 +1675,12 @@ namespace Meowdoku.Gameplay
             bool playAnimation,
             bool playSounds = true)
         {
-            ApplyViewChanges(result.Changes, playAnimation, playSounds);
+            ApplyViewChanges(
+                result.Changes,
+                playAnimation,
+                playSounds,
+                result.Kind == SessionActionKind.Undo);
+            PlayActionVibrationAndMeow(result);
             PublishHudState();
             if (result.IsComplete) StopGameplayClock();
             if (result.IsComplete && playSounds && soundService != null)
@@ -1500,6 +1693,76 @@ namespace Meowdoku.Gameplay
             for (int index = 0; index < feedback.Count; index++)
                 GameplayFeedbackRequested?.Invoke(feedback[index]);
             RequestWinSettlement();
+        }
+
+        private void PlayActionVibrationAndMeow(SessionActionResult result)
+        {
+            if (result == null || !result.Accepted) return;
+            if (result.Kind == SessionActionKind.WrongGuess)
+                VibrationRuntime.Current.Play(VibrationLevel.Level3);
+            else if (result.Kind == SessionActionKind.Hint)
+            {
+                for (int index = 0; index < result.Changes.Count; index++)
+                {
+                    BoardStateChange change = result.Changes[index];
+                    if (change.Before != CellStateType.MARK ||
+                        change.After != CellStateType.EMPTY)
+                        continue;
+                    VibrationRuntime.Current.Play(VibrationLevel.Level2);
+                    break;
+                }
+            }
+
+            int catChangeCount = 0;
+            for (int index = 0; index < result.Changes.Count; index++)
+                if (result.Changes[index].After == CellStateType.CAT &&
+                    result.Changes[index].Before != CellStateType.CAT)
+                    catChangeCount++;
+            if (catChangeCount == 0) return;
+
+            int catsAfter = _currentPuzzleSize - (_session?.RemainingCats ?? 0);
+            int catChangeIndex = 0;
+            for (int index = 0; index < result.Changes.Count; index++)
+            {
+                BoardStateChange change = result.Changes[index];
+                if (change.After != CellStateType.CAT ||
+                    change.Before == CellStateType.CAT)
+                    continue;
+
+                int combo = ComboForPosition(result.Feedback, change.Position);
+                int vibrationLevel = combo >= 1 &&
+                                     _vibrateComboConfig?.IsEnabled() == true
+                    ? _vibrateComboConfig.ComboVibrationLevel(combo)
+                    : (int)VibrationLevel.Level3;
+                if (vibrationLevel >= 0)
+                    VibrationRuntime.Current.Play(vibrationLevel);
+
+                int catOnBoard = catsAfter - catChangeCount + (++catChangeIndex);
+                if (_meowFeedbackConfig?.IsEnabled() != true ||
+                    catOnBoard >= _currentPuzzleSize)
+                    continue;
+                int meowIndex = catOnBoard - _meowPrefillCatCount;
+                if (meowIndex <= 0) continue;
+                soundService?.PlayMeowByPath(_meowFeedbackConfig.GetMeowPath(
+                    meowIndex,
+                    UnityEngine.Random.Range(1, 8)));
+            }
+        }
+
+        private static int ComboForPosition(
+            IReadOnlyList<GameplayFeedbackData> feedback,
+            Vector2Int position)
+        {
+            if (feedback == null) return -1;
+            for (int index = 0; index < feedback.Count; index++)
+            {
+                GameplayFeedbackData item = feedback[index];
+                if (item != null &&
+                    item.Kind == GameplayFeedbackKind.CorrectCat &&
+                    item.Position == position)
+                    return item.ComboCount;
+            }
+            return -1;
         }
 
         public void SetResultBgmPaused(bool paused)
@@ -1572,16 +1835,24 @@ namespace Meowdoku.Gameplay
         private void ApplyViewChanges(
             IReadOnlyList<BoardStateChange> changes,
             bool playAnimation,
-            bool playSounds = true)
+            bool playSounds = true,
+            bool restoreAuthoritativeState = false)
         {
             for (int i = 0; i < changes.Count; i++)
             {
                 BoardStateChange change = changes[i];
-                boardView.SetCellState(
-                    change.Position.x,
-                    change.Position.y,
-                    change.After,
-                    playAnimation);
+                if (restoreAuthoritativeState)
+                    boardView.RestoreCellState(
+                        change.Position.x,
+                        change.Position.y,
+                        change.After,
+                        playAnimation);
+                else
+                    boardView.SetCellState(
+                        change.Position.x,
+                        change.Position.y,
+                        change.After,
+                        playAnimation);
                 if (playSounds) PlayCellChangeSound(change, playAnimation);
             }
             ScheduleSnapshot(changes);
@@ -1778,19 +2049,24 @@ namespace Meowdoku.Gameplay
 
             public bool TryPlay(GameToolKind kind)
             {
-                Func<GameToolKind, bool> handler = _owner.IdleToolHintPlayRequested;
-                if (handler == null) return false;
-                bool played = false;
-                Delegate[] subscribers = handler.GetInvocationList();
-                for (int index = 0; index < subscribers.Length; index++)
-                    played |= ((Func<GameToolKind, bool>)subscribers[index]).Invoke(kind);
-                return played;
+                return _owner.DispatchIdleToolHintPlay(kind);
             }
 
             public void Stop(GameToolKind kind)
             {
                 _owner.IdleToolHintStopRequested?.Invoke(kind);
             }
+        }
+
+        private bool DispatchIdleToolHintPlay(GameToolKind kind)
+        {
+            Func<GameToolKind, bool> handler = IdleToolHintPlayRequested;
+            if (handler == null) return false;
+            bool played = false;
+            Delegate[] subscribers = handler.GetInvocationList();
+            for (int index = 0; index < subscribers.Length; index++)
+                played |= ((Func<GameToolKind, bool>)subscribers[index]).Invoke(kind);
+            return played;
         }
 
         private bool CanAcceptInput()

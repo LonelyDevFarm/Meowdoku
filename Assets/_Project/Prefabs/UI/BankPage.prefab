@@ -6626,7 +6626,7 @@ RectTransform:
   m_GameObject: {fileID: 5041272981857252331}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2593475664792401181}
@@ -6738,7 +6738,7 @@ MonoBehaviour:
   playOpenSound: 0
   rootCanvas: {fileID: 6826733672078565709}
   rootCanvasGroup: {fileID: 7259791822413388370}
-  closeButton: {fileID: 0}
+  frameCloseButton: {fileID: 0}
   homeBackButton: {fileID: 4529330833324171686}
   rootPanel: {fileID: 3167272199958520218}
   regularSizePanel: {fileID: 3966946825278602067}

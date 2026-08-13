@@ -22,7 +22,8 @@ namespace Meowdoku.Gameplay
 
     [DisallowMultipleComponent]
     public sealed class GameFailPagePresenter : UIFrameWindow,
-        IAdServiceConsumer
+        IAdServiceConsumer,
+        IAbConfigRuntimeConsumer
     {
         public override string GetTrackingScreenName() =>
             _selfName == UiName.DailyFail
@@ -47,10 +48,10 @@ namespace Meowdoku.Gameplay
         [SerializeField] private LocalizationCatalog localization;
         [SerializeField] private MonoBehaviour rewardedReviveAdapter;
 
-        private readonly ReviveLifeConfig _reviveLifeConfig = new();
-        private readonly ReviveFreeLogicConfig _freeLogicConfig = new();
-        private readonly RewardUnlockLevelConfig _rewardUnlockConfig = new();
-        private readonly FailTextConfig _failTextConfig = new();
+        private ReviveLifeConfig _reviveLifeConfig = new();
+        private ReviveFreeLogicConfig _freeLogicConfig = new();
+        private RewardUnlockLevelConfig _rewardUnlockConfig = new();
+        private FailTextConfig _failTextConfig = new();
         private GameplayManager _gameplayManager;
         private AdService _adService;
         private MainGameTransitionData _transition;
@@ -73,6 +74,24 @@ namespace Meowdoku.Gameplay
             if (reviveButton != null) reviveButton.onClick.AddListener(Revive);
             if (restartButton != null) restartButton.onClick.AddListener(Restart);
         }
+
+        public void BindAbConfigRuntime(AbConfigRuntime runtime)
+        {
+            _reviveLifeConfig = runtime?.Result.ReviveLife ??
+                                new ReviveLifeConfig();
+            _freeLogicConfig = runtime?.Result.ReviveFreeLogic ??
+                               new ReviveFreeLogicConfig();
+            _rewardUnlockConfig = runtime?.Gameplay.RewardUnlockLevel ??
+                                  new RewardUnlockLevelConfig();
+            _failTextConfig = runtime?.Result.FailText ?? new FailTextConfig();
+        }
+
+#if UNITY_INCLUDE_TESTS
+        internal int ReviveLifeValueForTests => _reviveLifeConfig.Value;
+        internal int ReviveFreeLogicValueForTests => _freeLogicConfig.Value;
+        internal int RewardUnlockValueForTests => _rewardUnlockConfig.Value;
+        internal int FailTextValueForTests => _failTextConfig.Value;
+#endif
 
         protected override void OnShow(
             IReadOnlyDictionary<string, object> parameters)

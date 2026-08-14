@@ -19,6 +19,12 @@ namespace Meowdoku.Tests.EditMode
             Assert.That((int)UiLayer.Loading, Is.EqualTo(500));
             Assert.That(UiLayerConfig.ZStep, Is.EqualTo(50));
             Assert.That(UiLayerConfig.ZMax, Is.EqualTo(4000));
+            Assert.That(
+                UiLayerConfig.SortingBase(UiLayer.Default),
+                Is.EqualTo(0));
+            Assert.That(
+                UiLayerConfig.SortingBase(UiLayer.Popup),
+                Is.EqualTo(UiLayerConfig.RuntimeLayerStride));
         }
 
         [Test]
@@ -80,6 +86,43 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void SameLayerWindows_KeepIncreasingSortingAfterActivation()
+        {
+            GameObject root = new GameObject(
+                "UIRoot",
+                typeof(RectTransform),
+                typeof(Canvas));
+            UIManager manager = root.AddComponent<UIManager>();
+            UIRegistry registry = ScriptableObject.CreateInstance<UIRegistry>();
+
+            GameObject homeObject = CreateWindowPrefab("HomePrefab");
+            UIFrameWindow home = homeObject.GetComponent<UIFrameWindow>();
+            home.ConfigureForTests(UiLayer.Default, false, false);
+            GameObject gameObject = CreateWindowPrefab("GamePrefab");
+            UIFrameWindow game = gameObject.GetComponent<UIFrameWindow>();
+            game.ConfigureForTests(UiLayer.Default, false, false);
+
+            registry.SetEntriesForTests(
+                new UIRegistryEntry(UiName.Home, home),
+                new UIRegistryEntry(UiName.Game, game));
+            manager.ConfigureForTests(registry, root.GetComponent<RectTransform>());
+
+            UIFrameWindow shownHome = manager.Show(UiName.Home);
+            UIFrameWindow shownGame = manager.Show(UiName.Game);
+
+            Assert.That(shownHome.SortingOrder, Is.EqualTo(0));
+            Assert.That(shownGame.SortingOrder, Is.EqualTo(UiLayerConfig.ZStep));
+            Assert.That(shownGame.SortingOrder, Is.GreaterThan(shownHome.SortingOrder));
+            Assert.That(shownHome.GetComponent<Canvas>().overrideSorting, Is.True);
+            Assert.That(shownGame.GetComponent<Canvas>().overrideSorting, Is.True);
+
+            Object.DestroyImmediate(root);
+            Object.DestroyImmediate(homeObject);
+            Object.DestroyImmediate(gameObject);
+            Object.DestroyImmediate(registry);
+        }
+
+        [Test]
         public void FullscreenWindow_OccludesOnlyWindowsBelowIt()
         {
             GameObject root = new GameObject("UIRoot", typeof(RectTransform));
@@ -106,7 +149,9 @@ namespace Meowdoku.Tests.EditMode
             UIFrameWindow shownPopup = manager.Show(UiName.Setting);
             Assert.That(shownHome.IsOccluded, Is.False);
             Assert.That(shownPopup.IsOccluded, Is.False);
-            Assert.That(shownPopup.SortingOrder, Is.EqualTo(100));
+            Assert.That(
+                shownPopup.SortingOrder,
+                Is.EqualTo(UiLayerConfig.SortingBase(UiLayer.Popup)));
             Assert.That(manager.MaskReferenceCount, Is.EqualTo(1));
 
             UIFrameWindow shownTutorial = manager.Show(UiName.Tutorial);

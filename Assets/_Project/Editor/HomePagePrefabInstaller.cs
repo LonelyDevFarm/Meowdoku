@@ -16,6 +16,8 @@ namespace Meowdoku.Editor
     {
         private const string PrefabFolder = "Assets/_Project/Prefabs/UI";
         private const string PrefabPath = PrefabFolder + "/HomePage.prefab";
+        private const string ProfileAvatarPrefabPath =
+            PrefabFolder + "/ProfileAvatarView.prefab";
         private const string MaterialFolder = "Assets/_Project/Materials";
         private const string FlowMaterialPath = MaterialFolder + "/HomeFlow.mat";
         private const string FontPath = "Assets/_Project/Fonts/Roboto.ttf";
@@ -67,6 +69,17 @@ namespace Meowdoku.Editor
             InstallIfMissing();
             Selection.activeObject =
                 AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+        }
+
+        internal static bool InstallIfReady()
+        {
+            if (EditorApplication.isCompiling ||
+                EditorApplication.isUpdating ||
+                EditorApplication.isPlayingOrWillChangePlaymode)
+                return false;
+
+            InstallIfMissing();
+            return true;
         }
 
         private static void InstallIfMissing()
@@ -277,10 +290,12 @@ namespace Meowdoku.Editor
                 new Vector2(185f, 185f), new Vector2(0f, 0.5f));
             Image profileBackground = profile.gameObject.AddComponent<Image>();
             profileBackground.color = Color.white;
-            profileBackground.raycastTarget = false;
+            profileBackground.raycastTarget = true;
             ConfigureRounded(profileBackground, roundedShader, 92.5f);
             RectTransform avatarSlot = CreateRect("AvatarSlot", profile);
             Stretch(avatarSlot);
+            ProfileAvatarView profileAvatar =
+                InstantiateProfileAvatar(avatarSlot);
             Button avatarButton = profile.gameObject.AddComponent<Button>();
             avatarButton.targetGraphic = profileBackground;
 
@@ -312,6 +327,7 @@ namespace Meowdoku.Editor
             SetReference(data, "settingsButton", settings);
             SetReference(data, "profileEntry", profile.gameObject);
             SetReference(data, "profileButton", avatarButton);
+            SetReference(data, "profileAvatar", profileAvatar);
             SetReference(data, "dailyStreakLayout", daily.gameObject);
             SetReference(data, "dailyEntry", dailyEntry);
             SetReference(data, "localization", localization);
@@ -399,6 +415,78 @@ namespace Meowdoku.Editor
                     dailyProperty.objectReferenceValue = dailyEntry;
                     changed = true;
                 }
+                if (dailyEntry != null)
+                    changed |= dailyEntry.ApplyLayout();
+
+                Transform avatarSlot = root.transform.Find(
+                    "Root/VBoxContainer/Header/ProfileEntry/AvatarSlot");
+                ProfileAvatarView profileAvatar = avatarSlot != null
+                    ? avatarSlot.GetComponentInChildren<ProfileAvatarView>(true)
+                    : null;
+                if (profileAvatar == null && avatarSlot is RectTransform avatarRect)
+                {
+                    profileAvatar = InstantiateProfileAvatar(avatarRect);
+                    changed |= profileAvatar != null;
+                }
+                SerializedProperty avatarProperty =
+                    data.FindProperty("profileAvatar");
+                if (avatarProperty != null && profileAvatar != null &&
+                    avatarProperty.objectReferenceValue != profileAvatar)
+                {
+                    avatarProperty.objectReferenceValue = profileAvatar;
+                    changed = true;
+                }
+
+                Transform profileEntry = root.transform.Find(
+                    "Root/VBoxContainer/Header/ProfileEntry");
+                if (profileEntry != null)
+                {
+                    Image profileImage = profileEntry.GetComponent<Image>();
+                    if (profileImage == null)
+                    {
+                        profileImage = profileEntry.gameObject.AddComponent<Image>();
+                        changed = true;
+                    }
+                    if (!profileImage.raycastTarget)
+                    {
+                        profileImage.raycastTarget = true;
+                        changed = true;
+                    }
+
+                    Button profileEntryButton = profileEntry.GetComponent<Button>();
+                    if (profileEntryButton == null)
+                    {
+                        profileEntryButton =
+                            profileEntry.gameObject.AddComponent<Button>();
+                        changed = true;
+                    }
+                    if (profileEntryButton.targetGraphic != profileImage)
+                    {
+                        profileEntryButton.targetGraphic = profileImage;
+                        changed = true;
+                    }
+
+                    SerializedProperty profileEntryProperty =
+                        data.FindProperty("profileEntry");
+                    if (profileEntryProperty != null &&
+                        profileEntryProperty.objectReferenceValue !=
+                            profileEntry.gameObject)
+                    {
+                        profileEntryProperty.objectReferenceValue =
+                            profileEntry.gameObject;
+                        changed = true;
+                    }
+                    SerializedProperty profileButtonProperty =
+                        data.FindProperty("profileButton");
+                    if (profileButtonProperty != null &&
+                        profileButtonProperty.objectReferenceValue !=
+                            profileEntryButton)
+                    {
+                        profileButtonProperty.objectReferenceValue =
+                            profileEntryButton;
+                        changed = true;
+                    }
+                }
 
                 if (!changed) return;
                 data.ApplyModifiedPropertiesWithoutUndo();
@@ -409,6 +497,19 @@ namespace Meowdoku.Editor
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        private static ProfileAvatarView InstantiateProfileAvatar(
+            RectTransform parent)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                ProfileAvatarPrefabPath);
+            if (prefab == null || parent == null) return null;
+            GameObject instance = PrefabUtility.InstantiatePrefab(
+                prefab, parent) as GameObject;
+            if (instance == null) return null;
+            if (instance.transform is RectTransform rect) Stretch(rect);
+            return instance.GetComponent<ProfileAvatarView>();
         }
 
         private static DailyChallengeEntryPresenter CreateDailyEntry(
@@ -536,6 +637,7 @@ namespace Meowdoku.Editor
             SetReference(data, "doneRank", doneRank);
             SetReference(data, "localization", localization);
             data.ApplyModifiedPropertiesWithoutUndo();
+            presenter.ApplyLayout();
             return presenter;
         }
 

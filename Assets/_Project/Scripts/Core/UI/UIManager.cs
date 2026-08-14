@@ -27,7 +27,6 @@ namespace Meowdoku.Core.UI
         private static readonly IReadOnlyDictionary<string, object>
             EmptyParameters = new Dictionary<string, object>(0);
         private const string TimedInputBlockerName = "_InputBlocker";
-        private const int TimedInputBlockerSortingOrder = 4095;
 
         [Header("Registry and ownership")]
         [SerializeField] private UIRegistry registry;
@@ -176,8 +175,15 @@ namespace Meowdoku.Core.UI
             parameters ??= EmptyParameters;
             if (window.IsShowing)
             {
+                AssignSortingOrder(window);
+                int reassignedSortingOrder = window.SortingOrder;
+                PushStack(window.Layer, window);
                 window.ShowLifecycle(parameters);
+                window.SetSortingOrder(reassignedSortingOrder);
+                window.SetOccluded(false);
                 window.transform.SetAsLastSibling();
+                RefreshOcclusion();
+                UpdateMask();
                 ReorderWindowTree();
                 return window;
             }
@@ -190,8 +196,12 @@ namespace Meowdoku.Core.UI
             }
 
             AssignSortingOrder(window);
+            int assignedSortingOrder = window.SortingOrder;
             PushStack(window.Layer, window);
+            // Unity 6 can resync an inactive nested Canvas from prefab state on
+            // SetActive(true), so reapply the reserved order after activation.
             window.ShowLifecycle(parameters);
+            window.SetSortingOrder(assignedSortingOrder);
             window.SetOccluded(false);
 
             if (window.ShowMask && !wasClosing)
@@ -323,7 +333,12 @@ namespace Meowdoku.Core.UI
 
             Canvas blockerCanvas = blocker.GetComponent<Canvas>();
             blockerCanvas.overrideSorting = true;
-            blockerCanvas.sortingOrder = TimedInputBlockerSortingOrder;
+            Canvas targetCanvas = target.GetComponent<Canvas>();
+            if (targetCanvas == null)
+                targetCanvas = target.GetComponentInParent<Canvas>();
+            blockerCanvas.sortingOrder =
+                (targetCanvas != null ? targetCanvas.sortingOrder : 0) +
+                UiLayerConfig.LocalOverlayOffset;
             Image blockerImage = blocker.GetComponent<Image>();
             blockerImage.color = Color.clear;
             blockerImage.raycastTarget = true;
@@ -438,7 +453,7 @@ namespace Meowdoku.Core.UI
         {
             if (!_heldButtonGenerations.TryGetValue(guardId, out int generation))
                 return;
-            StartCoroutine(ReleaseButtonAtEndOfFrame(guardId, generation));
+            StartCoroutine(ReleaseButtonOnNextFrame(guardId, generation));
         }
 
         internal void NotifyDialogClosing(UIFrameWindow window)
@@ -599,8 +614,9 @@ namespace Meowdoku.Core.UI
         private void AssignSortingOrder(UIFrameWindow window)
         {
             UiLayer layer = window.Layer;
-            if (!_nextZ.TryGetValue(layer, out int next)) next = (int)layer;
-            if (next >= (int)layer + UiLayerConfig.ZMax)
+            int layerBase = UiLayerConfig.SortingBase(layer);
+            if (!_nextZ.TryGetValue(layer, out int next)) next = layerBase;
+            if (next >= layerBase + UiLayerConfig.ZMax)
             {
                 CompactSortingOrders(layer);
                 next = _nextZ[layer];
@@ -611,7 +627,7 @@ namespace Meowdoku.Core.UI
 
         private void CompactSortingOrders(UiLayer layer)
         {
-            int next = (int)layer;
+            int next = UiLayerConfig.SortingBase(layer);
             if (_stacks.TryGetValue(layer, out List<UIFrameWindow> stack))
             {
                 stack.Sort((left, right) =>
@@ -701,9 +717,13 @@ namespace Meowdoku.Core.UI
             }
         }
 
-        private IEnumerator ReleaseButtonAtEndOfFrame(int guardId, int generation)
+        private IEnumerator ReleaseButtonOnNextFrame(int guardId, int generation)
         {
-            yield return new WaitForEndOfFrame();
+            // Keep the release owned by the source window for the remainder of
+            // this frame. Unlike WaitForEndOfFrame, a normal frame yield cannot
+            // remain suspended when the Unity Editor switches away from Game
+            // view while a navigation transition is running.
+            yield return null;
             if (_heldButtonGenerations.TryGetValue(guardId, out int current) &&
                 current == generation)
                 _heldButtonGenerations.Remove(guardId);
@@ -758,8 +778,9 @@ namespace Meowdoku.Core.UI
             if (inputBlockerCanvas != null)
             {
                 inputBlockerCanvas.overrideSorting = true;
-                inputBlockerCanvas.sortingOrder = (int)UiLayer.Loading +
-                                                  UiLayerConfig.ZMax + 1;
+                inputBlockerCanvas.sortingOrder =
+                    UiLayerConfig.SortingBase(UiLayer.Loading) +
+                    UiLayerConfig.ZMax + 1;
             }
             if (inputBlocker != null)
             {

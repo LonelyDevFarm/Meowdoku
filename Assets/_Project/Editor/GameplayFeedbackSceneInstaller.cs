@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Meowdoku.Core.Localization;
 using Meowdoku.Gameplay;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -16,6 +17,10 @@ namespace Meowdoku.Editor
     internal static class GameplayFeedbackSceneInstaller
     {
         private const string ScenePath = "Assets/_Project/Scenes/GameplayScene.unity";
+        private const string RoundedShaderPath =
+            "Assets/_Project/Shaders/UIRoundedRect.shader";
+        private const string EastAsianFontPath =
+            "Assets/_Project/Fonts/NotoSourceHan-subset.ttf";
         private const int MaxInstallAttempts = 300;
         private static int _remainingInstallAttempts;
 
@@ -120,6 +125,8 @@ namespace Meowdoku.Editor
                 feedbackRoot, "Multipliers", "Multiplier_");
             RectTransform flightGroup = EnsurePoolGroup(
                 feedbackRoot, "ScoreFlights", "ScoreFlight_");
+            RectTransform catBurstGroup = EnsurePoolGroup(
+                feedbackRoot, "CatBursts", "CatBurst_");
 
             Image encourage = feedbackRoot.Find("Encourage")?.GetComponent<Image>();
             if (encourage == null) encourage = CreateImage("Encourage", feedbackRoot);
@@ -139,6 +146,8 @@ namespace Meowdoku.Editor
                 multiplierGroup, 4);
             GameplayScoreFlightView[] flightPool = EnsureScoreFlightPool(
                 flightGroup, 6);
+            GameplayCatBurstView[] catBurstPool = EnsureCatBurstPool(
+                catBurstGroup, 6);
 
             SerializedObject serialized = new SerializedObject(presenter);
             serialized.FindProperty("gameplayManager").objectReferenceValue = manager;
@@ -154,8 +163,11 @@ namespace Meowdoku.Editor
             SetObjectArray(serialized.FindProperty("skillBubbles"), skillPool);
             SetObjectArray(serialized.FindProperty("multiplierViews"), multiplierPool);
             SetObjectArray(serialized.FindProperty("scoreFlights"), flightPool);
+            SetObjectArray(serialized.FindProperty("catBursts"), catBurstPool);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             WirePresenters(manager, presenter, lifeHud);
+            // Source game_page.tscn places ComboFeedback after RuleBar so effects/bubbles render above it.
+            feedbackRoot.SetAsLastSibling();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
         }
@@ -185,6 +197,29 @@ namespace Meowdoku.Editor
                     .objectReferenceValue as GameplayLifeSlotView;
                 EnsureLifeEffects(slot, fishFrames, fishGlow, reviveGlow);
             }
+            return true;
+        }
+
+        internal static bool ConfigureCatBursts(Transform scope)
+        {
+            if (scope == null) return false;
+            GameplayFeedbackPresenter presenter =
+                scope.GetComponentInChildren<GameplayFeedbackPresenter>(true);
+            RectTransform feedbackRoot =
+                presenter != null ? presenter.transform as RectTransform : null;
+            if (presenter == null || feedbackRoot == null) return false;
+
+            RectTransform group = EnsurePoolGroup(
+                feedbackRoot, "CatBursts", "CatBurst_");
+            GameplayCatBurstView[] pool = EnsureCatBurstPool(group, 6);
+            if (pool.Length == 0) return false;
+            SerializedObject data = new SerializedObject(presenter);
+            SerializedProperty property = data.FindProperty("catBursts");
+            if (property == null) return false;
+            SetObjectArray(property, pool);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            // Source game_page.tscn places ComboFeedback after RuleBar so effects/bubbles render above it.
+            feedbackRoot.SetAsLastSibling();
             return true;
         }
 
@@ -286,11 +321,66 @@ namespace Meowdoku.Editor
 
             RectTransform level = EnsureRect("LevelDisplay", header);
             SetTopLeftRect(level, 274f, -12f, 256f, 118f);
-            Text title = EnsureText("Title", level, font, 50, "Level");
+            Text title = EnsureText("Title", level, font, 50, "Màn");
             SetTopLeftRect(title.rectTransform, 0f, 3f, 256f, 60f);
+            ConfigureLocalizedTitle(title, "GAME_HEADER_LEVEL", "Màn");
             Text value = EnsureText("Value", level, font, 58, "1");
             SetTopLeftRect(value.rectTransform, 0f, 58f, 256f, 60f);
             return value;
+        }
+
+        internal static bool ConfigureHeaderPresentation(Transform scope)
+        {
+            if (scope == null) return false;
+            RectTransform hud = scope.name == "HUD"
+                ? scope as RectTransform
+                : scope.Find("HUD") as RectTransform;
+            RectTransform header = hud != null
+                ? hud.Find("Header") as RectTransform
+                : null;
+            RectTransform row = hud != null
+                ? hud.Find("CatHeartRow") as RectTransform
+                : null;
+            if (header == null || row == null) return false;
+
+            Transform levelTitle = header.Find("LevelDisplay/Title");
+            Transform scoreTitle = header.Find("ScoreDisplay/Title");
+            Transform returnBankTitle = scope.Find("ReturnBankBtn/Label");
+            Image catBackground = row.Find("Target/CatCountBg")?.GetComponent<Image>();
+            Image lifeBackground = row.Find("HeartBg")?.GetComponent<Image>();
+            bool changed =
+                header.Find("BackBtn/Base")?.GetComponent<RawImage>() == null ||
+                header.Find("BackBtn/Icon")?.GetComponent<RawImage>() == null ||
+                header.Find("SettingsBtn/Base")?.GetComponent<RawImage>() == null ||
+                header.Find("SettingsBtn/Icon")?.GetComponent<RawImage>() == null ||
+                levelTitle?.GetComponent<LocalizedText>() == null ||
+                scoreTitle?.GetComponent<LocalizedText>() == null ||
+                (returnBankTitle != null &&
+                 returnBankTitle.GetComponent<LocalizedText>() == null) ||
+                catBackground?.GetComponent<RoundedImageView>() == null ||
+                lifeBackground?.GetComponent<RoundedImageView>() == null;
+
+            EnsureRoundHeaderButton(
+                "BackBtn", header, new Vector2(25f, 10f),
+                "Assets/_Project/Sprites/common/icon_back.png");
+            EnsureRoundHeaderButton(
+                "SettingsBtn", header, new Vector2(934f, 10f),
+                "Assets/_Project/Sprites/common/icon_settings.png");
+            ConfigureLocalizedTitle(
+                levelTitle?.GetComponent<Text>(),
+                "GAME_HEADER_LEVEL",
+                "Màn");
+            ConfigureLocalizedTitle(
+                scoreTitle?.GetComponent<Text>(),
+                "GAME_HEADER_SCORE",
+                "Điểm");
+            ConfigureLocalizedTitle(
+                returnBankTitle?.GetComponent<Text>(),
+                "WIN_BACK_LEVEL_BANK",
+                "◀ Chọn màn");
+            ConfigureRounded(catBackground, 42f);
+            ConfigureRounded(lifeBackground, 42f);
+            return changed;
         }
 
         private static void EnsureRoundHeaderButton(
@@ -301,15 +391,16 @@ namespace Meowdoku.Editor
         {
             RectTransform root = EnsureRect(name, header);
             SetTopLeftRect(root, topLeft.x, topLeft.y, 120f, 120f);
-            Image baseImage = EnsureImage("Base", root);
+            RawImage baseImage = EnsureRawImage("Base", root);
             SetCenteredRect(baseImage.rectTransform, Vector2.zero, new Vector2(152f, 152f));
-            baseImage.sprite = LoadSprite("Assets/_Project/Sprites/common/round_btn_base.png");
-            baseImage.preserveAspect = true;
+            baseImage.texture = LoadTexture(
+                "Assets/_Project/Sprites/common/round_btn_base.png");
+            baseImage.uvRect = new Rect(0f, 0f, 1f, 1f);
             baseImage.raycastTarget = true;
-            Image icon = EnsureImage("Icon", root);
+            RawImage icon = EnsureRawImage("Icon", root);
             SetCenteredRect(icon.rectTransform, Vector2.zero, new Vector2(100f, 100f));
-            icon.sprite = LoadSprite(iconPath);
-            icon.preserveAspect = true;
+            icon.texture = LoadTexture(iconPath);
+            icon.uvRect = new Rect(0f, 0f, 1f, 1f);
             icon.raycastTarget = false;
             Button button = root.GetComponent<Button>();
             if (button == null) button = root.gameObject.AddComponent<Button>();
@@ -329,6 +420,7 @@ namespace Meowdoku.Editor
             SetTopLeftRect(background.rectTransform, 19f, 20f, 260f, 84f);
             background.sprite = null;
             background.color = Color.white;
+            ConfigureRounded(background, 42f);
 
             Image catFace = EnsureImage("CatFaceIcon", target);
             SetTopLeftRect(catFace.rectTransform, 53f, 27f, 77.44f, 70.4f);
@@ -390,6 +482,7 @@ namespace Meowdoku.Editor
             Text title = display != null ? display.Find("Title")?.GetComponent<Text>() : null;
             if (title != null)
             {
+                ConfigureLocalizedTitle(title, "GAME_HEADER_SCORE", "Điểm");
                 title.horizontalOverflow = HorizontalWrapMode.Overflow;
                 title.verticalOverflow = VerticalWrapMode.Overflow;
             }
@@ -418,6 +511,7 @@ namespace Meowdoku.Editor
             heartBackground.sprite = null;
             heartBackground.color = Color.white;
             heartBackground.raycastTarget = false;
+            ConfigureRounded(heartBackground, 42f);
             GameplayLifeHudPresenter presenter = existing != null
                 ? existing
                 : root.gameObject.AddComponent<GameplayLifeHudPresenter>();
@@ -577,12 +671,13 @@ namespace Meowdoku.Editor
             display.anchoredPosition = new Vector2(678f, -53f);
             display.sizeDelta = new Vector2(200f, 118f);
             Font font = AssetDatabase.LoadAssetAtPath<Font>("Assets/_Project/Fonts/Roboto.ttf");
-            Text title = CreateText("Title", display, font, 50, "Score");
+            Text title = CreateText("Title", display, font, 50, "Điểm");
             title.rectTransform.anchorMin = new Vector2(0f, 1f);
             title.rectTransform.anchorMax = new Vector2(1f, 1f);
             title.rectTransform.pivot = new Vector2(0.5f, 1f);
             title.rectTransform.anchoredPosition = new Vector2(0f, -3f);
             title.rectTransform.sizeDelta = new Vector2(0f, 60f);
+            ConfigureLocalizedTitle(title, "GAME_HEADER_SCORE", "Điểm");
             Text value = CreateText("Value", display, font, 58, "0");
             value.rectTransform.anchorMin = new Vector2(0f, 1f);
             value.rectTransform.anchorMax = new Vector2(1f, 1f);
@@ -772,6 +867,53 @@ namespace Meowdoku.Editor
             return result;
         }
 
+        private static GameplayCatBurstView[] EnsureCatBurstPool(
+            RectTransform root,
+            int count)
+        {
+            Sprite glowSprite = LoadFirstSprite(
+                "Assets/_Project/Sprites/Effects/glow/et_glow_002.png");
+            Sprite starSprite = LoadFirstSprite(
+                "Assets/_Project/Sprites/Effects/star/et_star_1.png");
+            if (root == null || glowSprite == null || starSprite == null)
+                return new GameplayCatBurstView[0];
+
+            var result = new GameplayCatBurstView[count];
+            for (int index = 0; index < count; index++)
+            {
+                string objectName = $"CatBurst_{index + 1}";
+                RectTransform itemRoot = EnsureRect(objectName, root);
+                GameplayCatBurstView view =
+                    itemRoot.GetComponent<GameplayCatBurstView>();
+                if (view == null)
+                    view = itemRoot.gameObject.AddComponent<GameplayCatBurstView>();
+
+                Image glow = EnsureImage("Glow", itemRoot);
+                ConfigureEffectImage(glow, glowSprite, new Vector2(256f, 256f));
+                RectTransform starsRoot = EnsureRect("Stars", itemRoot);
+                var stars = new Image[GameplayCatBurstView.StarCount];
+                for (int starIndex = 0; starIndex < stars.Length; starIndex++)
+                {
+                    Image star = EnsureImage(
+                        $"Star_{starIndex + 1}", starsRoot);
+                    ConfigureEffectImage(
+                        star, starSprite, new Vector2(256f, 256f));
+                    stars[starIndex] = star;
+                }
+
+                SerializedObject data = new SerializedObject(view);
+                data.FindProperty("glow").objectReferenceValue = glow;
+                SetObjectArray(data.FindProperty("stars"), stars);
+                data.ApplyModifiedPropertiesWithoutUndo();
+                glow.gameObject.SetActive(false);
+                for (int starIndex = 0; starIndex < stars.Length; starIndex++)
+                    stars[starIndex].gameObject.SetActive(false);
+                itemRoot.gameObject.SetActive(false);
+                result[index] = view;
+            }
+            return result;
+        }
+
         private static void ConfigureEffectImage(
             Image image,
             Sprite sprite,
@@ -883,6 +1025,51 @@ namespace Meowdoku.Editor
             return image;
         }
 
+        private static RawImage EnsureRawImage(string name, Transform parent)
+        {
+            RectTransform rect = EnsureRect(name, parent);
+            RawImage raw = rect.GetComponent<RawImage>();
+            if (raw != null) return raw;
+            Image legacy = rect.GetComponent<Image>();
+            if (legacy != null) Object.DestroyImmediate(legacy);
+            raw = rect.gameObject.AddComponent<RawImage>();
+            raw.color = Color.white;
+            return raw;
+        }
+
+        private static void ConfigureRounded(Image image, float radius)
+        {
+            if (image == null) return;
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(RoundedShaderPath);
+            if (shader == null) return;
+            RoundedImageView rounded = image.GetComponent<RoundedImageView>();
+            if (rounded == null)
+                rounded = image.gameObject.AddComponent<RoundedImageView>();
+            rounded.Configure(image, shader, radius);
+        }
+
+        private static void ConfigureLocalizedTitle(
+            Text target,
+            string key,
+            string fallback)
+        {
+            if (target == null) return;
+            LocalizedText localized = target.GetComponent<LocalizedText>();
+            if (localized == null)
+                localized = target.gameObject.AddComponent<LocalizedText>();
+            SerializedObject data = new(localized);
+            data.FindProperty("catalog").objectReferenceValue =
+                LocalizationCatalogAssetInstaller.GetOrCreate();
+            data.FindProperty("target").objectReferenceValue = target;
+            data.FindProperty("key").stringValue = key;
+            data.FindProperty("fallbackText").stringValue = fallback;
+            data.FindProperty("primaryFont").objectReferenceValue = target.font;
+            data.FindProperty("eastAsianFallbackFont").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Font>(EastAsianFontPath);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            localized.Refresh();
+        }
+
         private static void SetTopLeftRect(
             RectTransform rect,
             float x,
@@ -927,6 +1114,11 @@ namespace Meowdoku.Editor
         private static Sprite LoadSprite(string path)
         {
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        private static Texture2D LoadTexture(string path)
+        {
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         private static Sprite[] LoadSprites(string prefix, int first, int count)

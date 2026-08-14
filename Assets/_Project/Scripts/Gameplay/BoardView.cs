@@ -10,6 +10,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.UI;
+using DG.Tweening;
 
 namespace Meowdoku.Gameplay
 {
@@ -36,6 +37,7 @@ namespace Meowdoku.Gameplay
 
         [Header("Source pattern palette")]
         [SerializeField] private Sprite[] patternIcons;
+        [SerializeField] private CanvasGroup introCanvasGroup;
 
         private CellView[,] _cells;
         private readonly Queue<CellView> _cellPool = new Queue<CellView>();
@@ -79,6 +81,36 @@ namespace Meowdoku.Gameplay
         };
         private bool _patternOn;
         private bool _patternKeepOnFilled;
+        private Sequence _gridIntroSequence;
+        private Action _gridIntroInputReady;
+        private int _gridIntroGeneration;
+        private Vector3 _gridIntroBaseScale = Vector3.one;
+        private Vector2 _gridIntroBasePosition;
+        private bool _hasGridIntroVisualState;
+
+        internal const float IntroListDelay = 0.18f;
+        internal const float IntroRingInterval = 0.04f;
+        internal const float IntroCellFadeDuration = 0.4f;
+        internal const float IntroCellScaleDuration = 1f;
+        internal const float IntroBoardFadeDuration = 0.45f;
+        internal const float IntroBoardScaleDuration = 0.48f;
+        internal const float IntroBoardTranslationDuration = 0.53f;
+        private static readonly AnimationCurve SourceCellScaleCurve = new AnimationCurve(
+            new Keyframe(0f, 0f, 0f, 0f),
+            new Keyframe(0.2929746f, 1.1f, -0.19996443f, -0.19996443f),
+            new Keyframe(0.44992524f, 0.9679848f, -0.0105118025f, -0.0105118025f),
+            new Keyframe(0.5665171f, 0.9985645f, 0.047450423f, 0f),
+            new Keyframe(1f, 1f, 0f, 0f));
+        private static readonly AnimationCurve ReduceSpacingCellScaleCurve = new AnimationCurve(
+            new Keyframe(0f, 0f, 0f, 0f),
+            new Keyframe(0.2929746f, 1f, -0.19996443f, -0.19996443f),
+            new Keyframe(0.44992524f, 0.95f, -0.0105118025f, -0.0105118025f),
+            new Keyframe(0.5665171f, 0.9985645f, 0.047450423f, 0f),
+            new Keyframe(1f, 1f, 0f, 0f));
+        private static readonly AnimationCurve SingleLineCellScaleCurve = new AnimationCurve(
+            new Keyframe(0f, 0f, 3.6f, 3.6f),
+            new Keyframe(0.32f, 1f, 0f, 0f),
+            new Keyframe(1f, 1f, 0f, 0f));
 
         private void Awake()
         {
@@ -104,6 +136,7 @@ namespace Meowdoku.Gameplay
         // Xóa sạch bàn cờ cũ nếu có (Trả các ô về Pool thay vì Destroy)
         public void ClearBoard()
         {
+            StopGridIntro(true);
             CancelActiveGesture();
             if (_cells != null)
             {
@@ -352,9 +385,144 @@ namespace Meowdoku.Gameplay
             _gridOverlay.Configure(_regions, _puzzleSize, layout.Padding, layout.Slot, boardScale);
         }
 
+        internal static float CalculateGridIntroInputReadyDuration(int puzzleSize)
+        {
+            if (puzzleSize <= 0) return 0f;
+            float lastCellFade = IntroListDelay +
+                2f * (puzzleSize - 1) * IntroRingInterval + IntroCellFadeDuration;
+            return Mathf.Max(lastCellFade,
+                IntroListDelay + IntroBoardFadeDuration,
+                IntroListDelay + IntroBoardScaleDuration,
+                IntroListDelay + IntroBoardTranslationDuration);
+        }
+
+        internal static float CalculateGridIntroCellDelay(
+            int puzzleSize, int row, int column)
+        {
+            int ring = column + (puzzleSize - 1 - row);
+            return IntroListDelay + ring * IntroRingInterval;
+        }
+
+        internal static float CalculateGridIntroVisualDuration(
+            int puzzleSize, bool singleLine)
+        {
+            if (puzzleSize <= 0) return 0f;
+            float cellDuration = singleLine
+                ? IntroCellFadeDuration
+                : IntroCellScaleDuration;
+            return Mathf.Max(CalculateGridIntroInputReadyDuration(puzzleSize),
+                IntroListDelay + 2f * (puzzleSize - 1) * IntroRingInterval + cellDuration);
+        }
+
         public void PlayGridIntro(float synchronizedDuration = 0f)
         {
-            _gridOverlay?.BeginGridIntro(synchronizedDuration);
+            PlayGridIntro(null, synchronizedDuration);
+        }
+
+        public void PlayGridIntro(Action inputReady, float synchronizedDuration = 0f)
+        {
+            StopGridIntro(true);
+            int generation = ++_gridIntroGeneration;
+            if (_cells == null || _puzzleSize <= 0 || cellsContainer == null)
+            {
+                inputReady?.Invoke();
+                return;
+            }
+
+            bool singleLine = _gridUiConfig != null && _gridUiConfig.IsSingleLine();
+            float inputDuration = CalculateGridIntroInputReadyDuration(_puzzleSize);
+            float visualDuration = CalculateGridIntroVisualDuration(_puzzleSize, singleLine);
+            _gridIntroInputReady = inputReady;
+            RectTransform boardRect = cellsContainer as RectTransform;
+            _gridIntroBaseScale = cellsContainer.localScale;
+            if (boardRect != null) _gridIntroBasePosition = boardRect.anchoredPosition;
+            _gridIntroSequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+            _hasGridIntroVisualState = true;
+            if (introCanvasGroup != null) introCanvasGroup.alpha = 0f;
+            cellsContainer.localScale = _gridIntroBaseScale * 1.3f;
+            if (boardRect != null)
+                boardRect.anchoredPosition = _gridIntroBasePosition + Vector2.up * 130f;
+
+            if (introCanvasGroup != null)
+                _gridIntroSequence.Insert(IntroListDelay,
+                    introCanvasGroup.DOFade(1f, IntroBoardFadeDuration).SetEase(Ease.Linear));
+            _gridIntroSequence.Insert(IntroListDelay,
+                cellsContainer.DOScale(_gridIntroBaseScale, IntroBoardScaleDuration)
+                    .SetEase(Ease.OutCirc));
+            if (boardRect != null)
+                _gridIntroSequence.Insert(IntroListDelay,
+                    boardRect.DOAnchorPos(_gridIntroBasePosition, IntroBoardTranslationDuration)
+                        .SetEase(Ease.OutCubic));
+
+            bool reduceSpacing = _gridUiConfig != null && _gridUiConfig.IsReduceSpacing();
+            AnimationCurve curve = singleLine
+                ? SingleLineCellScaleCurve
+                : reduceSpacing
+                    ? ReduceSpacingCellScaleCurve
+                    : SourceCellScaleCurve;
+            float scaleDuration = singleLine ? IntroCellFadeDuration : IntroCellScaleDuration;
+            for (int row = 0; row < _puzzleSize; row++)
+            for (int column = 0; column < _puzzleSize; column++)
+            {
+                CellView cell = _cells[row, column];
+                if (cell == null) continue;
+                cell.PrepareGridIntroVisual();
+                float delay = CalculateGridIntroCellDelay(_puzzleSize, row, column);
+                cell.InsertGridIntroTweens(_gridIntroSequence, delay,
+                    IntroCellFadeDuration, scaleDuration, curve);
+            }
+            _gridOverlay?.BeginGridIntro(synchronizedDuration > 0f
+                ? synchronizedDuration
+                : inputDuration);
+            _gridIntroSequence.InsertCallback(inputDuration,
+                () => InvokeGridIntroInputReady(generation));
+            _gridIntroSequence.AppendInterval(
+                Mathf.Max(0f, visualDuration - _gridIntroSequence.Duration()));
+            _gridIntroSequence.OnComplete(() => CompleteGridIntro(generation));
+        }
+
+        private void InvokeGridIntroInputReady(int generation)
+        {
+            if (generation != _gridIntroGeneration) return;
+            Action callback = _gridIntroInputReady;
+            _gridIntroInputReady = null;
+            callback?.Invoke();
+        }
+
+        private void CompleteGridIntro(int generation)
+        {
+            if (generation != _gridIntroGeneration) return;
+            InvokeGridIntroInputReady(generation);
+            _gridIntroSequence = null;
+            RestoreGridIntroVisuals();
+            _hasGridIntroVisualState = false;
+        }
+
+        private void StopGridIntro(bool restore)
+        {
+            bool hadIntroVisualState = _hasGridIntroVisualState;
+            _gridIntroGeneration++;
+            _gridIntroInputReady = null;
+            _gridIntroSequence?.Kill(false);
+            _gridIntroSequence = null;
+            _gridOverlay?.EndGridIntroImmediately();
+            if (restore && hadIntroVisualState) RestoreGridIntroVisuals();
+            _hasGridIntroVisualState = false;
+        }
+
+        private void RestoreGridIntroVisuals()
+        {
+            if (introCanvasGroup != null) introCanvasGroup.alpha = 1f;
+            if (cellsContainer != null)
+            {
+                cellsContainer.localScale = _gridIntroBaseScale;
+                if (cellsContainer is RectTransform rect)
+                    rect.anchoredPosition = _gridIntroBasePosition;
+            }
+            if (_cells == null) return;
+            for (int row = 0; row < _cells.GetLength(0); row++)
+            for (int column = 0; column < _cells.GetLength(1); column++)
+                _cells[row, column]?.RestoreGridIntroVisual();
         }
 
         // Thay đổi trạng thái của một ô cụ thể khi người chơi bấm vào
@@ -504,6 +672,7 @@ namespace Meowdoku.Gameplay
 
         private void OnDisable()
         {
+            StopGridIntro(true);
             CancelActiveGesture();
             UnbindInputActions();
         }
@@ -686,6 +855,8 @@ namespace Meowdoku.Gameplay
         private void CacheHierarchyReferences()
         {
             _rootCanvas = GetComponentInParent<Canvas>();
+            if (introCanvasGroup == null)
+                introCanvasGroup = GetComponent<CanvasGroup>();
             CacheGridReference();
         }
 
@@ -742,6 +913,23 @@ namespace Meowdoku.Gameplay
         internal bool PatternOnForTests => _patternOn;
         internal bool PatternKeepOnFilledForTests => _patternKeepOnFilled;
         internal BoardGridOverlayGraphic GridOverlayForTests => _gridOverlay;
+        internal bool IsGridIntroPlayingForTests =>
+            _gridIntroSequence != null && _gridIntroSequence.IsActive();
+        internal float GridIntroInputReadyDurationForTests =>
+            CalculateGridIntroInputReadyDuration(_puzzleSize);
+        internal float GridIntroVisualDurationForTests =>
+            CalculateGridIntroVisualDuration(_puzzleSize,
+                _gridUiConfig != null && _gridUiConfig.IsSingleLine());
+        internal float CellIntroAlphaForTests(int row, int column)
+        {
+            CellView cell = GetCellForTests(row, column);
+            return cell != null ? cell.IntroAlphaForTests : 1f;
+        }
+        internal float CellIntroScaleForTests(int row, int column)
+        {
+            CellView cell = GetCellForTests(row, column);
+            return cell != null ? cell.IntroScaleForTests : 1f;
+        }
 
         internal CellView GetCellForTests(int row, int column)
         {

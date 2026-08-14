@@ -63,8 +63,13 @@ namespace Meowdoku.Gameplay
                 : correctFlyLaunchDelay;
             if (lifeBonusCount > 0)
             {
-                float lifeCompletion = correctFlyLaunchDelay;
-                lifeCompletion += (lifeBonusCount - 1) * LifeSequenceGapSeconds;
+                // base_game_page.gd starts the life-bonus sequence immediately
+                // after the completion frame. The final-cat score flight keeps
+                // running in parallel; it must not be added in front of every
+                // heart. Adding correctFlyLaunchDelay here made the last move
+                // feel frozen for another 0.8..1.45 seconds.
+                float lifeCompletion =
+                    (lifeBonusCount - 1) * LifeSequenceGapSeconds;
                 lifeCompletion += FlyDurationSeconds + LifeFinalSettleSeconds;
                 completionDelay = Math.Max(completionDelay, lifeCompletion);
             }

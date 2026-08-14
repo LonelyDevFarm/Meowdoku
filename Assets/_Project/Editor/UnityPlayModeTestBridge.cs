@@ -22,6 +22,10 @@ namespace Meowdoku.Editor
             @"Local\Meowdoku.UnityPlayModeTests";
         internal const string PlatformEventName =
             @"Local\Meowdoku.UnityPlayModeTests.Platform";
+        internal const string VisualAuditEventName =
+            @"Local\Meowdoku.UnityPlayModeTests.VisualAudit";
+        internal const string RankVisualAuditEventName =
+            @"Local\Meowdoku.UnityPlayModeTests.RankVisualAudit";
         internal const string ResetEventName =
             @"Local\Meowdoku.UnityPlayModeTests.Reset";
         internal const string ResultPath =
@@ -32,17 +36,33 @@ namespace Meowdoku.Editor
             "Temp/MeowdokuPlatformPlayModeTestResult.txt";
         internal const string PlatformXmlResultPath =
             "Temp/MeowdokuPlatformPlayModeTestResult.xml";
+        internal const string VisualAuditResultPath =
+            "Temp/MeowdokuVisualAuditPlayModeTestResult.txt";
+        internal const string VisualAuditXmlResultPath =
+            "Temp/MeowdokuVisualAuditPlayModeTestResult.xml";
+        internal const string RankVisualAuditResultPath =
+            "Temp/MeowdokuRankVisualAuditPlayModeTestResult.txt";
+        internal const string RankVisualAuditXmlResultPath =
+            "Temp/MeowdokuRankVisualAuditPlayModeTestResult.xml";
 
         private const string ActiveSessionKey =
             "Meowdoku.UnityPlayModeTestBridge.Active";
         private const string PlatformSessionKey =
             "Meowdoku.UnityPlayModeTestBridge.Platform";
+        private const string VisualAuditSessionKey =
+            "Meowdoku.UnityPlayModeTestBridge.VisualAudit";
+        private const string RankVisualAuditSessionKey =
+            "Meowdoku.UnityPlayModeTestBridge.RankVisualAudit";
 
         private static EventWaitHandle _runEvent;
         private static EventWaitHandle _platformEvent;
+        private static EventWaitHandle _visualAuditEvent;
+        private static EventWaitHandle _rankVisualAuditEvent;
         private static EventWaitHandle _resetEvent;
         private static bool _runPending;
         private static bool _platformPending;
+        private static bool _visualAuditPending;
+        private static bool _rankVisualAuditPending;
         private static TestRunnerApi _runner;
         private static ResultCallbacks _callbacks;
 
@@ -64,13 +84,25 @@ namespace Meowdoku.Editor
         [MenuItem("Tools/Meowdoku/Run PlayMode Tests %#&p")]
         private static void RunFromMenu()
         {
-            QueueRun(false);
+            QueueRun(false, false);
         }
 
         [MenuItem("Tools/Meowdoku/Run Platform PlayMode Tests")]
         private static void RunPlatformFromMenu()
         {
-            QueueRun(true);
+            QueueRun(true, false);
+        }
+
+        [MenuItem("Tools/Meowdoku/Run Portfolio Visual Audit")]
+        private static void RunVisualAuditFromMenu()
+        {
+            QueueRun(false, true);
+        }
+
+        [MenuItem("Tools/Meowdoku/Run Rank Visual Audit")]
+        private static void RunRankVisualAuditFromMenu()
+        {
+            QueueRun(false, false, true);
         }
 
         private static void TryCreateEvent()
@@ -85,6 +117,14 @@ namespace Meowdoku.Editor
                     false,
                     EventResetMode.AutoReset,
                     PlatformEventName);
+                _visualAuditEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    VisualAuditEventName);
+                _rankVisualAuditEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    RankVisualAuditEventName);
                 _resetEvent = new EventWaitHandle(
                     false,
                     EventResetMode.AutoReset,
@@ -94,23 +134,38 @@ namespace Meowdoku.Editor
             {
                 _runEvent?.Dispose();
                 _platformEvent?.Dispose();
+                _visualAuditEvent?.Dispose();
+                _rankVisualAuditEvent?.Dispose();
                 _resetEvent?.Dispose();
                 _runEvent = null;
                 _platformEvent = null;
+                _visualAuditEvent = null;
+                _rankVisualAuditEvent = null;
                 _resetEvent = null;
             }
         }
 
         private static void Poll()
         {
+            if (_runEvent == null || _platformEvent == null ||
+                _visualAuditEvent == null || _rankVisualAuditEvent == null ||
+                _resetEvent == null)
+                TryCreateEvent();
+
             try
             {
                 if (_resetEvent != null && _resetEvent.WaitOne(0))
                     ResetOrphanedRun();
                 if (_runEvent != null && _runEvent.WaitOne(0))
-                    QueueRun(false);
+                    QueueRun(false, false);
                 if (_platformEvent != null && _platformEvent.WaitOne(0))
-                    QueueRun(true);
+                    QueueRun(true, false);
+                if (_visualAuditEvent != null &&
+                    _visualAuditEvent.WaitOne(0))
+                    QueueRun(false, true);
+                if (_rankVisualAuditEvent != null &&
+                    _rankVisualAuditEvent.WaitOne(0))
+                    QueueRun(false, false, true);
                 if (_runPending &&
                     !SessionState.GetBool(ActiveSessionKey, false))
                     RunWhenReady();
@@ -119,6 +174,8 @@ namespace Meowdoku.Editor
             {
                 _runEvent = null;
                 _platformEvent = null;
+                _visualAuditEvent = null;
+                _rankVisualAuditEvent = null;
                 _resetEvent = null;
             }
         }
@@ -127,18 +184,28 @@ namespace Meowdoku.Editor
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
             _runPending = false;
+            _platformPending = false;
+            _visualAuditPending = false;
+            _rankVisualAuditPending = false;
             SessionState.EraseBool(ActiveSessionKey);
             SessionState.EraseBool(PlatformSessionKey);
+            SessionState.EraseBool(VisualAuditSessionKey);
+            SessionState.EraseBool(RankVisualAuditSessionKey);
             ReleaseCallbacks();
             WriteResult("RESET", ResultPath);
         }
 
-        private static void QueueRun(bool platformOnly)
+        private static void QueueRun(
+            bool platformOnly,
+            bool visualAuditOnly,
+            bool rankVisualAuditOnly = false)
         {
             if (_runPending || SessionState.GetBool(ActiveSessionKey, false))
                 return;
             _runPending = true;
             _platformPending = platformOnly;
+            _visualAuditPending = visualAuditOnly;
+            _rankVisualAuditPending = rankVisualAuditOnly;
         }
 
         private static void RunWhenReady()
@@ -151,7 +218,13 @@ namespace Meowdoku.Editor
             _runPending = false;
             SessionState.SetBool(ActiveSessionKey, true);
             SessionState.SetBool(PlatformSessionKey, _platformPending);
+            SessionState.SetBool(VisualAuditSessionKey, _visualAuditPending);
+            SessionState.SetBool(
+                RankVisualAuditSessionKey,
+                _rankVisualAuditPending);
             _platformPending = false;
+            _visualAuditPending = false;
+            _rankVisualAuditPending = false;
             WriteResult("RUNNING", ActiveResultPath);
             RegisterCallbacks();
             try
@@ -162,7 +235,17 @@ namespace Meowdoku.Editor
                         UnityEditor.TestTools.TestRunner.Api.TestMode.PlayMode,
                     assemblyNames = new[] { "Meowdoku.PlayModeTests" }
                 };
-                if (SessionState.GetBool(PlatformSessionKey, false))
+                if (SessionState.GetBool(RankVisualAuditSessionKey, false))
+                    filter.groupNames = new[]
+                    {
+                        @"^Meowdoku\.Tests\.PlayMode\.PrimaryNavigationPlayModeTests\.PortfolioVisualCapture_RankAfterWin$"
+                    };
+                else if (SessionState.GetBool(VisualAuditSessionKey, false))
+                    filter.groupNames = new[]
+                    {
+                        @"^Meowdoku\.Tests\.PlayMode\.PrimaryNavigationPlayModeTests\.PortfolioVisualCapture_.*$"
+                    };
+                else if (SessionState.GetBool(PlatformSessionKey, false))
                     filter.groupNames = new[]
                     {
                         @"^Meowdoku\.Tests\.PlayMode\.PrimaryNavigationPlayModeTests\.Platform"
@@ -174,6 +257,8 @@ namespace Meowdoku.Editor
                 WriteResult("BRIDGE_ERROR\n" + exception, ActiveResultPath);
                 SessionState.EraseBool(ActiveSessionKey);
                 SessionState.EraseBool(PlatformSessionKey);
+                SessionState.EraseBool(VisualAuditSessionKey);
+                SessionState.EraseBool(RankVisualAuditSessionKey);
                 ReleaseCallbacks();
             }
         }
@@ -227,6 +312,8 @@ namespace Meowdoku.Editor
             {
                 SessionState.EraseBool(ActiveSessionKey);
                 SessionState.EraseBool(PlatformSessionKey);
+                SessionState.EraseBool(VisualAuditSessionKey);
+                SessionState.EraseBool(RankVisualAuditSessionKey);
                 ReleaseCallbacks();
             }
         }
@@ -243,6 +330,8 @@ namespace Meowdoku.Editor
             {
                 SessionState.EraseBool(ActiveSessionKey);
                 SessionState.EraseBool(PlatformSessionKey);
+                SessionState.EraseBool(VisualAuditSessionKey);
+                SessionState.EraseBool(RankVisualAuditSessionKey);
                 ReleaseCallbacks();
             }
         }
@@ -263,12 +352,20 @@ namespace Meowdoku.Editor
         }
 
         private static string ActiveResultPath =>
-            SessionState.GetBool(PlatformSessionKey, false)
+            SessionState.GetBool(RankVisualAuditSessionKey, false)
+                ? RankVisualAuditResultPath
+                : SessionState.GetBool(VisualAuditSessionKey, false)
+                ? VisualAuditResultPath
+                : SessionState.GetBool(PlatformSessionKey, false)
                 ? PlatformResultPath
                 : ResultPath;
 
         private static string ActiveXmlResultPath =>
-            SessionState.GetBool(PlatformSessionKey, false)
+            SessionState.GetBool(RankVisualAuditSessionKey, false)
+                ? RankVisualAuditXmlResultPath
+                : SessionState.GetBool(VisualAuditSessionKey, false)
+                ? VisualAuditXmlResultPath
+                : SessionState.GetBool(PlatformSessionKey, false)
                 ? PlatformXmlResultPath
                 : XmlResultPath;
 
@@ -304,6 +401,10 @@ namespace Meowdoku.Editor
             _runEvent = null;
             _platformEvent?.Dispose();
             _platformEvent = null;
+            _visualAuditEvent?.Dispose();
+            _visualAuditEvent = null;
+            _rankVisualAuditEvent?.Dispose();
+            _rankVisualAuditEvent = null;
             _resetEvent?.Dispose();
             _resetEvent = null;
             _callbacks = null;
@@ -314,11 +415,17 @@ namespace Meowdoku.Editor
         {
             SessionState.EraseBool(ActiveSessionKey);
             SessionState.EraseBool(PlatformSessionKey);
+            SessionState.EraseBool(VisualAuditSessionKey);
+            SessionState.EraseBool(RankVisualAuditSessionKey);
             ReleaseCallbacks();
             _runEvent?.Dispose();
             _runEvent = null;
             _platformEvent?.Dispose();
             _platformEvent = null;
+            _visualAuditEvent?.Dispose();
+            _visualAuditEvent = null;
+            _rankVisualAuditEvent?.Dispose();
+            _rankVisualAuditEvent = null;
             _resetEvent?.Dispose();
             _resetEvent = null;
         }

@@ -305,9 +305,23 @@ namespace Meowdoku.Tests.EditMode
                 "layoutSpace",
                 "startButton",
                 "settingsButton",
+                "profileAvatar",
                 "dailyEntry",
                 "streakEntry",
                 "rankEntry");
+            GameObject homePrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(HomePath);
+            ProfileAvatarView homeAvatar = homePrefab.transform.Find(
+                "Root/VBoxContainer/Header/ProfileEntry/AvatarSlot")
+                ?.GetComponentInChildren<ProfileAvatarView>(true);
+            Assert.That(homeAvatar, Is.Not.Null);
+            var homeAvatarData = new SerializedObject(homeAvatar);
+            SerializedProperty avatarSprites =
+                homeAvatarData.FindProperty("avatarSprites");
+            Assert.That(avatarSprites, Is.Not.Null);
+            Assert.That(avatarSprites.arraySize, Is.GreaterThan(0));
+            Assert.That(avatarSprites.GetArrayElementAtIndex(0)
+                .objectReferenceValue, Is.Not.Null);
             AssertBindings<TutorialPagePresenter>(
                 TutorialPath,
                 "boardView",
@@ -423,6 +437,35 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void GameplayBackground_MatchesSourceColorAndFillsPage()
+        {
+            GameObject game =
+                AssetDatabase.LoadAssetAtPath<GameObject>(GamePath);
+            Assert.That(game, Is.Not.Null, GamePath);
+            Transform backgroundTransform = game.transform.Find("Background");
+            Assert.That(backgroundTransform, Is.Not.Null,
+                "GamePage is missing its direct Background child.");
+            Image background = backgroundTransform.GetComponent<Image>();
+            Assert.That(background, Is.Not.Null,
+                "GamePage Background is missing Image.");
+            Assert.That(backgroundTransform.GetSiblingIndex(), Is.Zero);
+            Assert.That(background.rectTransform.anchorMin,
+                Is.EqualTo(Vector2.zero));
+            Assert.That(background.rectTransform.anchorMax,
+                Is.EqualTo(Vector2.one));
+            Assert.That(background.rectTransform.anchoredPosition,
+                Is.EqualTo(Vector2.zero));
+            Assert.That(background.rectTransform.sizeDelta,
+                Is.EqualTo(Vector2.zero));
+            Assert.That(background.raycastTarget, Is.False);
+            Assert.That(background.sprite, Is.Null);
+            Assert.That(background.color.r, Is.EqualTo(0.969f).Within(0.0001f));
+            Assert.That(background.color.g, Is.EqualTo(0.949f).Within(0.0001f));
+            Assert.That(background.color.b, Is.EqualTo(0.937f).Within(0.0001f));
+            Assert.That(background.color.a, Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        [Test]
         public void GameplayPatternAssets_AreSerializedFromTheSourcePalette()
         {
             AssertBindings<CellView>(CellPath, "patternImage");
@@ -443,6 +486,20 @@ namespace Meowdoku.Tests.EditMode
                     Is.Not.Null,
                     "patternIcons[" + index + "] is not assigned.");
             }
+        }
+
+        [Test]
+        public void GameplayBottomTools_HaveSerializedSourceSprites()
+        {
+            GameObject game =
+                AssetDatabase.LoadAssetAtPath<GameObject>(GamePath);
+            Assert.That(game, Is.Not.Null, GamePath);
+            Transform locate = game.transform.Find("HUD/BottomTools/Locate");
+            Transform hint = game.transform.Find("HUD/BottomTools/Hint");
+            Assert.That(locate, Is.Not.Null, "Locate tool root is missing.");
+            Assert.That(hint, Is.Not.Null, "Hint tool root is missing.");
+            AssertToolSourceSprites(locate);
+            AssertToolSourceSprites(hint);
         }
 
         [Test]
@@ -1087,6 +1144,29 @@ namespace Meowdoku.Tests.EditMode
                     typeof(T).Name + "." + propertyName +
                     " is not assigned in " + prefabPath + ".");
             }
+        }
+
+        private static void AssertToolSourceSprites(Transform toolRoot)
+        {
+            foreach (string path in new[] { "Visual/Background", "Visual/Icon" })
+            {
+                Transform visual = toolRoot.Find(path);
+                Assert.That(visual, Is.Not.Null,
+                    toolRoot.name + "/" + path + " is missing.");
+                Image image = visual.GetComponent<Image>();
+                Assert.That(image, Is.Not.Null,
+                    toolRoot.name + "/" + path + " is missing Image.");
+                Assert.That(image.sprite, Is.Not.Null,
+                    toolRoot.name + "/" + path + " has no source sprite.");
+            }
+
+            Transform background = toolRoot.Find("Visual/Background");
+            Transform icon = toolRoot.Find("Visual/Icon");
+            Assert.That(
+                icon.GetSiblingIndex(),
+                Is.GreaterThan(background.GetSiblingIndex()),
+                toolRoot.name +
+                " Visual/Background must render behind the icon.");
         }
 
         private static void AssertRegistryPage<T>(

@@ -5,6 +5,7 @@ using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
 using Meowdoku.Core.Profile;
 using Meowdoku.Core.Rank;
+using Meowdoku.Services;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,6 +18,7 @@ namespace Meowdoku.Gameplay
         public const float AppearWithoutBoxDuration = 3.3666666f;
         public const float OpenNotifyDelay = 0.8834f;
         public const float OpenDuration = 2f;
+        private const float BoxAppearSoundDelay = 2.5f;
 
         [Header("Content")]
         [SerializeField] private Image backdrop;
@@ -64,6 +66,7 @@ namespace Meowdoku.Gameplay
         private bool _appeared;
         private bool _opening;
         private bool _externallyInteractable;
+        private SoundService _soundService;
 
         private void Awake()
         {
@@ -132,6 +135,11 @@ namespace Meowdoku.Gameplay
         {
             _externallyInteractable = interactable;
             RefreshInteractable();
+        }
+
+        public void BindSoundService(SoundService service)
+        {
+            _soundService = service;
         }
 
         public void StopImmediate()
@@ -211,7 +219,13 @@ namespace Meowdoku.Gameplay
                 HasBox ? 0.15f : 0.1166667f);
             PlayCelebrationBursts(_appearSequence);
 
-            if (HasBox) PlayChestAppear();
+            if (HasBox)
+            {
+                PlayChestAppear();
+                _appearSequence.InsertCallback(
+                    BoxAppearSoundDelay,
+                    () => _soundService?.Play(SoundKind.RankBoxAppear));
+            }
             float collectStart = HasBox ? 2.9999998f : 1.8666667f;
             if (collectGroup != null)
                 _appearSequence.Insert(collectStart,
@@ -235,6 +249,7 @@ namespace Meowdoku.Gameplay
         {
             KillAppear();
             KillChestIdle();
+            if (HasBox) _soundService?.Play(SoundKind.RankBoxOpen);
             _openSequence = DOTween.Sequence()
                 .SetUpdate(true)
                 .SetLink(gameObject, LinkBehaviour.KillOnDisable);

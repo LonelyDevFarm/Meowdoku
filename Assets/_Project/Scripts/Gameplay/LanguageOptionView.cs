@@ -90,9 +90,12 @@ namespace Meowdoku.Gameplay
             if (nativeLabel != null)
                 nativeLabel.color = selected ? SelectedText : NormalText;
             if (subtitleLabel != null)
+            {
                 subtitleLabel.color = selected
                     ? SelectedSubtitle
                     : NormalSubtitle;
+                subtitleLabel.gameObject.SetActive(selected);
+            }
             if (checkMark != null) checkMark.SetActive(selected);
         }
 

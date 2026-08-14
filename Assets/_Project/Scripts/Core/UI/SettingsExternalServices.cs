@@ -2,6 +2,11 @@ using UnityEngine;
 
 namespace Meowdoku.Core.UI
 {
+    public static class PortfolioLinks
+    {
+        public const string GitHub = "https://github.com/LonelyDevFarm";
+    }
+
     /// <summary>
     /// Provider-neutral boundary for Settings actions owned by platform SDKs.
     /// A production adapter may implement this together with
@@ -35,8 +40,7 @@ namespace Meowdoku.Core.UI
 
         public void OpenLocalizedPrivacyUrl(string defaultUrl)
         {
-            if (!string.IsNullOrWhiteSpace(defaultUrl))
-                Application.OpenURL(defaultUrl);
+            Application.OpenURL(PortfolioLinks.GitHub);
         }
     }
 }

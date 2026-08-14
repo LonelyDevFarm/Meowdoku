@@ -101,23 +101,13 @@ namespace Meowdoku.Editor
                 row = BuildRowPrefab(font, avatar);
             UpgradeRankRowVisuals();
             row = AssetDatabase.LoadAssetAtPath<GameObject>(RowPath);
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(PagePath) == null &&
-                avatar != null && row != null)
-            {
-                GameObject page = BuildRankPage(
+            if (avatar != null && row != null)
+                EnsureRankPagePresentationPrefab(
                     font,
                     localization,
                     avatar,
                     row);
-                PrefabUtility.SaveAsPrefabAsset(page, PagePath);
-                UnityEngine.Object.DestroyImmediate(page);
-            }
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(HowToPlayPath) == null)
-            {
-                GameObject page = BuildHowToPlay(font, localization);
-                PrefabUtility.SaveAsPrefabAsset(page, HowToPlayPath);
-                UnityEngine.Object.DestroyImmediate(page);
-            }
+            EnsureHowToPlayPresentationPrefab(font, localization);
             if (AssetDatabase.LoadAssetAtPath<GameObject>(ChangePath) == null &&
                 row != null)
             {
@@ -126,7 +116,9 @@ namespace Meowdoku.Editor
                 UnityEngine.Object.DestroyImmediate(page);
             }
             UpgradeRankPageLayout();
+            UpgradeRankPageControls();
             UpgradeRankChangeLayout();
+            UpgradeRankViewportMasks();
             DailyMetaPagePrefabInstaller.InstallIfReady();
             if (avatar != null)
                 UpgradeAwardForRankGift(font, localization, avatar);
@@ -139,6 +131,189 @@ namespace Meowdoku.Editor
         private static void QueueInstall()
         {
             InstallIfReady();
+        }
+
+        private static void UpgradeRankViewportMasks()
+        {
+            UpgradeRankViewportMask(PagePath, "Root/List/Viewport");
+            UpgradeRankViewportMask(
+                ChangePath,
+                "Root/ListGroup/RankCellMask");
+        }
+
+        private static void UpgradeRankPageControls()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(PagePath) == null)
+                return;
+
+            GameObject page = PrefabUtility.LoadPrefabContents(PagePath);
+            try
+            {
+                bool changed = false;
+                changed |= UpgradeRoundHeaderButton(
+                    page.transform.Find("Root/Header/BackBtn") as RectTransform,
+                    LoadTexture(CommonRoot + "icon_back.png"),
+                    25f);
+                changed |= UpgradeRoundHeaderButton(
+                    page.transform.Find("Root/Header/SettingsBtn") as RectTransform,
+                    LoadTexture(CommonRoot + "icon_info.png"),
+                    935f);
+
+                Button cta = page.transform.Find("Root/CtaButton")
+                    ?.GetComponent<Button>();
+                Sprite ctaSprite = LoadSprite(CommonRoot + "btn_primary.png");
+                if (cta != null && cta.image != null)
+                {
+                    if (cta.image.sprite != ctaSprite)
+                    {
+                        cta.image.sprite = ctaSprite;
+                        changed = true;
+                    }
+                    if (cta.image.type != Image.Type.Simple)
+                    {
+                        cta.image.type = Image.Type.Simple;
+                        changed = true;
+                    }
+                    if (!cta.image.preserveAspect)
+                    {
+                        cta.image.preserveAspect = true;
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                    PrefabUtility.SaveAsPrefabAsset(page, PagePath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(page);
+            }
+        }
+
+        private static bool UpgradeRoundHeaderButton(
+            RectTransform buttonRect,
+            Texture2D iconTexture,
+            float left)
+        {
+            if (buttonRect == null) return false;
+            bool changed = false;
+            Vector2 expectedPosition = new(left, 0f);
+            Vector2 expectedSize = new(120f, 120f);
+            if (buttonRect.anchorMin != new Vector2(0f, 1f) ||
+                buttonRect.anchorMax != new Vector2(0f, 1f) ||
+                buttonRect.pivot != new Vector2(0f, 1f) ||
+                buttonRect.anchoredPosition !=
+                    new Vector2(expectedPosition.x, -expectedPosition.y) ||
+                buttonRect.sizeDelta != expectedSize)
+            {
+                SetTop(buttonRect, left, 0f, 120f, 120f);
+                changed = true;
+            }
+
+            Image buttonImage = buttonRect.GetComponent<Image>();
+            if (buttonImage != null &&
+                (buttonImage.sprite != null || buttonImage.color != Color.clear))
+            {
+                buttonImage.sprite = null;
+                buttonImage.color = Color.clear;
+                buttonImage.type = Image.Type.Simple;
+                changed = true;
+            }
+
+            Transform baseTransform = buttonRect.Find("Base");
+            RectTransform baseRect;
+            if (baseTransform == null)
+            {
+                baseRect = CreateRect("Base", buttonRect);
+                changed = true;
+            }
+            else
+            {
+                baseRect = baseTransform as RectTransform;
+            }
+            Image oldBaseImage = baseRect?.GetComponent<Image>();
+            RawImage baseImage = baseRect?.GetComponent<RawImage>();
+            if (baseImage == null && baseRect != null)
+            {
+                if (oldBaseImage != null)
+                    UnityEngine.Object.DestroyImmediate(oldBaseImage);
+                baseImage = baseRect.gameObject.AddComponent<RawImage>();
+                changed = true;
+            }
+            Texture2D baseTexture = LoadTexture(
+                CommonRoot + "round_btn_base.png");
+            if (baseImage != null && baseImage.texture != baseTexture)
+            {
+                baseImage.texture = baseTexture;
+                changed = true;
+            }
+            SetCentered(baseRect, Vector2.zero,
+                new Vector2(152f, 152f));
+            baseImage.raycastTarget = false;
+            baseImage.color = Color.white;
+            baseRect.SetAsFirstSibling();
+
+            Transform iconTransform = buttonRect.Find("Icon");
+            RectTransform iconRect;
+            if (iconTransform == null)
+            {
+                iconRect = CreateRect("Icon", buttonRect);
+                changed = true;
+            }
+            else
+            {
+                iconRect = iconTransform as RectTransform;
+            }
+            Image oldIconImage = iconRect?.GetComponent<Image>();
+            RawImage icon = iconRect?.GetComponent<RawImage>();
+            if (icon == null && iconRect != null)
+            {
+                if (oldIconImage != null)
+                    UnityEngine.Object.DestroyImmediate(oldIconImage);
+                icon = iconRect.gameObject.AddComponent<RawImage>();
+                changed = true;
+            }
+            if (icon != null && icon.texture != iconTexture)
+            {
+                icon.texture = iconTexture;
+                changed = true;
+            }
+            SetCentered(iconRect, Vector2.zero,
+                new Vector2(100f, 100f));
+            icon.raycastTarget = false;
+            icon.color = Color.white;
+            iconRect.SetAsLastSibling();
+            return changed;
+        }
+
+        private static void UpgradeRankViewportMask(
+            string prefabPath,
+            string viewportPath)
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) == null)
+                return;
+
+            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                Transform viewport = root.transform.Find(viewportPath);
+                if (viewport == null) return;
+
+                RectMask2D rectMask = viewport.GetComponent<RectMask2D>();
+                if (rectMask == null)
+                    rectMask = viewport.gameObject.AddComponent<RectMask2D>();
+                rectMask.enabled = true;
+
+                Mask legacyMask = viewport.GetComponent<Mask>();
+                if (legacyMask != null)
+                    legacyMask.enabled = false;
+
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         private static void UpgradeHome(
@@ -397,6 +572,66 @@ namespace Meowdoku.Editor
                     changed = true;
                 }
 
+                RectTransform rowContent = content.Find(
+                    "Content") as RectTransform;
+                Image floatingOccluder = content.Find("FloatingOccluder")
+                    ?.GetComponent<Image>();
+                if (floatingOccluder == null)
+                {
+                    floatingOccluder = CreateImage(
+                        "FloatingOccluder", content, null);
+                    changed = true;
+                }
+                Stretch(floatingOccluder.rectTransform);
+                floatingOccluder.color = new Color32(255, 225, 187, 255);
+                floatingOccluder.raycastTarget = false;
+                RoundedImageView occluderRounded =
+                    floatingOccluder.GetComponent<RoundedImageView>();
+                if (occluderRounded == null)
+                {
+                    occluderRounded = floatingOccluder.gameObject
+                        .AddComponent<RoundedImageView>();
+                    changed = true;
+                }
+                occluderRounded.Configure(
+                    floatingOccluder,
+                    AssetDatabase.LoadAssetAtPath<Shader>(RoundedShaderPath),
+                    24f);
+                floatingOccluder.rectTransform.SetAsFirstSibling();
+                if (floatingOccluder.gameObject.activeSelf)
+                {
+                    floatingOccluder.gameObject.SetActive(false);
+                    changed = true;
+                }
+                RectTransform avatarSlot = rowContent?.Find(
+                    "AvatarSlot") as RectTransform;
+                if (avatarSlot != null)
+                {
+                    const float sourceAvatarSize = 185f;
+                    const float rowAvatarSize = 146f;
+                    const float rowAvatarInset = 7f;
+                    Vector3 scale = Vector3.one *
+                        (rowAvatarSize / sourceAvatarSize);
+                    if (avatarSlot.anchorMin != new Vector2(0f, 1f) ||
+                        avatarSlot.anchorMax != new Vector2(0f, 1f) ||
+                        avatarSlot.pivot != new Vector2(0f, 1f) ||
+                        avatarSlot.anchoredPosition !=
+                            new Vector2(rowAvatarInset, -rowAvatarInset) ||
+                        avatarSlot.sizeDelta !=
+                            new Vector2(sourceAvatarSize, sourceAvatarSize) ||
+                        avatarSlot.localScale != scale)
+                    {
+                        SetTop(
+                            avatarSlot,
+                            rowAvatarInset,
+                            rowAvatarInset,
+                            sourceAvatarSize,
+                            sourceAvatarSize);
+                        avatarSlot.localScale = scale;
+                        changed = true;
+                    }
+                }
+
                 SerializedObject data = new(view);
                 SerializedProperty visualProperty =
                     data.FindProperty("visualRoot");
@@ -406,6 +641,8 @@ namespace Meowdoku.Editor
                     data.FindProperty("selfShadow");
                 SerializedProperty celebrationProperty =
                     data.FindProperty("celebration");
+                SerializedProperty floatingOccluderProperty =
+                    data.FindProperty("floatingOccluder");
                 if (visualProperty.objectReferenceValue != visual)
                 {
                     visualProperty.objectReferenceValue = visual;
@@ -424,6 +661,14 @@ namespace Meowdoku.Editor
                 if (celebrationProperty.objectReferenceValue != celebration)
                 {
                     celebrationProperty.objectReferenceValue = celebration;
+                    changed = true;
+                }
+                if (floatingOccluderProperty != null &&
+                    floatingOccluderProperty.objectReferenceValue !=
+                        floatingOccluder.gameObject)
+                {
+                    floatingOccluderProperty.objectReferenceValue =
+                        floatingOccluder.gameObject;
                     changed = true;
                 }
                 if (!changed) return;
@@ -1099,6 +1344,38 @@ namespace Meowdoku.Editor
             return prefab;
         }
 
+        private static void EnsureRankPagePresentationPrefab(
+            Font font,
+            LocalizationCatalog localization,
+            GameObject avatarPrefab,
+            GameObject rowPrefab)
+        {
+            GameObject existing =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PagePath);
+            bool current = existing != null &&
+                existing.transform.Find("Root/Header/LeftFish") != null &&
+                existing.transform.Find(
+                    "Root/Podium/First/MedalBadge/RankNumber") != null &&
+                existing.transform.Find(
+                    "Root/Podium/First/Info/Score/CountBg") != null &&
+                existing.transform.Find(
+                    "Root/Podium/Second/Info/Score/CountBg") != null &&
+                existing.transform.Find(
+                    "Root/Podium/Third/Info/Score/CountBg") != null;
+            if (current) return;
+
+            GameObject page = BuildRankPage(
+                font,
+                localization,
+                avatarPrefab,
+                rowPrefab);
+            if (page == null) return;
+            // Save over the existing asset so its meta GUID and registry
+            // references remain stable while deterministic content is rebuilt.
+            PrefabUtility.SaveAsPrefabAsset(page, PagePath);
+            UnityEngine.Object.DestroyImmediate(page);
+        }
+
         private static GameObject BuildRankPage(
             Font font,
             LocalizationCatalog localization,
@@ -1149,6 +1426,16 @@ namespace Meowdoku.Editor
                 LoadSprite(RankRoot + "rankpage_title_base.png"));
             SetTop(titleBase.rectTransform, 233f, 9f, 615f, 128f);
             titleBase.preserveAspect = true;
+            Image leftTitleFish = CreateImage(
+                "LeftFish", header,
+                LoadSprite(RankRoot + "rankpage_white_fish.png"));
+            SetTop(leftTitleFish.rectTransform, 303f, 44f, 51f, 38f);
+            leftTitleFish.preserveAspect = true;
+            Image rightTitleFish = CreateImage(
+                "RightFish", header,
+                LoadSprite(RankRoot + "rankpage_white_fish2.png"));
+            SetTop(rightTitleFish.rectTransform, 724f, 44f, 51f, 38f);
+            rightTitleFish.preserveAspect = true;
             Text title = CreateText(
                 "Title", header, font, 58, "Leaderboard", Color.white);
             SetTop(title.rectTransform, 364f, 9f, 354f, 90f);
@@ -1175,12 +1462,9 @@ namespace Meowdoku.Editor
             podiumArea.sizeDelta = new Vector2(1080f, 521f);
             RankActivityPodiumView[] podiums =
             {
-                BuildPodium("First", podiumArea, avatarPrefab, font, 1,
-                    new Vector2(0f, 15f)),
-                BuildPodium("Second", podiumArea, avatarPrefab, font, 2,
-                    new Vector2(-315f, -35f)),
-                BuildPodium("Third", podiumArea, avatarPrefab, font, 3,
-                    new Vector2(315f, -35f))
+                BuildPodium("First", podiumArea, avatarPrefab, font, 1),
+                BuildPodium("Second", podiumArea, avatarPrefab, font, 2),
+                BuildPodium("Third", podiumArea, avatarPrefab, font, 3)
             };
 
             RectTransform listGroup = CreateRect("List", root);
@@ -1201,8 +1485,7 @@ namespace Meowdoku.Editor
             viewport.offsetMax = new Vector2(0f, -20f);
             Image viewportImage = viewport.gameObject.AddComponent<Image>();
             viewportImage.color = new Color(1f, 1f, 1f, 0.001f);
-            Mask mask = viewport.gameObject.AddComponent<Mask>();
-            mask.showMaskGraphic = false;
+            viewport.gameObject.AddComponent<RectMask2D>();
             RectTransform rows = CreateRect("Rows", viewport);
             rows.anchorMin = new Vector2(0.5f, 1f);
             rows.anchorMax = new Vector2(0.5f, 1f);
@@ -1280,53 +1563,103 @@ namespace Meowdoku.Editor
             Transform parent,
             GameObject avatarPrefab,
             Font font,
-            int place,
-            Vector2 position)
+            int place)
         {
             RectTransform root = CreateRect(name, parent);
-            SetCentered(root, position, new Vector2(300f, 430f));
+            float left = place == 1 ? 377.5f : place == 2 ? 38.5f : 716.5f;
+            SetTop(root, left, 0f, 325f, 521f);
             var view = root.gameObject.AddComponent<RankActivityPodiumView>();
             string medal = place == 1 ? "gold" : place == 2 ? "silver" : "bronze";
+
+            RectTransform podium = CreateRect("Podium", root);
+            SetTop(podium, 0f, 147f, 325f, 374f);
             Image baseImage = CreateImage(
-                "Base", root,
+                "Base", podium,
                 LoadSprite(RankRoot + $"top3_{medal}_base.png"));
-            SetCentered(baseImage.rectTransform, new Vector2(0f, -115f),
-                new Vector2(300f, 235f));
+            if (place == 1)
+                SetTop(baseImage.rectTransform, 0f, 0f, 325f, 374f);
+            else if (place == 2)
+                SetTop(baseImage.rectTransform, 24f, 23f, 278f, 329f);
+            else
+                SetTop(baseImage.rectTransform, 25f, 26f, 275f, 323f);
             baseImage.preserveAspect = true;
-            GameObject avatar = (GameObject)PrefabUtility.InstantiatePrefab(
-                avatarPrefab);
-            avatar.name = "Avatar";
-            avatar.transform.SetParent(root, false);
-            SetCentered((RectTransform)avatar.transform,
-                new Vector2(0f, 80f), new Vector2(210f, 210f));
-            Text displayName = CreateText(
-                "Name", root, font, 36, "Player", Color.white);
-            SetCentered(displayName.rectTransform, new Vector2(0f, -42f),
-                new Vector2(260f, 48f));
-            Text score = CreateText(
-                "Score", root, font, 40, "999", Color.white);
-            SetCentered(score.rectTransform, new Vector2(25f, -100f),
-                new Vector2(150f, 55f));
-            Image cat = CreateImage(
-                "CatIcon", root,
-                LoadSprite(GameRoot + "tool_cat_item.png"));
-            SetCentered(cat.rectTransform, new Vector2(-65f, -100f),
-                new Vector2(56f, 56f));
-            cat.preserveAspect = true;
-            Image fish = CreateImage(
-                "FishIcon", root,
-                LoadSprite(RankRoot + "htp_fish.png"));
-            SetCentered(fish.rectTransform, new Vector2(-65f, -100f),
-                new Vector2(56f, 56f));
-            fish.preserveAspect = true;
-            RectTransform chest = CreateRect("Chest", root);
-            SetCentered(chest, new Vector2(0f, -180f),
-                new Vector2(100f, 100f));
+
+            RectTransform chest = CreateRect("Chest", podium);
+            SetTop(chest, 117f, 265f, 91f, 102f);
             Image chestImage = CreateImage(
                 "Image", chest,
                 LoadSprite(RankRoot + $"chest_tier{4 - place}.png"));
             Stretch(chestImage.rectTransform);
             chestImage.preserveAspect = true;
+
+            GameObject avatar = (GameObject)PrefabUtility.InstantiatePrefab(
+                avatarPrefab);
+            avatar.name = "AvatarGroup";
+            avatar.transform.SetParent(root, false);
+            if (place == 1)
+                SetTop((RectTransform)avatar.transform,
+                    58f, -16f, 210f, 210f);
+            else
+                SetTop((RectTransform)avatar.transform,
+                    70f, 16f, 185f, 185f);
+
+            RectTransform medalRoot = CreateRect("MedalBadge", root);
+            if (place == 1)
+                SetTop(medalRoot, 118f, 173f, 90f, 104f);
+            else
+                SetTop(medalRoot, 123f, 179f, 80f, 93f);
+            Image medalImage = CreateImage(
+                "Image", medalRoot,
+                LoadSprite(RankRoot + $"top3_{medal}_medal.png"));
+            Stretch(medalImage.rectTransform);
+            medalImage.preserveAspect = true;
+            Text rankNumber = CreateText(
+                "RankNumber", medalRoot, font, place == 1 ? 54 : 50,
+                place.ToString(), Color.white);
+            Stretch(rankNumber.rectTransform,
+                place == 1
+                    ? new Vector2(28f, 23f)
+                    : new Vector2(25f, 20f));
+
+            RectTransform info = CreateRect("Info", root);
+            SetTop(info, 57f, 289f, 211f, 224f);
+            Color nameColor = place == 1
+                ? new Color(0.773f, 0.361f, 0.235f, 1f)
+                : place == 2
+                    ? new Color(0.275f, 0.410f, 0.726f, 1f)
+                    : new Color(0.749f, 0.367f, 0.241f, 1f);
+            Text displayName = CreateText(
+                "Name", info, font, place == 1 ? 40 : 36,
+                "Player", nameColor);
+            SetTop(displayName.rectTransform,
+                place == 1 ? 0f : 10.5f,
+                place == 1 ? -8f : -6f,
+                place == 1 ? 211f : 190f,
+                place == 1 ? 56f : 52f);
+
+            RectTransform scoreGroup = CreateRect("Score", info);
+            SetTop(scoreGroup, 25.5f, 60f, 160f, 44f);
+            Image scoreBackground = CreateImage(
+                "CountBg", scoreGroup,
+                LoadSprite(RankRoot + (place == 1
+                    ? "top3_fish_bg.png"
+                    : place == 2
+                        ? "top3_fish_bg2.png"
+                        : "top3_fish_bg3.png")));
+            SetTop(scoreBackground.rectTransform, -14f, -4f, 188f, 72f);
+            Text score = CreateText(
+                "Count", scoreGroup, font, 40, "999", Brown);
+            SetTop(score.rectTransform, 69.5f, -4f, 69f, 52f);
+            Image cat = CreateImage(
+                "CatIcon", scoreGroup,
+                LoadSprite(GameRoot + "tool_cat_item.png"));
+            SetTop(cat.rectTransform, 21.5f, 1f, 42f, 42f);
+            cat.preserveAspect = true;
+            Image fish = CreateImage(
+                "FishIcon", scoreGroup,
+                LoadSprite(RankRoot + "htp_fish.png"));
+            SetTop(fish.rectTransform, 21.5f, 1f, 42f, 42f);
+            fish.preserveAspect = true;
             Button selfButton = CreateButton(
                 "SelfButton", avatar.transform, null, Color.clear);
             Stretch((RectTransform)selfButton.transform);
@@ -1343,6 +1676,25 @@ namespace Meowdoku.Editor
             SetRef(data, "selfButton", selfButton);
             data.ApplyModifiedPropertiesWithoutUndo();
             return view;
+        }
+
+        private static void EnsureHowToPlayPresentationPrefab(
+            Font font,
+            LocalizationCatalog localization)
+        {
+            GameObject existing =
+                AssetDatabase.LoadAssetAtPath<GameObject>(HowToPlayPath);
+            bool current = existing != null &&
+                existing.transform.Find("Root/Content/Step") != null &&
+                existing.transform.Find("Root/Content/CollectVisual") != null &&
+                existing.transform.Find("Root/Content/RankList") != null &&
+                existing.transform.Find("Root/Content/RewardFull") != null &&
+                existing.transform.Find("Root/Content/Arrow/ArrowToCollect") != null;
+            if (current) return;
+
+            GameObject page = BuildHowToPlay(font, localization);
+            PrefabUtility.SaveAsPrefabAsset(page, HowToPlayPath);
+            UnityEngine.Object.DestroyImmediate(page);
         }
 
         private static GameObject BuildHowToPlay(
@@ -1372,107 +1724,123 @@ namespace Meowdoku.Editor
                 "Leaderboard", Color.white);
             SetTop(title.rectTransform, 264f, 280f, 552f, 100f);
 
-            RectTransform steps = CreateRect("Steps", content);
-            SetTop(steps, 100f, 470f, 880f, 1450f);
-
-            RectTransform clear = BuildHtpStep(
-                "ClearLevel", steps, font, 0f,
-                LoadSprite(RankRoot + "htp_rect1.png"),
+            Shader rounded = AssetDatabase.LoadAssetAtPath<Shader>(
+                RoundedShaderPath);
+            BuildHtpGrid(content, rounded);
+            Text clearText = BuildHtpLabel(
+                "ClearMainLevels",
+                content,
+                font,
                 "Clear main levels",
-                out Text clearText);
-            Image clearDecor = CreateImage(
-                "Board", clear,
-                LoadSprite(RankRoot + "htp_layer2.png"));
-            SetCentered(clearDecor.rectTransform, new Vector2(0f, 25f),
-                new Vector2(260f, 260f));
-            clearDecor.preserveAspect = true;
+                60f,
+                807f,
+                480f,
+                60f);
 
-            RectTransform collect = BuildHtpStep(
-                "Collect", steps, font, 390f,
-                LoadSprite(RankRoot + "htp_layer344_copy.png"),
-                "Find cats to increase your rank",
-                out Text collectText);
+            RectTransform collectVisual = CreateRect("CollectVisual", content);
+            Stretch(collectVisual);
+            Image glowBack = CreateImage(
+                "GlowBack", collectVisual,
+                LoadSprite(RankRoot + "htp_layer344_copy.png"));
+            SetTop(glowBack.rectTransform, 495f, 638f, 539f, 589f);
+            glowBack.preserveAspect = true;
+            glowBack.raycastTarget = false;
+            Image glowFront = CreateImage(
+                "GlowFront", collectVisual,
+                LoadSprite(RankRoot + "htp_layer344.png"));
+            SetTop(glowFront.rectTransform, 508f, 656f, 559f, 574f);
+            glowFront.preserveAspect = true;
+            glowFront.raycastTarget = false;
             Image cat = CreateImage(
-                "IconCat", collect,
+                "IconCat", collectVisual,
                 LoadSprite(RankRoot + "htp_prop_cat.png"));
-            SetCentered(cat.rectTransform, new Vector2(0f, 20f),
-                new Vector2(250f, 250f));
+            SetTop(cat.rectTransform, 647f, 791f, 270f, 270f);
             cat.preserveAspect = true;
             Image fish = CreateImage(
-                "IconFish", collect,
+                "IconFish", collectVisual,
                 LoadSprite(RankRoot + "htp_fish.png"));
-            SetCentered(fish.rectTransform, new Vector2(0f, 20f),
-                new Vector2(250f, 250f));
+            SetTop(fish.rectTransform, 647f, 791f, 270f, 270f);
             fish.preserveAspect = true;
+            Text collectText = BuildHtpLabel(
+                "CollectText",
+                content,
+                font,
+                "Find cats to increase your rank",
+                540f,
+                1088f,
+                480f,
+                120f);
 
-            RectTransform top = BuildHtpStep(
-                "TopLeaderboard", steps, font, 780f,
-                LoadSprite(RankRoot + "htp_rank_list.png"),
-                "Top the Leaderboard",
-                out Text topText);
             Image rankList = CreateImage(
-                "RankList", top,
+                "RankList", content,
                 LoadSprite(RankRoot + "htp_rank_list.png"));
-            SetCentered(rankList.rectTransform, new Vector2(0f, 25f),
-                new Vector2(300f, 270f));
+            SetTop(rankList.rectTransform, 140f, 1192f, 340f, 316f);
             rankList.preserveAspect = true;
+            Text topText = BuildHtpLabel(
+                "TopTheLeaderboard",
+                content,
+                font,
+                "Top the Leaderboard",
+                60f,
+                1518f,
+                480f,
+                60f);
 
-            Image arrow1 = CreateImage(
-                "Arrow1", steps, LoadSprite(RankRoot + "htp_arrow.png"));
-            SetTop(arrow1.rectTransform, 410f, 330f, 60f, 90f);
-            arrow1.preserveAspect = true;
-            Image arrow2 = CreateImage(
-                "Arrow2", steps, LoadSprite(RankRoot + "htp_arrow.png"));
-            SetTop(arrow2.rectTransform, 410f, 720f, 60f, 90f);
-            arrow2.preserveAspect = true;
+            RectTransform arrows = CreateRect("Arrow", content);
+            Stretch(arrows);
+            BuildHtpArrow("ArrowToCollect", arrows, 557f, 635f, -17.1887f,
+                false);
+            BuildHtpArrow("ArrowToRank", arrows, 363f, 999f, 17.1887f,
+                true);
+            BuildHtpArrow("ArrowToReward", arrows, 557f, 1334f, -17.1887f,
+                false);
 
-            RectTransform reward = CreateRect("Reward", content);
-            SetTop(reward, 100f, 1900f, 880f, 360f);
-            RectTransform full = CreateRect("RewardFull", reward);
+            RectTransform full = CreateRect("RewardFull", content);
             Stretch(full);
+            Image fullBox = CreateImage(
+                "TreasureBox", full,
+                LoadSprite(RankRoot + "htp_tier3_box.png"));
+            SetTop(fullBox.rectTransform, 609f, 1478f, 260f, 260f);
+            fullBox.preserveAspect = true;
             Image fullAvatar = CreateImage(
                 "Avatar", full,
                 LoadSprite(RankRoot + "htp_avatar.png"));
-            SetCentered(fullAvatar.rectTransform, new Vector2(-160f, 55f),
-                new Vector2(230f, 230f));
+            SetTop(fullAvatar.rectTransform, 805f, 1601f, 155f, 155f);
             fullAvatar.preserveAspect = true;
             Image fullFrame = CreateImage(
-                "Frame", full,
+                "FirstPlaceFrame", full,
                 LoadSprite(RankRoot + "htp_first_place_frame.png"));
-            SetCentered(fullFrame.rectTransform, new Vector2(10f, 55f),
-                new Vector2(230f, 230f));
+            SetTop(fullFrame.rectTransform, 790f, 1586f, 185f, 185f);
             fullFrame.preserveAspect = true;
-            Image fullBox = CreateImage(
-                "Box", full,
-                LoadSprite(RankRoot + "htp_tier3_box.png"));
-            SetCentered(fullBox.rectTransform, new Vector2(190f, 55f),
-                new Vector2(230f, 230f));
-            fullBox.preserveAspect = true;
 
-            RectTransform frameOnly = CreateRect("RewardFrameOnly", reward);
+            RectTransform frameOnly = CreateRect("RewardFrameOnly", content);
             Stretch(frameOnly);
             Image foAvatar = CreateImage(
                 "Avatar", frameOnly,
                 LoadSprite(RankRoot + "htp_fo_avatar.png"));
-            SetCentered(foAvatar.rectTransform, new Vector2(-120f, 55f),
-                new Vector2(250f, 250f));
+            SetTop(foAvatar.rectTransform, 683.27f, 1559.27f, 209.46f, 209.46f);
             foAvatar.preserveAspect = true;
             Image foFrame = CreateImage(
-                "Frame", frameOnly,
+                "FirstPlaceFrame", frameOnly,
                 LoadSprite(RankRoot + "htp_fo_first_place_frame.png"));
-            SetCentered(foFrame.rectTransform, new Vector2(120f, 55f),
-                new Vector2(250f, 250f));
+            SetTop(foFrame.rectTransform, 663f, 1539f, 250f, 250f);
             foFrame.preserveAspect = true;
-            Text rewardText = CreateText(
-                "RewardText", reward, font, 48,
-                "Win exclusive frames and rewards", Color.white);
-            SetCentered(rewardText.rectTransform, new Vector2(0f, -125f),
-                new Vector2(780f, 80f));
 
+            Text rewardText = BuildHtpLabel(
+                "RewardText",
+                content,
+                font,
+                "Win exclusive frames and rewards",
+                540f,
+                1795f,
+                480f,
+                120f);
             Text continueText = CreateText(
-                "TapToContinue", content, font, 44,
-                "Tap to Continue", Color.white);
-            SetTop(continueText.rectTransform, 300f, 2290f, 480f, 70f);
+                "TapToContinue", content, font, 56,
+                "Tap to Continue",
+                new Color(1f, 0.892f, 0.458f, 1f));
+            SetTop(continueText.rectTransform, 343f, 2100f, 395f, 60f);
+
             Button dismiss = CreateButton(
                 "DismissButton", page.transform, null, Color.clear);
             Stretch((RectTransform)dismiss.transform);
@@ -1590,8 +1958,7 @@ namespace Meowdoku.Editor
             Stretch(viewport);
             Image viewportImage = viewport.gameObject.AddComponent<Image>();
             viewportImage.color = new Color(1f, 1f, 1f, 0.001f);
-            Mask viewportMask = viewport.gameObject.AddComponent<Mask>();
-            viewportMask.showMaskGraphic = false;
+            viewport.gameObject.AddComponent<RectMask2D>();
             RectTransform rows = CreateRect("RowList", viewport);
             rows.anchorMin = new Vector2(0.5f, 1f);
             rows.anchorMax = new Vector2(0.5f, 1f);
@@ -2158,6 +2525,140 @@ namespace Meowdoku.Editor
             return root;
         }
 
+        private static void BuildHtpGrid(
+            Transform parent,
+            Shader rounded)
+        {
+            RectTransform root = CreateRect("Step", parent);
+            SetTop(root, 153f, 486f, 301f, 301f);
+
+            Image panel = CreateImage("Background", root, null);
+            Stretch(panel.rectTransform);
+            panel.color = new Color(1f, 1f, 0.992f, 1f);
+            panel.raycastTarget = false;
+            if (rounded != null)
+                panel.gameObject.AddComponent<RoundedImageView>()
+                    .Configure(panel, rounded, 18f);
+
+            Color pink = new(0.761f, 0.404f, 0.545f, 1f);
+            Color blue = new(0.420f, 0.741f, 0.894f, 1f);
+            Color gold = new(0.890f, 0.733f, 0.275f, 1f);
+            Vector4[] cells =
+            {
+                new(8f, 8f, 92.39f, 92.45f),
+                new(105.25f, 8f, 92.39f, 92.45f),
+                new(202.5f, 8f, 91.69f, 92.45f),
+                new(8f, 104.62f, 92.39f, 92.45f),
+                new(105.25f, 104.62f, 92.39f, 92.45f),
+                new(202.5f, 104.62f, 91.69f, 92.45f),
+                new(8f, 201.24f, 92.39f, 91.76f),
+                new(105.25f, 201.24f, 92.39f, 91.76f),
+                new(202.65f, 201.31f, 90.69f, 91.69f)
+            };
+            Color[] colors =
+            {
+                pink, gold, pink,
+                blue, blue, gold,
+                pink, gold, pink
+            };
+            for (int index = 0; index < cells.Length; index++)
+            {
+                Image cell = CreateImage($"Cell_{index + 1}", root, null);
+                Vector4 value = cells[index];
+                SetTop(cell.rectTransform, value.x, value.y, value.z, value.w);
+                cell.color = colors[index];
+                cell.raycastTarget = false;
+                if (rounded != null)
+                    cell.gameObject.AddComponent<RoundedImageView>()
+                        .Configure(cell, rounded, 10f);
+            }
+
+            BuildHtpGridIcon(root, "Layer4", "htp_layer2.png",
+                8f, 14.36f, 91f, 82f);
+            BuildHtpGridIcon(root, "Layer2", "htp_layer2.png",
+                201.81f, 110.18f, 91f, 82f);
+            BuildHtpGridIcon(root, "CatTopRight", "htp_layer3_copy.png",
+                226f, 31f, 45f, 45f);
+            BuildHtpGridIcon(root, "CatTopCenter", "htp_layer3_copy.png",
+                129f, 32f, 45f, 45f);
+            BuildHtpGridIcon(root, "CatBottomCenter",
+                "htp_layer3_copy_2.png", 129f, 225f, 45f, 46f);
+            BuildHtpGridIcon(root, "CatBottomLeft",
+                "htp_layer3_copy_2.png", 31f, 224f, 45f, 46f);
+            BuildHtpGridIcon(root, "CatBottomRight",
+                "htp_layer3_copy_2.png", 226f, 224f, 45f, 46f);
+            BuildHtpGridIcon(root, "CatMiddleLeft", "htp_layer3_copy4.png",
+                32f, 129f, 45f, 44f);
+            BuildHtpGridIcon(root, "CatMiddleCenter",
+                "htp_layer3_copy4_2.png", 129f, 129f, 44f, 44f);
+        }
+
+        private static void BuildHtpGridIcon(
+            Transform parent,
+            string name,
+            string spriteName,
+            float left,
+            float top,
+            float width,
+            float height)
+        {
+            Image image = CreateImage(
+                name,
+                parent,
+                LoadSprite(RankRoot + spriteName));
+            SetTop(image.rectTransform, left, top, width, height);
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+        }
+
+        private static Text BuildHtpLabel(
+            string name,
+            Transform parent,
+            Font font,
+            string value,
+            float left,
+            float top,
+            float width,
+            float height)
+        {
+            Text text = CreateText(
+                name,
+                parent,
+                font,
+                50,
+                value,
+                new Color(1f, 0.945f, 0.727f, 1f));
+            SetTop(text.rectTransform, left, top, width, height);
+            text.alignment = TextAnchor.MiddleCenter;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            return text;
+        }
+
+        private static void BuildHtpArrow(
+            string name,
+            Transform parent,
+            float left,
+            float top,
+            float rotation,
+            bool flipHorizontal)
+        {
+            Image arrow = CreateImage(
+                name,
+                parent,
+                LoadSprite(RankRoot + "htp_arrow.png"));
+            SetTop(arrow.rectTransform, left, top, 161f, 95f);
+            arrow.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            arrow.rectTransform.anchoredPosition += new Vector2(80.5f, -47.5f);
+            arrow.rectTransform.localEulerAngles = new Vector3(0f, 0f, rotation);
+            arrow.rectTransform.localScale = new Vector3(
+                flipHorizontal ? -1f : 1f,
+                1f,
+                1f);
+            arrow.preserveAspect = true;
+            arrow.raycastTarget = false;
+        }
+
         private static Sprite[] ChestSprites() => new[]
         {
             LoadSprite(RankRoot + "chest_tier1.png"),
@@ -2355,6 +2856,11 @@ namespace Meowdoku.Editor
             for (int index = 0; index < assets.Length; index++)
                 if (assets[index] is Sprite value) return value;
             return null;
+        }
+
+        private static Texture2D LoadTexture(string path)
+        {
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         private static bool CanEdit() =>

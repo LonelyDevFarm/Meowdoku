@@ -13,14 +13,17 @@ namespace Meowdoku.Editor
     internal static class UnityRefreshBridge
     {
         internal const string EventName = @"Local\Meowdoku.UnityRefresh";
+        internal const string StopPlayModeEventName = @"Local\Meowdoku.UnityStopPlayMode";
 
         private static EventWaitHandle _refreshEvent;
+        private static EventWaitHandle _stopPlayModeEvent;
         private static bool _refreshPending;
 
         static UnityRefreshBridge()
         {
             if (AssetDatabase.IsAssetImportWorkerProcess()) return;
             TryCreateEvent();
+            TryCreateStopPlayModeEvent();
 
             EditorApplication.update -= Poll;
             EditorApplication.update += Poll;
@@ -53,8 +56,29 @@ namespace Meowdoku.Editor
             }
         }
 
+        private static void TryCreateStopPlayModeEvent()
+        {
+            try
+            {
+                _stopPlayModeEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    StopPlayModeEventName);
+            }
+            catch (Exception)
+            {
+                _stopPlayModeEvent = null;
+            }
+        }
+
         private static void Poll()
         {
+            if (_refreshEvent == null)
+                TryCreateEvent();
+
+            if (_stopPlayModeEvent == null)
+                TryCreateStopPlayModeEvent();
+
             try
             {
                 if (_refreshEvent != null && _refreshEvent.WaitOne(0))
@@ -67,13 +91,23 @@ namespace Meowdoku.Editor
                     _refreshPending = false;
                     AppRuntimeSceneInstaller.NormalizeAppSceneUiScale();
                     GameplayPresentationSceneInstaller.UpgradeCellPrefab();
+                    GameplayPresentationSceneInstaller.UpgradeGamePageRuleBar();
+                    AppRuntimeSceneInstaller.UpgradeGamePageBackground();
+                    AppRuntimeSceneInstaller.UpgradeGamePageToolBar();
                     ProductServicePrefabInstaller.InstallIfReady();
                     PlatformGuidePrefabInstaller.InstallIfReady();
                     ConfirmDialogPrefabInstaller.InstallIfReady();
                     ProfilePagePrefabInstaller.InstallIfReady();
                     TutorialPagePrefabInstaller.InstallIfReady();
                     HowToPlayPagePrefabInstaller.InstallIfReady();
+                    ResultPagePrefabInstaller.InstallIfReady();
                     PortfolioBuildSettingsInstaller.InstallIfReady();
+                    CatSpriteAnimationInstaller.InstallIfReady();
+                    HomePagePrefabInstaller.InstallIfReady();
+                    DailyMetaPagePrefabInstaller.InstallIfReady();
+                    RankActivityPagePrefabInstaller.InstallIfReady();
+                    SettingsPagePrefabInstaller.InstallIfReady();
+                    BankBrowserPagePrefabInstaller.InstallIfReady();
                     AppRuntimeSceneInstaller.InstallIfReady();
                     AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
                 }
@@ -81,6 +115,19 @@ namespace Meowdoku.Editor
             catch (ObjectDisposedException)
             {
                 _refreshEvent = null;
+            }
+
+            try
+            {
+                if (_stopPlayModeEvent != null && _stopPlayModeEvent.WaitOne(0) &&
+                    EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    EditorApplication.ExitPlaymode();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                _stopPlayModeEvent = null;
             }
         }
 
@@ -100,6 +147,8 @@ namespace Meowdoku.Editor
 
             _refreshEvent?.Dispose();
             _refreshEvent = null;
+            _stopPlayModeEvent?.Dispose();
+            _stopPlayModeEvent = null;
         }
     }
 }

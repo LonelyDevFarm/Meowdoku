@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1758863680869096286}
   - component: {fileID: 7461397012865722577}
   - component: {fileID: 5609522296611829504}
+  - component: {fileID: 2239258765832005670}
   m_Layer: 5
   m_Name: CatIcon
   m_TagString: Untagged
@@ -67,7 +68,7 @@ MonoBehaviour:
       m_Calls: []
   m_Sprite: {fileID: -4979037599016381549, guid: 01988175d9e75154a8054a39c4b48a4d, type: 3}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -75,6 +76,20 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &2239258765832005670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1158466862846345026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bcce36207640f549bf8851498b2b0b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.CatSpriteAnimationView
+  target: {fileID: 5609522296611829504}
+  catalog: {fileID: 11400000, guid: 8b0d6311d0a74da4193dee346d5384f5, type: 2}
 --- !u!1 &1324189462511289310
 GameObject:
   m_ObjectHideFlags: 0
@@ -425,6 +440,7 @@ GameObject:
   - component: {fileID: 2570413178396425710}
   - component: {fileID: 1759953141320564132}
   - component: {fileID: 5575500426194963991}
+  - component: {fileID: 8529482513799587410}
   m_Layer: 5
   m_Name: Cell
   m_TagString: Untagged
@@ -517,11 +533,21 @@ MonoBehaviour:
   promptFrame: {fileID: 2509086584083811214}
   promptCross: {fileID: 1630135838703165734}
   roundedBackgroundShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
+  introCanvasGroup: {fileID: 8529482513799587410}
+  catSpriteAnimation: {fileID: 2239258765832005670}
   appearVFX: {fileID: 0}
-  catAppearFrames: []
-  catCryFrames: []
-  catFrustratedFrames: []
-  catIdleFrames: []
+--- !u!225 &8529482513799587410
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7718203339852379620}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &7881789597179499189
 GameObject:
   m_ObjectHideFlags: 0

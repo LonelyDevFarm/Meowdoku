@@ -79,6 +79,17 @@ namespace Meowdoku.Editor
                 AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
         }
 
+        internal static bool InstallIfReady()
+        {
+            if (EditorApplication.isCompiling ||
+                EditorApplication.isUpdating ||
+                EditorApplication.isPlayingOrWillChangePlaymode)
+                return false;
+
+            InstallIfMissing();
+            return true;
+        }
+
         private static void InstallIfMissing()
         {
             if (EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -148,9 +159,26 @@ namespace Meowdoku.Editor
             SerializedObject widgetData = new(widget);
             SerializedProperty outsideBlocker =
                 widgetData.FindProperty("outsideBlocker");
+            Text termsLabel = prefab.transform.Find(
+                "Root/Content/PanelContainer/VBoxContainer/TermContainer/TermsBtn/Label")
+                ?.GetComponent<Text>();
+            Text privacyLabel = prefab.transform.Find(
+                "Root/Content/PanelContainer/VBoxContainer/TermContainer/PrivacyBtn/Label")
+                ?.GetComponent<Text>();
+            Text privacyPreferenceLabel = prefab.transform.Find(
+                "Root/Content/PanelContainer/VBoxContainer/PrivacyContainer/PrivacyPreferenceBtn/Label")
+                ?.GetComponent<Text>();
+            HorizontalLayoutGroup legalLayout = prefab.transform.Find(
+                "Root/Content/PanelContainer/VBoxContainer/TermContainer")
+                ?.GetComponent<HorizontalLayoutGroup>();
             return version == null || version.objectReferenceValue == null ||
                    outsideBlocker == null ||
-                   outsideBlocker.objectReferenceValue == null;
+                   outsideBlocker.objectReferenceValue == null ||
+                   legalLayout == null || !legalLayout.childControlWidth ||
+                   termsLabel == null || !termsLabel.resizeTextForBestFit ||
+                   privacyLabel == null || !privacyLabel.resizeTextForBestFit ||
+                   privacyPreferenceLabel == null ||
+                   !privacyPreferenceLabel.resizeTextForBestFit;
         }
 
         private static void HandlePlayModeChanged(
@@ -388,17 +416,19 @@ namespace Meowdoku.Editor
             HorizontalLayoutGroup termsLayout =
                 terms.gameObject.AddComponent<HorizontalLayoutGroup>();
             termsLayout.childAlignment = TextAnchor.MiddleCenter;
-            termsLayout.spacing = 0f;
-            termsLayout.childControlWidth = false;
+            termsLayout.spacing = 20f;
+            termsLayout.childControlWidth = true;
             termsLayout.childControlHeight = true;
-            termsLayout.childForceExpandWidth = false;
+            termsLayout.childForceExpandWidth = true;
             termsLayout.childForceExpandHeight = true;
             Button termsButton = CreateLinkButton(
                 "TermsBtn", terms, font, "Terms of Service", 48);
             SetPreferred(termsButton.gameObject, 420f, 80f);
+            termsButton.GetComponent<LayoutElement>().flexibleWidth = 1f;
             Button privacyButton = CreateLinkButton(
                 "PrivacyBtn", terms, font, "Privacy Policy", 48);
             SetPreferred(privacyButton.gameObject, 420f, 80f);
+            privacyButton.GetComponent<LayoutElement>().flexibleWidth = 1f;
             LocalizeButton(
                 termsButton, localization, font, eastAsianFont,
                 "SETTING_TOS", "Terms of Service");
@@ -922,6 +952,9 @@ namespace Meowdoku.Editor
             Text label = CreateText(
                 "Label", button.transform, font, size, text,
                 TextColor, FontStyle.Normal);
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = Mathf.Min(30, size);
+            label.resizeTextMaxSize = size;
             Stretch(label.rectTransform);
             return button;
         }

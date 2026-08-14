@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Meowdoku.Core.Localization;
 using Meowdoku.Core.UI;
 using Meowdoku.Gameplay;
@@ -33,6 +35,16 @@ namespace Meowdoku.Editor
             "Assets/_Project/Sprites/result/pass_page_g2/error_count.png";
         private const string ToolIconPath =
             "Assets/_Project/Sprites/result/pass_page_g2/hint_count.png";
+        private const string EffectLinePath =
+            "Assets/_Project/Sprites/Effects/line/et_line_001.png";
+        private const string EffectRibbonPath =
+            "Assets/_Project/Sprites/Effects/obj/et_ribbon_001.png";
+        private const string EffectStarPath =
+            "Assets/_Project/Sprites/Effects/star/et_star_1.png";
+        private const string EffectGlowPath =
+            "Assets/_Project/Sprites/Effects/glow/et_glow_001.png";
+        private const string VictoryGlowPath =
+            "Assets/_Project/Sprites/Effects/glow/et_glow_002.png";
 
         private static readonly Color Cream =
             new(1f, 0.965f, 0.925f, 1f);
@@ -72,6 +84,19 @@ namespace Meowdoku.Editor
             }
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
 
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(FailPrefabPath) != null)
+                UpgradeFailPresentationReferences();
+
+            Sprite effectLine = LoadSprite(EffectLinePath);
+            Sprite[] ribbonSprites = LoadSprites(EffectRibbonPath);
+            Sprite effectStar = LoadSprite(EffectStarPath);
+            Sprite effectGlow = LoadSprite(EffectGlowPath);
+            Sprite victoryGlow = LoadSprite(VictoryGlowPath);
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(WinPrefabPath) != null)
+                UpgradeWinPresentationReferences(
+                    effectLine, ribbonSprites, effectStar, effectGlow,
+                    victoryGlow);
+
             Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
             Shader rounded = AssetDatabase.LoadAssetAtPath<Shader>(
                 RoundedShaderPath);
@@ -89,7 +114,9 @@ namespace Meowdoku.Editor
                 winCat == null || ray == null || failCat == null ||
                 failFace == null || passPanel == null ||
                 completionIcon == null || mistakeIcon == null ||
-                toolIcon == null)
+                toolIcon == null || effectLine == null ||
+                ribbonSprites.Length == 0 || effectStar == null ||
+                effectGlow == null || victoryGlow == null)
                 return;
 
             EnsureFolder("Assets/_Project/Prefabs", "UI");
@@ -107,12 +134,207 @@ namespace Meowdoku.Editor
                         passPanel,
                         completionIcon,
                         mistakeIcon,
-                        toolIcon),
+                        toolIcon,
+                        effectLine,
+                        ribbonSprites,
+                        effectStar,
+                        effectGlow,
+                        victoryGlow),
                     WinPrefabPath);
             if (AssetDatabase.LoadAssetAtPath<GameObject>(FailPrefabPath) == null)
                 Save(BuildFail(font, rounded, localization, failCat, failFace),
                     FailPrefabPath);
             UIRegistryAssetInstaller.InstallIfReady();
+        }
+
+        private static void UpgradeFailPresentationReferences()
+        {
+            GameObject page = null;
+            try
+            {
+                page = PrefabUtility.LoadPrefabContents(FailPrefabPath);
+                Transform failCat = page.transform.Find("Root/Visuals/CryingCat");
+                Transform title = page.transform.Find("Root/Content/Title");
+                Transform remaining = page.transform.Find(
+                    "Root/Content/Remaining");
+                Transform encourage = page.transform.Find(
+                    "Root/Content/Encourage");
+                Transform revive = page.transform.Find(
+                    "Root/Content/Actions/Revive");
+                Transform restart = page.transform.Find(
+                    "Root/Content/Actions/Restart");
+                GameFailPagePresenter presenter =
+                    page.GetComponent<GameFailPagePresenter>();
+                CanvasGroup pageGroup = page.GetComponent<CanvasGroup>();
+                if (failCat == null || title == null || remaining == null ||
+                    encourage == null || revive == null || restart == null ||
+                    presenter == null || pageGroup == null)
+                    return;
+
+                bool componentsAdded = false;
+                CanvasGroup titleGroup = EnsureCanvasGroup(
+                    title, ref componentsAdded);
+                CanvasGroup remainingGroup = EnsureCanvasGroup(
+                    remaining, ref componentsAdded);
+                CanvasGroup encourageGroup = EnsureCanvasGroup(
+                    encourage, ref componentsAdded);
+                CanvasGroup reviveGroup = EnsureCanvasGroup(
+                    revive, ref componentsAdded);
+                CanvasGroup restartGroup = EnsureCanvasGroup(
+                    restart, ref componentsAdded);
+
+                SerializedObject data = new(presenter);
+                SetReference(data, "pageGroup", pageGroup);
+                SetReference(data, "failCat", failCat);
+                SetReference(data, "title", title);
+                SetReference(data, "titleGroup", titleGroup);
+                SetReference(data, "remaining", remaining);
+                SetReference(data, "remainingGroup", remainingGroup);
+                SetReference(data, "encourageGroup", encourageGroup);
+                SetReference(data, "reviveGroup", reviveGroup);
+                SetReference(data, "restartGroup", restartGroup);
+                bool referencesChanged =
+                    data.ApplyModifiedPropertiesWithoutUndo();
+                if (componentsAdded || referencesChanged)
+                    PrefabUtility.SaveAsPrefabAsset(page, FailPrefabPath);
+            }
+            finally
+            {
+                if (page != null) PrefabUtility.UnloadPrefabContents(page);
+            }
+        }
+
+        private static CanvasGroup EnsureCanvasGroup(
+            Transform target,
+            ref bool componentAdded)
+        {
+            CanvasGroup group = target.GetComponent<CanvasGroup>();
+            if (group != null) return group;
+
+            componentAdded = true;
+            return target.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        private static void UpgradeWinPresentationReferences(
+            Sprite lineSprite,
+            Sprite[] ribbonSprites,
+            Sprite starSprite,
+            Sprite glowSprite,
+            Sprite victoryGlowSprite)
+        {
+            GameObject page = null;
+            try
+            {
+                page = PrefabUtility.LoadPrefabContents(WinPrefabPath);
+                Transform root = page.transform.Find("Root");
+                Transform visuals = page.transform.Find("Root/Visuals");
+                Transform ray = page.transform.Find("Root/Visuals/RayLight");
+                Transform cat = page.transform.Find("Root/Visuals/VictoryCat");
+                Transform content = page.transform.Find("Root/Content");
+                Transform title = page.transform.Find("Root/Content/Title");
+                Transform body = page.transform.Find("Root/Content/Body");
+                Transform actions = page.transform.Find("Root/Content/Actions");
+                GameWinPagePresenter presenter =
+                    page.GetComponent<GameWinPagePresenter>();
+                CanvasGroup pageGroup = page.GetComponent<CanvasGroup>();
+                if (root == null || visuals == null || ray == null || cat == null ||
+                    content == null || title == null || body == null ||
+                    actions == null || presenter == null || pageGroup == null)
+                    return;
+
+                bool changed = false;
+                CanvasGroup rayGroup = EnsureCanvasGroup(ray, ref changed);
+                CanvasGroup catGroup = EnsureCanvasGroup(cat, ref changed);
+                CanvasGroup titleGroup = EnsureCanvasGroup(title, ref changed);
+                CanvasGroup bodyGroup = EnsureCanvasGroup(body, ref changed);
+                CanvasGroup actionsGroup = EnsureCanvasGroup(actions, ref changed);
+
+                Transform glowTransform = visuals.Find("VictoryCatGlow");
+                Image victoryGlow;
+                if (glowTransform == null)
+                {
+                    victoryGlow = CreateImage("VictoryCatGlow", visuals,
+                        victoryGlowSprite, new Color(1f, 0.55f, 0.12f, 0.62f));
+                    SetCentered(victoryGlow.rectTransform, new Vector2(0f, 165f),
+                        new Vector2(700f, 220f));
+                    glowTransform = victoryGlow.transform;
+                    changed = true;
+                }
+                else
+                {
+                    victoryGlow = glowTransform.GetComponent<Image>();
+                    if (victoryGlow == null)
+                    {
+                        victoryGlow = glowTransform.gameObject.AddComponent<Image>();
+                        victoryGlow.raycastTarget = false;
+                        changed = true;
+                    }
+                    if (victoryGlow.sprite != victoryGlowSprite)
+                    {
+                        victoryGlow.sprite = victoryGlowSprite;
+                        victoryGlow.preserveAspect = true;
+                        changed = true;
+                    }
+                }
+                CanvasGroup victoryGlowGroup = EnsureCanvasGroup(glowTransform, ref changed);
+                int catIndex = cat.GetSiblingIndex();
+                if (glowTransform.GetSiblingIndex() != catIndex - 1)
+                {
+                    glowTransform.SetSiblingIndex(Mathf.Max(0, catIndex));
+                    cat.SetSiblingIndex(glowTransform.GetSiblingIndex() + 1);
+                    changed = true;
+                }
+
+                Transform effectsTransform = root.Find("Effects");
+                RectTransform effectsRect;
+                if (effectsTransform == null)
+                {
+                    effectsRect = CreateRect("Effects", root);
+                    Stretch(effectsRect);
+                    effectsTransform = effectsRect;
+                    changed = true;
+                }
+                else effectsRect = effectsTransform as RectTransform;
+                ResultCelebrationEffects effects =
+                    effectsTransform.GetComponent<ResultCelebrationEffects>();
+                if (effects == null)
+                {
+                    effects = effectsTransform.gameObject
+                        .AddComponent<ResultCelebrationEffects>();
+                    changed = true;
+                }
+                int desiredEffectsIndex = visuals.GetSiblingIndex() + 1;
+                if (effectsTransform.GetSiblingIndex() != desiredEffectsIndex)
+                {
+                    effectsTransform.SetSiblingIndex(desiredEffectsIndex);
+                    changed = true;
+                }
+
+                SerializedObject effectData = new(effects);
+                SetReference(effectData, "effectRoot", effectsRect);
+                SetReference(effectData, "lineSprite", lineSprite);
+                SetSpriteArray(effectData, "ribbonSprites", ribbonSprites);
+                SetReference(effectData, "starSprite", starSprite);
+                SetReference(effectData, "glowSprite", glowSprite);
+                changed |= effectData.ApplyModifiedPropertiesWithoutUndo();
+
+                SerializedObject data = new(presenter);
+                SetReference(data, "pageGroup", pageGroup);
+                SetReference(data, "rayGroup", rayGroup);
+                SetReference(data, "victoryCatGroup", catGroup);
+                SetReference(data, "victoryGlowGroup", victoryGlowGroup);
+                SetReference(data, "titleGroup", titleGroup);
+                SetReference(data, "bodyGroup", bodyGroup);
+                SetReference(data, "nextGroup", actionsGroup);
+                SetReference(data, "titleVisual", title);
+                SetReference(data, "celebrationEffects", effects);
+                changed |= data.ApplyModifiedPropertiesWithoutUndo();
+                if (changed) PrefabUtility.SaveAsPrefabAsset(page, WinPrefabPath);
+            }
+            finally
+            {
+                if (page != null) PrefabUtility.UnloadPrefabContents(page);
+            }
         }
 
         private static GameObject BuildWin(
@@ -124,7 +346,12 @@ namespace Meowdoku.Editor
             Sprite passPanelSprite,
             Sprite completionIcon,
             Sprite mistakeIcon,
-            Sprite toolIcon)
+            Sprite toolIcon,
+            Sprite effectLine,
+            Sprite[] ribbonSprites,
+            Sprite effectStar,
+            Sprite effectGlow,
+            Sprite victoryGlowSprite)
         {
             GameObject page = CreatePage<GameWinPagePresenter>("WinPage");
             Canvas canvas = page.GetComponent<Canvas>();
@@ -134,12 +361,33 @@ namespace Meowdoku.Editor
             RectTransform visuals = CreateRect("Visuals", root);
             Stretch(visuals);
             Image ray = CreateImage("RayLight", visuals, raySprite, Color.white);
+            CanvasGroup rayGroup = ray.gameObject.AddComponent<CanvasGroup>();
             SetCentered(ray.rectTransform, new Vector2(0f, 80f),
                 new Vector2(1250f, 1250f));
+            Image victoryGlow = CreateImage(
+                "VictoryCatGlow", visuals, victoryGlowSprite,
+                new Color(1f, 0.55f, 0.12f, 0.62f));
+            SetCentered(victoryGlow.rectTransform, new Vector2(0f, 165f),
+                new Vector2(700f, 220f));
+            CanvasGroup victoryGlowGroup =
+                victoryGlow.gameObject.AddComponent<CanvasGroup>();
             Image cat = CreateImage(
                 "VictoryCat", visuals, catSprite, Color.white);
             SetCentered(cat.rectTransform, new Vector2(0f, 165f),
                 new Vector2(500f, 500f));
+            CanvasGroup catGroup = cat.gameObject.AddComponent<CanvasGroup>();
+
+            RectTransform effectsRect = CreateRect("Effects", root);
+            Stretch(effectsRect);
+            ResultCelebrationEffects celebrationEffects =
+                effectsRect.gameObject.AddComponent<ResultCelebrationEffects>();
+            SerializedObject effectData = new(celebrationEffects);
+            SetReference(effectData, "effectRoot", effectsRect);
+            SetReference(effectData, "lineSprite", effectLine);
+            SetSpriteArray(effectData, "ribbonSprites", ribbonSprites);
+            SetReference(effectData, "starSprite", effectStar);
+            SetReference(effectData, "glowSprite", effectGlow);
+            effectData.ApplyModifiedPropertiesWithoutUndo();
 
             RectTransform content = CreateRect("Content", root);
             Stretch(content);
@@ -150,8 +398,10 @@ namespace Meowdoku.Editor
                 Color.white, FontStyle.Bold);
             SetCentered(title.rectTransform, new Vector2(0f, 555f),
                 new Vector2(900f, 180f));
+            CanvasGroup titleGroup = title.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform bodyRoot = CreateRect("Body", content);
+            CanvasGroup bodyGroup = bodyRoot.gameObject.AddComponent<CanvasGroup>();
             Text body = CreateText(
                 "BeatPercent", bodyRoot, font, 60, string.Empty,
                 Color.white, FontStyle.Bold);
@@ -182,6 +432,7 @@ namespace Meowdoku.Editor
                 new Vector2(250f, 150f));
 
             RectTransform actions = CreateRect("Actions", content);
+            CanvasGroup actionsGroup = actions.gameObject.AddComponent<CanvasGroup>();
             SetCentered(actions, new Vector2(0f, -390f),
                 new Vector2(820f, 180f));
             Button next = CreateRoundedButton(
@@ -318,6 +569,15 @@ namespace Meowdoku.Editor
             SerializedObject data =
                 new(page.GetComponent<GameWinPagePresenter>());
             ConfigureFrame(data, canvas, pageGroup, true, 0.85f);
+            SetReference(data, "pageGroup", pageGroup);
+            SetReference(data, "rayGroup", rayGroup);
+            SetReference(data, "victoryCatGroup", catGroup);
+            SetReference(data, "victoryGlowGroup", victoryGlowGroup);
+            SetReference(data, "titleGroup", titleGroup);
+            SetReference(data, "bodyGroup", bodyGroup);
+            SetReference(data, "nextGroup", actionsGroup);
+            SetReference(data, "titleVisual", title.rectTransform);
+            SetReference(data, "celebrationEffects", celebrationEffects);
             SetReference(data, "content", content);
             SetReference(data, "contentGroup", contentGroup);
             SetReference(data, "defaultVisuals", visuals.gameObject);
@@ -410,8 +670,12 @@ namespace Meowdoku.Editor
                 Color.white, FontStyle.Bold);
             SetCentered(title.rectTransform, new Vector2(0f, 675f),
                 new Vector2(900f, 180f));
+            CanvasGroup titleGroup =
+                title.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform remainingRoot = CreateRect("Remaining", content);
+            CanvasGroup remainingGroup =
+                remainingRoot.gameObject.AddComponent<CanvasGroup>();
             SetCentered(remainingRoot, new Vector2(0f, -15f),
                 new Vector2(760f, 100f));
             Image face = CreateImage(
@@ -425,6 +689,8 @@ namespace Meowdoku.Editor
                 new Vector2(520f, 90f));
 
             RectTransform encourageRoot = CreateRect("Encourage", content);
+            CanvasGroup encourageGroup =
+                encourageRoot.gameObject.AddComponent<CanvasGroup>();
             SetCentered(encourageRoot, new Vector2(0f, -155f),
                 new Vector2(900f, 120f));
             Text encourage = CreateText(
@@ -435,6 +701,8 @@ namespace Meowdoku.Editor
             RectTransform actions = CreateRect("Actions", content);
             Stretch(actions);
             RectTransform reviveRoot = CreateRect("Revive", actions);
+            CanvasGroup reviveGroup =
+                reviveRoot.gameObject.AddComponent<CanvasGroup>();
             SetCentered(reviveRoot, new Vector2(0f, -345f),
                 new Vector2(820f, 190f));
             Button revive = CreateRoundedButton(
@@ -448,6 +716,8 @@ namespace Meowdoku.Editor
                 new Vector2(700f, 45f));
 
             RectTransform restartRoot = CreateRect("Restart", actions);
+            CanvasGroup restartGroup =
+                restartRoot.gameObject.AddComponent<CanvasGroup>();
             SetCentered(restartRoot, new Vector2(0f, -555f),
                 new Vector2(820f, 190f));
             Button restart = CreateRoundedButton(
@@ -457,19 +727,28 @@ namespace Meowdoku.Editor
             SerializedObject data =
                 new(page.GetComponent<GameFailPagePresenter>());
             ConfigureFrame(data, canvas, pageGroup, false, 0f);
+            SetReference(data, "pageGroup", pageGroup);
             SetReference(data, "overlayGroup", overlayGroup);
             SetReference(data, "content", content);
             SetReference(data, "contentGroup", contentGroup);
+            SetReference(data, "failCat", cat.rectTransform);
+            SetReference(data, "title", title.rectTransform);
+            SetReference(data, "titleGroup", titleGroup);
             SetReference(data, "titleText", title);
+            SetReference(data, "remaining", remainingRoot);
+            SetReference(data, "remainingGroup", remainingGroup);
             SetReference(data, "remainingText", remaining);
             SetReference(data, "encourageRoot", encourageRoot.gameObject);
+            SetReference(data, "encourageGroup", encourageGroup);
             SetReference(data, "encourageText", encourage);
             SetReference(data, "reviveRoot", reviveRoot.gameObject);
+            SetReference(data, "reviveGroup", reviveGroup);
             SetReference(data, "reviveText", reviveText);
             SetReference(data, "reviveSubtitleText", reviveSubtitle);
             SetReference(data, "reviveButton", revive);
             SetReference(data, "restartText",
                 restart.GetComponentInChildren<Text>(true));
+            SetReference(data, "restartGroup", restartGroup);
             SetReference(data, "restartButton", restart);
             SetReference(data, "localization", localization);
             data.ApplyModifiedPropertiesWithoutUndo();
@@ -662,6 +941,20 @@ namespace Meowdoku.Editor
             if (property != null) property.objectReferenceValue = value;
         }
 
+        private static void SetSpriteArray(
+            SerializedObject data,
+            string propertyName,
+            Sprite[] sprites)
+        {
+            SerializedProperty property = data.FindProperty(propertyName);
+            if (property == null) return;
+            int length = sprites?.Length ?? 0;
+            property.arraySize = length;
+            for (int index = 0; index < length; index++)
+                property.GetArrayElementAtIndex(index).objectReferenceValue =
+                    sprites[index];
+        }
+
         private static void SetCentered(
             RectTransform rect,
             Vector2 position,
@@ -690,6 +983,14 @@ namespace Meowdoku.Editor
                 if (asset is Sprite sprite) return sprite;
             }
             return null;
+        }
+
+        private static Sprite[] LoadSprites(string path)
+        {
+            return AssetDatabase.LoadAllAssetsAtPath(path)
+                .OfType<Sprite>()
+                .OrderBy(sprite => sprite.name, System.StringComparer.Ordinal)
+                .ToArray();
         }
 
         private static void Save(GameObject page, string path)

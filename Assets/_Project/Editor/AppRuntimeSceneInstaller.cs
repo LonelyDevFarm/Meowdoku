@@ -93,6 +93,7 @@ namespace Meowdoku.Editor
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(GameplayScenePath) ==
                 null)
                 return;
+            UpgradeGamePageToolBar();
             NormalizeAppSceneUiScale();
             if (SplashPagePrefabInstaller.InstallIfReady() == null) return;
             if (!PlatformGuidePrefabInstaller.InstallIfReady()) return;
@@ -106,6 +107,7 @@ namespace Meowdoku.Editor
             UpgradeGamePageDailyPresentation();
             UpgradeGamePageSharedAudio();
             UpgradeGamePageLifeEffects();
+            UpgradeGamePageCatBursts();
 
             UIRegistry registry = UIRegistryAssetInstaller.InstallIfReady();
             LocalizationCatalog localization =
@@ -187,6 +189,8 @@ namespace Meowdoku.Editor
                     manager.boardView);
                 GameplayFeedbackSceneInstaller.ConfigureLifeEffects(
                     canvasObject.transform);
+                GameplayFeedbackSceneInstaller.ConfigureCatBursts(
+                    canvasObject.transform);
 
                 canvasObject.name = "GamePage";
                 systems.transform.SetParent(canvasObject.transform, false);
@@ -211,6 +215,8 @@ namespace Meowdoku.Editor
                 GameplayWinToastPresenter winToast =
                     CreateWinToast(overlays);
                 DailyPresentationRefs daily = EnsureDailyPresentation(
+                    canvasObject.transform);
+                GameplayFeedbackSceneInstaller.ConfigureHeaderPresentation(
                     canvasObject.transform);
                 if (back == null || settings == null || info == null ||
                     returnBank == null || winToast == null)
@@ -246,6 +252,8 @@ namespace Meowdoku.Editor
                 SetReference(pageData, "dailyDateText", daily.DateText);
                 SetReference(pageData, "dailyTimerDisplay", daily.TimerRoot);
                 SetReference(pageData, "dailyTimerText", daily.TimerText);
+                SetReference(pageData, "catTargetDisplay", daily.CatTarget);
+                SetReference(pageData, "lifeDisplay", daily.LifeRoot);
                 SetReference(
                     pageData,
                     "localization",
@@ -339,7 +347,7 @@ namespace Meowdoku.Editor
             label.fontSize = 28;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
-            label.text = "返回题库";
+            label.text = "\u25c0 Ch\u1ecdn m\u00e0n";
             label.raycastTarget = false;
             gameObject.SetActive(false);
             return gameObject.GetComponent<Button>();
@@ -1191,6 +1199,23 @@ namespace Meowdoku.Editor
             }
         }
 
+        private static void UpgradeGamePageCatBursts()
+        {
+            if (!File.Exists(GamePagePath)) return;
+            GameObject root = PrefabUtility.LoadPrefabContents(GamePagePath);
+            try
+            {
+                if (!GameplayFeedbackSceneInstaller.ConfigureCatBursts(root.transform))
+                    return;
+                PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
         private static void CreateMask(
             string name,
             Transform parent,
@@ -1236,11 +1261,14 @@ namespace Meowdoku.Editor
                     GameplayPresentationSceneInstaller.ConfigureToolBar(
                         root.transform,
                         gameplay);
+                bool headerChanged =
+                    GameplayFeedbackSceneInstaller.ConfigureHeaderPresentation(
+                        root.transform);
                 DailyPresentationRefs daily = EnsureDailyPresentation(
                     root.transform);
                 if (daily.DateRoot == null || daily.TimerRoot == null)
                 {
-                    if (patternChanged || toolBarChanged)
+                    if (patternChanged || toolBarChanged || headerChanged)
                     {
                         PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
                         AssetDatabase.SaveAssets();
@@ -1249,13 +1277,19 @@ namespace Meowdoku.Editor
                 }
 
                 SerializedObject data = new(presenter);
-                bool changed = daily.Created || patternChanged || toolBarChanged;
+                bool changed = daily.Created || patternChanged ||
+                               toolBarChanged || headerChanged;
                 changed |= SetReference(data, "mainLevelDisplay", daily.MainLevel);
                 changed |= SetReference(data, "mainScoreDisplay", daily.MainScore);
                 changed |= SetReference(data, "dailyDateDisplay", daily.DateRoot);
                 changed |= SetReference(data, "dailyDateText", daily.DateText);
                 changed |= SetReference(data, "dailyTimerDisplay", daily.TimerRoot);
                 changed |= SetReference(data, "dailyTimerText", daily.TimerText);
+                changed |= SetReference(
+                    data,
+                    "catTargetDisplay",
+                    daily.CatTarget);
+                changed |= SetReference(data, "lifeDisplay", daily.LifeRoot);
                 changed |= SetReference(
                     data,
                     "localization",
@@ -1291,6 +1325,51 @@ namespace Meowdoku.Editor
             }
         }
 
+        internal static void UpgradeGamePageBackground()
+        {
+            if (!CanEdit() || !File.Exists(GamePagePath)) return;
+            GameObject root = PrefabUtility.LoadPrefabContents(GamePagePath);
+            try
+            {
+                Image background = EnsureImage("Background", root.transform);
+                Stretch(background.rectTransform);
+                background.transform.SetAsFirstSibling();
+                background.gameObject.layer = root.layer;
+                background.sprite = null;
+                background.type = Image.Type.Simple;
+                background.preserveAspect = false;
+                background.raycastTarget = false;
+                background.color = new Color(0.969f, 0.949f, 0.937f, 1f);
+                PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        internal static void UpgradeGamePageToolBar()
+        {
+            if (!CanEdit() || !File.Exists(GamePagePath)) return;
+            GameObject root = PrefabUtility.LoadPrefabContents(GamePagePath);
+            try
+            {
+                GameplayManager gameplay =
+                    root.GetComponentInChildren<GameplayManager>(true);
+                if (!GameplayPresentationSceneInstaller.ConfigureToolBar(
+                        root.transform,
+                        gameplay))
+                    return;
+                PrefabUtility.SaveAsPrefabAsset(root, GamePagePath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
         private static DailyPresentationRefs EnsureDailyPresentation(
             Transform root)
         {
@@ -1301,6 +1380,8 @@ namespace Meowdoku.Editor
 
             result.MainLevel = header.Find("LevelDisplay")?.gameObject;
             result.MainScore = header.Find("ScoreDisplay")?.gameObject;
+            result.CatTarget = row.Find("Target") as RectTransform;
+            result.LifeRoot = row.Find("HeartBg") as RectTransform;
             Font font = AssetDatabase.LoadAssetAtPath<Font>(
                 "Assets/_Project/Fonts/Roboto.ttf");
 
@@ -1332,6 +1413,17 @@ namespace Meowdoku.Editor
             Stretch(background.rectTransform);
             background.color = new Color(1f, 1f, 1f, 0.92f);
             background.raycastTarget = false;
+            Shader roundedShader = AssetDatabase.LoadAssetAtPath<Shader>(
+                RoundedShaderPath);
+            RoundedImageView rounded =
+                background.GetComponent<RoundedImageView>();
+            if (rounded == null && roundedShader != null)
+            {
+                rounded = background.gameObject.AddComponent<RoundedImageView>();
+                result.Created = true;
+            }
+            if (rounded != null && roundedShader != null)
+                rounded.Configure(background, roundedShader, 42f);
             Image icon = EnsureImage("TimerIcon", timerRoot);
             SetCentered(icon.rectTransform,
                 new Vector2(-82f, 0f), new Vector2(58f, 66f));
@@ -1411,6 +1503,8 @@ namespace Meowdoku.Editor
             public Text DateText;
             public GameObject TimerRoot;
             public Text TimerText;
+            public RectTransform CatTarget;
+            public RectTransform LifeRoot;
             public bool Created;
         }
 

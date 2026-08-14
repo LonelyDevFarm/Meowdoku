@@ -90,7 +90,8 @@ namespace Meowdoku.Editor
                 Save(BuildFeedback(font, rounded, localization), FeedbackPath);
                 changed = true;
             }
-            if (!HasPresenter<RateUsPagePresenter>(RateUsPath) ||
+            if (HasMissingScripts(RateUsPath) ||
+                !HasPresenter<RateUsPagePresenter>(RateUsPath) ||
                 !HasSerializedToken(RateUsPath, "frameCloseButton:") ||
                 !HasSerializedToken(RateUsPath, "rateCloseButton:") ||
                 !HasAssignedReference<RateUsPagePresenter>(
@@ -99,7 +100,8 @@ namespace Meowdoku.Editor
                 Save(BuildRateUs(font, rounded, localization, false), RateUsPath);
                 changed = true;
             }
-            if (!HasPresenter<RateUsPagePresenter>(RateUsV2Path) ||
+            if (HasMissingScripts(RateUsV2Path) ||
+                !HasPresenter<RateUsPagePresenter>(RateUsV2Path) ||
                 HasSerializedToken(
                     RateUsV2Path,
                     "Meowdoku.Gameplay::Meowdoku.Gameplay.RateUsPagePresenterV2") ||
@@ -509,6 +511,20 @@ namespace Meowdoku.Editor
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             return prefab != null && prefab.GetComponent<T>() != null;
+        }
+
+        private static bool HasMissingScripts(string path)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) return false;
+            Transform[] children = prefab.GetComponentsInChildren<Transform>(true);
+            foreach (Transform child in children)
+            {
+                if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(
+                        child.gameObject) > 0)
+                    return true;
+            }
+            return false;
         }
 
         private static bool HasAssignedReference<T>(

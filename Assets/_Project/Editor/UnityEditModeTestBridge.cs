@@ -86,6 +86,9 @@ namespace Meowdoku.Editor
 
         private static void Poll()
         {
+            if (_runEvent == null || _platformEvent == null)
+                TryCreateEvent();
+
             try
             {
                 if (_runEvent != null && _runEvent.WaitOne(0))
@@ -137,7 +140,7 @@ namespace Meowdoku.Editor
                 if (_platformActive)
                     filter.groupNames = new[]
                     {
-                        @"^Meowdoku\.Tests\.EditMode\.(AppRuntimeCompositionTests|PlatformPermissionTests|ProductServiceTests|SaveStoreTests|GameStateRepositoryTests)"
+                        @"^Meowdoku\.Tests\.EditMode\.(AppRuntimeCompositionTests|PlatformPermissionTests|ProductServiceTests|SaveStoreTests|GameStateRepositoryTests|UIFrameworkTests|GameplayCatBurstViewTests|BoardIntroContractTests|SoundContractTests)"
                     };
                 _runner.Execute(new ExecutionSettings(filter));
             }

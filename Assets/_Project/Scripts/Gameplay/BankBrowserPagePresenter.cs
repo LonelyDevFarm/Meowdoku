@@ -185,7 +185,7 @@ namespace Meowdoku.Gameplay
             ConfigureRoot(
                 regularCard,
                 regular.Total > 0,
-                "常规题库",
+                "Regular Puzzles",
                 regular.SizeRange,
                 regular.Total,
                 string.Empty,
@@ -197,8 +197,8 @@ namespace Meowdoku.Gameplay
             ConfigureRoot(
                 lkCard,
                 lkCount > 0,
-                "LK 题库",
-                "LinkedIn Queens 存档",
+                "LK Archive",
+                "LinkedIn Queens archive",
                 lkCount,
                 string.Empty,
                 Lk,
@@ -209,8 +209,8 @@ namespace Meowdoku.Gameplay
             ConfigureRoot(
                 lkModifiedCard,
                 modifiedCount > 0,
-                "LK 改题库",
-                "旋转/镜像变换版",
+                "LK Modified",
+                "Rotated and mirrored variants",
                 modifiedCount,
                 string.Empty,
                 LkModified,
@@ -221,8 +221,8 @@ namespace Meowdoku.Gameplay
             ConfigureRoot(
                 lkStyleCard,
                 lkStyle.Total > 0,
-                "LK 优化题库",
-                lkStyle.SizeRange + "  LinkedIn 优化版",
+                "LK Style",
+                lkStyle.SizeRange + "  Optimized LinkedIn layouts",
                 lkStyle.Total,
                 lkStyle.Ranks,
                 LkStyle,
@@ -233,8 +233,8 @@ namespace Meowdoku.Gameplay
             ConfigureRoot(
                 gcCard,
                 gc.Total > 0,
-                "GC 题库",
-                gc.SizeRange + "  紧凑型区域布局",
+                "GC Puzzles",
+                gc.SizeRange + "  Compact region layouts",
                 gc.Total,
                 gc.Ranks,
                 Gc,
@@ -245,8 +245,8 @@ namespace Meowdoku.Gameplay
             ConfigureRoot(
                 specialCard,
                 spCount > 0,
-                "SP 特殊图案题库",
-                "数字图案",
+                "SP Pattern Puzzles",
+                "Number patterns",
                 spCount,
                 string.Empty,
                 Sp,
@@ -271,7 +271,7 @@ namespace Meowdoku.Gameplay
             card.Configure(
                 title,
                 subtitle,
-                $"{count} 关",
+                $"{count} levels",
                 metadata,
                 accent,
                 background,
@@ -287,8 +287,8 @@ namespace Meowdoku.Gameplay
             if (variantSizeTitle != null)
             {
                 variantSizeTitle.text = _state.Pool == BankPoolKind.Gc
-                    ? "GC 题库"
-                    : "LK 优化题库";
+                    ? "GC Puzzles"
+                    : "LK Style";
                 variantSizeTitle.color = _state.Pool == BankPoolKind.Gc
                     ? Gc
                     : LkStyle;
@@ -344,12 +344,12 @@ namespace Meowdoku.Gameplay
         {
             string prefix = _state.Pool switch
             {
-                BankPoolKind.LkStyle => "LK优化 ",
+                BankPoolKind.LkStyle => "LK Style ",
                 BankPoolKind.Gc => "GC ",
                 _ => string.Empty
             };
             if (tierTitle != null)
-                tierTitle.text = $"{prefix}{_state.Size}×{_state.Size} 题库";
+                tierTitle.text = $"{prefix}{_state.Size} x {_state.Size} Puzzles";
 
             IReadOnlyList<BankTierBucket> buckets =
                 BankBrowserContract.GetTierBuckets(
@@ -386,14 +386,14 @@ namespace Meowdoku.Gameplay
             _lkNumber = _lkLevels.Count > 0 ? 1 : 0;
             if (lkTitle != null)
             {
-                lkTitle.text = modified ? "LK 改题库" : "LK 题库";
+                lkTitle.text = modified ? "LK Modified" : "LK Archive";
                 lkTitle.color = modified ? LkModified : Lk;
             }
             if (lkInfoLabel != null)
             {
                 lkInfoLabel.text = modified
-                    ? $"共 {_lkLevels.Count} 关  ·  LK 改题库"
-                    : $"共 {_lkLevels.Count} 关  ·  按日期排序";
+                    ? $"Total: {_lkLevels.Count} levels  -  LK Modified"
+                    : $"Total: {_lkLevels.Count} levels  -  Sorted by date";
             }
             RefreshLkSelector();
 
@@ -425,7 +425,7 @@ namespace Meowdoku.Gameplay
             IReadOnlyList<LevelEntry> levels =
                 BankBrowserContract.GetLevels(BankPoolKind.Special);
             if (levelListTitle != null)
-                levelListTitle.text = "SP 特殊图案题库";
+                levelListTitle.text = "SP Pattern Puzzles";
             int used = 0;
             for (int index = 0; index < levels.Count; index++)
             {
@@ -587,8 +587,8 @@ namespace Meowdoku.Gameplay
                 }
             }
             string range = sizes.Count > 0
-                ? $"{sizes[0]}×{sizes[0]} ~ " +
-                  $"{sizes[sizes.Count - 1]}×{sizes[sizes.Count - 1]}"
+                ? $"{sizes[0]} x {sizes[0]} - " +
+                  $"{sizes[sizes.Count - 1]} x {sizes[sizes.Count - 1]}"
                 : string.Empty;
             return new SizedPoolSummary(total, range, RankList(ranks));
         }
@@ -599,7 +599,7 @@ namespace Meowdoku.Gameplay
             var parts = new string[ranks.Count];
             for (int index = 0; index < ranks.Count; index++)
                 parts[index] = $"R{ranks[index]}";
-            return string.Join(" · ", parts);
+            return string.Join(" - ", parts);
         }
 
         private static Color SizeColor(int size)

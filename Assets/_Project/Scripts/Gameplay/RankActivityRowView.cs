@@ -38,6 +38,7 @@ namespace Meowdoku.Gameplay
         [SerializeField] private CanvasGroup contentGroup;
         [SerializeField] private Image selfShadow;
         [SerializeField] private RankActivityRowCelebrationView celebration;
+        [SerializeField] private GameObject floatingOccluder;
         [SerializeField] private Image background;
         [SerializeField] private Sprite normalBackground;
         [SerializeField] private Sprite selfBackground;
@@ -378,6 +379,13 @@ namespace Meowdoku.Gameplay
                     if (!_shadowShown && selfShadow != null)
                         selfShadow.gameObject.SetActive(false);
                 });
+        }
+
+        public void SetFloatingSurface(bool visible)
+        {
+            if (floatingOccluder != null &&
+                floatingOccluder.activeSelf != visible)
+                floatingOccluder.SetActive(visible);
         }
 
         public void SetScore(int score)

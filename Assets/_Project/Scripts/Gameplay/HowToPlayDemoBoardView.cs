@@ -34,7 +34,13 @@ namespace Meowdoku.Gameplay
                 {
                     CellView cell = Cell(row, column);
                     if (cell == null) return false;
+                    RectTransform cellRect = cell.transform as RectTransform;
+                    Vector2 anchoredPosition = cellRect != null
+                        ? cellRect.anchoredPosition
+                        : Vector2.zero;
                     cell.PrepareForUse(row, column);
+                    if (cellRect != null)
+                        cellRect.anchoredPosition = anchoredPosition;
                     int paletteIndex = HowToPlayContract.PaletteIndex(
                         sourceRow[column]);
                     if (paletteIndex >= 0 && paletteIndex < palette.Length)

@@ -34,13 +34,13 @@ namespace Meowdoku.Gameplay
             Color tierColor,
             Action pressed)
         {
-            if (sizeLabel != null) sizeLabel.text = $"{size}×{size}";
+            if (sizeLabel != null) sizeLabel.text = $"{size} x {size}";
             if (tierLabel != null)
             {
                 tierLabel.text = tier ?? string.Empty;
                 tierLabel.color = tierColor;
             }
-            if (countLabel != null) countLabel.text = $"{count} 关";
+            if (countLabel != null) countLabel.text = $"{count} levels";
             if (ranksLabel != null) ranksLabel.text = ranks ?? string.Empty;
             if (button != null) button.interactable = pressed != null;
             _pressed = pressed;

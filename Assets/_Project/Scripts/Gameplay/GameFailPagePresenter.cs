@@ -31,18 +31,29 @@ namespace Meowdoku.Gameplay
                 : TrackerCatalog.Screen.NormalFail;
 
         private const float InputBlockSeconds = 1.5f;
+        private const float HideSeconds = 0.1f;
+        private const float RemainingTravel = 60f;
 
+        [SerializeField] private CanvasGroup pageGroup;
         [SerializeField] private CanvasGroup overlayGroup;
         [SerializeField] private RectTransform content;
         [SerializeField] private CanvasGroup contentGroup;
+        [SerializeField] private RectTransform failCat;
+        [SerializeField] private RectTransform title;
+        [SerializeField] private CanvasGroup titleGroup;
         [SerializeField] private Text titleText;
+        [SerializeField] private RectTransform remaining;
+        [SerializeField] private CanvasGroup remainingGroup;
         [SerializeField] private Text remainingText;
         [SerializeField] private GameObject encourageRoot;
+        [SerializeField] private CanvasGroup encourageGroup;
         [SerializeField] private Text encourageText;
         [SerializeField] private GameObject reviveRoot;
+        [SerializeField] private CanvasGroup reviveGroup;
         [SerializeField] private Text reviveText;
         [SerializeField] private Text reviveSubtitleText;
         [SerializeField] private Button reviveButton;
+        [SerializeField] private CanvasGroup restartGroup;
         [SerializeField] private Text restartText;
         [SerializeField] private Button restartButton;
         [SerializeField] private LocalizationCatalog localization;
@@ -59,6 +70,9 @@ namespace Meowdoku.Gameplay
         private int _rewardLevel;
         private UiName _selfName = UiName.Fail;
         private Sequence _openTween;
+        private Tween _buttonReadyTween;
+        private Tween _hideTween;
+        private Vector2 _remainingRestAnchoredPosition;
         private static readonly string[] EncourageHigh =
             { "FAIL_ENC_HIGH_1", "FAIL_ENC_HIGH_2", "FAIL_ENC_HIGH_3", "FAIL_ENC_HIGH_4" };
         private static readonly string[] EncourageMid =
@@ -71,6 +85,8 @@ namespace Meowdoku.Gameplay
 
         protected override void OnCreate()
         {
+            if (remaining != null)
+                _remainingRestAnchoredPosition = remaining.anchoredPosition;
             if (reviveButton != null) reviveButton.onClick.AddListener(Revive);
             if (restartButton != null) restartButton.onClick.AddListener(Restart);
         }
@@ -91,11 +107,18 @@ namespace Meowdoku.Gameplay
         internal int ReviveFreeLogicValueForTests => _freeLogicConfig.Value;
         internal int RewardUnlockValueForTests => _rewardUnlockConfig.Value;
         internal int FailTextValueForTests => _failTextConfig.Value;
+        internal bool IntroActiveForTests => _openTween != null &&
+            _openTween.IsActive();
+        internal bool ButtonsReadyForTests => _buttonReadyTween == null;
+        internal float PageAlphaForTests => pageGroup != null
+            ? pageGroup.alpha
+            : 0f;
 #endif
 
         protected override void OnShow(
             IReadOnlyDictionary<string, object> parameters)
         {
+            if (pageGroup != null) pageGroup.alpha = 1f;
             _transition = ReadTransition(parameters);
             _gameplayManager = ReadManager(parameters);
             if (_transition == null)
@@ -123,6 +146,8 @@ namespace Meowdoku.Gameplay
                     TrackerCatalog.Placement.Reward,
                     RewardPosition());
             bool showRevive = _freeRevive || !rewardRequired || canReward;
+            bool revivePromote = _failTextConfig.ShouldShowRevivePromote() &&
+                showRevive;
 
             bool daily = _transition.IsDailySession;
             SetText(
@@ -161,19 +186,28 @@ namespace Meowdoku.Gameplay
                     state,
                     showRevive));
 
-            SetButtons(true);
+            SetButtons(false);
             Owner?.BlockInputBriefly(
                 transform as RectTransform,
                 InputBlockSeconds);
             _gameplayManager?.SetResultBgmPaused(true);
             _gameplayManager?.PlayResultSound(SoundKind.LevelFail);
-            PlayOpenAnimation();
+            PlayOpenAnimation(revivePromote);
         }
 
         protected override IEnumerator OnHide()
         {
-            _openTween?.Kill(false);
-            _openTween = null;
+            KillOpenAndButtonTweens();
+            _hideTween?.Kill(false);
+            _hideTween = null;
+            if (pageGroup != null)
+            {
+                _hideTween = pageGroup.DOFade(0f, HideSeconds)
+                    .SetUpdate(true)
+                    .SetLink(gameObject);
+                yield return _hideTween.WaitForCompletion();
+                _hideTween = null;
+            }
             _gameplayManager?.SetResultBgmPaused(false);
             _gameplayManager = null;
             _transition = null;
@@ -184,7 +218,9 @@ namespace Meowdoku.Gameplay
 
         protected override void OnDestroyWindow()
         {
-            _openTween?.Kill(false);
+            KillOpenAndButtonTweens();
+            _hideTween?.Kill(false);
+            _hideTween = null;
             if (reviveButton != null) reviveButton.onClick.RemoveListener(Revive);
             if (restartButton != null) restartButton.onClick.RemoveListener(Restart);
             base.OnDestroyWindow();
@@ -266,21 +302,90 @@ namespace Meowdoku.Gameplay
             else SetButtons(true);
         }
 
-        private void PlayOpenAnimation()
+        private void PlayOpenAnimation(bool revivePromote)
+        {
+            KillOpenAndButtonTweens();
+            _hideTween?.Kill(false);
+            _hideTween = null;
+            if (pageGroup != null) pageGroup.alpha = 1f;
+            if (overlayGroup != null) overlayGroup.alpha = 0f;
+            if (content != null) content.localScale = Vector3.one;
+            if (contentGroup != null) contentGroup.alpha = 1f;
+            if (failCat != null) failCat.localScale = Vector3.zero;
+            if (title != null) title.localScale = Vector3.one * 1.8f;
+            if (titleGroup != null) titleGroup.alpha = 0f;
+            if (remaining != null)
+                remaining.anchoredPosition = _remainingRestAnchoredPosition +
+                    Vector2.down * RemainingTravel;
+            if (remainingGroup != null) remainingGroup.alpha = 0f;
+            if (encourageGroup != null) encourageGroup.alpha = 0f;
+            if (reviveGroup != null) reviveGroup.alpha = 0f;
+            if (restartGroup != null) restartGroup.alpha = 0f;
+
+            _openTween = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject);
+            if (overlayGroup != null)
+                _openTween.Insert(0f, overlayGroup.DOFade(
+                    0.8509804f, 0.06666667f).SetEase(Ease.Linear));
+            if (failCat != null)
+            {
+                _openTween.Insert(0f, failCat.DOScale(
+                    0.6f, 0.016666668f).SetEase(Ease.Linear));
+                _openTween.Insert(0.016666668f, failCat.DOScale(
+                    1.1f, 0.25f).SetEase(Ease.OutQuad));
+                _openTween.Insert(0.26666668f, failCat.DOScale(
+                    0.9236364f, 0.16666666f).SetEase(Ease.InOutQuad));
+            }
+            if (titleGroup != null)
+                _openTween.Insert(0.33333334f, titleGroup.DOFade(
+                    1f, 0.14999998f).SetEase(Ease.Linear));
+            if (title != null)
+            {
+                _openTween.Insert(0.33333334f, title.DOScale(
+                    0.9f, 0.24999996f).SetEase(Ease.OutQuad));
+                _openTween.Insert(0.5833333f, title.DOScale(
+                    1f, 0.31666666f).SetEase(Ease.OutQuad));
+            }
+            if (remainingGroup != null)
+                _openTween.Insert(0.6333333f, remainingGroup.DOFade(
+                    1f, 0.2666667f).SetEase(Ease.Linear));
+            if (remaining != null)
+                _openTween.Insert(0.6333334f, remaining.DOAnchorPos(
+                    _remainingRestAnchoredPosition, 0.35f)
+                    .SetEase(Ease.OutQuad));
+            if (encourageGroup != null &&
+                encourageGroup.gameObject.activeInHierarchy)
+                _openTween.Insert(
+                    revivePromote ? 0.8166f : 0.9833f,
+                    encourageGroup.DOFade(1f, 0.35f).SetEase(Ease.Linear));
+            if (reviveGroup != null &&
+                reviveGroup.gameObject.activeInHierarchy)
+                _openTween.Insert(0.8166666f, reviveGroup.DOFade(
+                    1f, 0.35f).SetEase(Ease.Linear));
+            if (restartGroup != null &&
+                restartGroup.gameObject.activeInHierarchy)
+                _openTween.Insert(0.98333335f, restartGroup.DOFade(
+                    1f, 0.35000005f).SetEase(Ease.Linear));
+            _openTween.OnComplete(() => _openTween = null);
+
+            _buttonReadyTween = DOVirtual.DelayedCall(
+                    InputBlockSeconds,
+                    () =>
+                    {
+                        _buttonReadyTween = null;
+                        SetButtons(true);
+                    },
+                    true)
+                .SetLink(gameObject);
+        }
+
+        private void KillOpenAndButtonTweens()
         {
             _openTween?.Kill(false);
-            if (overlayGroup != null) overlayGroup.alpha = 0f;
-            if (content != null) content.localScale = Vector3.one * 0.75f;
-            if (contentGroup != null) contentGroup.alpha = 0f;
-            _openTween = DOTween.Sequence().SetLink(gameObject);
-            if (overlayGroup != null)
-                _openTween.Append(overlayGroup.DOFade(0.85f, 0.2f));
-            if (content != null)
-                _openTween.Append(content.DOScale(1.05f, 0.18f).SetEase(Ease.OutQuad))
-                    .Append(content.DOScale(1f, 0.08f));
-            if (contentGroup != null)
-                _openTween.Insert(0.2f, contentGroup.DOFade(1f, 0.18f));
-            _openTween.OnComplete(() => _openTween = null);
+            _openTween = null;
+            _buttonReadyTween?.Kill(false);
+            _buttonReadyTween = null;
         }
 
         private void SetButtons(bool interactable)

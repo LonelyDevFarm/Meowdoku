@@ -46,6 +46,8 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Text dailyDateText;
         [SerializeField] private GameObject dailyTimerDisplay;
         [SerializeField] private Text dailyTimerText;
+        [SerializeField] private RectTransform catTargetDisplay;
+        [SerializeField] private RectTransform lifeDisplay;
         [SerializeField] private LocalizationCatalog localization;
 
         private readonly RuleTextConfig _ruleTextConfig = new();
@@ -255,7 +257,12 @@ namespace Meowdoku.Gameplay
                 GetTrackingScreenName());
             if (!gameplayManager.QuitLevel()) return;
             Owner.HideAllExcept(KeepHome);
-            Owner.Show(UiName.Home);
+            Owner.Show(
+                UiName.Home,
+                new Dictionary<string, object>(1)
+                {
+                    [HomePagePresenter.ReturnFromGameplayParameter] = true
+                });
         }
 
         private void OpenSettings()
@@ -292,10 +299,113 @@ namespace Meowdoku.Gameplay
 
         private void ApplySessionPresentation()
         {
-            SetActive(mainLevelDisplay, !_dailyPresentation);
-            SetActive(mainScoreDisplay, !_dailyPresentation);
+            SetActive(mainLevelDisplay, true);
+            SetActive(mainScoreDisplay, true);
+            SetLevelValueActive(mainLevelDisplay, !_dailyPresentation);
             SetActive(dailyDateDisplay, _dailyPresentation);
             SetActive(dailyTimerDisplay, _dailyPresentation);
+            ApplySessionHeaderLayout();
+            ApplySessionStatLayout();
+        }
+
+        private void ApplySessionHeaderLayout()
+        {
+            RectTransform level = mainLevelDisplay != null
+                ? mainLevelDisplay.transform as RectTransform
+                : null;
+            RectTransform score = mainScoreDisplay != null
+                ? mainScoreDisplay.transform as RectTransform
+                : null;
+            RectTransform date = dailyDateDisplay != null
+                ? dailyDateDisplay.transform as RectTransform
+                : null;
+
+            SetHeaderRect(
+                level,
+                new Vector2(0f, 1f),
+                new Vector2(0f, 1f),
+                new Vector2(274f, 12f),
+                new Vector2(256f, 118f));
+            SetHeaderRect(
+                score,
+                new Vector2(0f, 1f),
+                new Vector2(0.5f, 1f),
+                new Vector2(678f, 12f),
+                new Vector2(200f, 118f));
+            SetHeaderRect(
+                date,
+                _dailyPresentation
+                    ? new Vector2(0f, 1f)
+                    : new Vector2(0.5f, 1f),
+                _dailyPresentation
+                    ? new Vector2(0f, 1f)
+                    : new Vector2(0.5f, 1f),
+                _dailyPresentation
+                    ? new Vector2(274f, -46f)
+                    : new Vector2(0f, -18f),
+                _dailyPresentation
+                    ? new Vector2(256f, 60f)
+                    : new Vector2(660f, 82f));
+        }
+
+        private static void SetLevelValueActive(
+            GameObject display,
+            bool active)
+        {
+            if (display == null) return;
+            Text[] labels = display.GetComponentsInChildren<Text>(true);
+            foreach (Text label in labels)
+            {
+                if (label == null || label.GetComponent<LocalizedText>() != null)
+                    continue;
+                SetActive(label.gameObject, active);
+                return;
+            }
+        }
+
+        private void ApplySessionStatLayout()
+        {
+            if (catTargetDisplay != null)
+            {
+                catTargetDisplay.anchorMin = catTargetDisplay.anchorMax =
+                    new Vector2(0f, 1f);
+                catTargetDisplay.pivot = new Vector2(0f, 1f);
+                catTargetDisplay.anchoredPosition = _dailyPresentation
+                    ? new Vector2(79.718f, 18f)
+                    : new Vector2(236f, 18f);
+                catTargetDisplay.sizeDelta = new Vector2(283f, 128f);
+            }
+
+            if (lifeDisplay == null) return;
+            if (_dailyPresentation)
+            {
+                lifeDisplay.anchorMin = lifeDisplay.anchorMax =
+                    new Vector2(0.5f, 0.5f);
+                lifeDisplay.pivot = new Vector2(0.5f, 0.5f);
+                lifeDisplay.anchoredPosition = Vector2.zero;
+            }
+            else
+            {
+                lifeDisplay.anchorMin = lifeDisplay.anchorMax =
+                    new Vector2(0f, 1f);
+                lifeDisplay.pivot = new Vector2(0f, 1f);
+                lifeDisplay.anchoredPosition = new Vector2(565f, -2f);
+            }
+            lifeDisplay.sizeDelta = new Vector2(260f, 84f);
+        }
+
+        private static void SetHeaderRect(
+            RectTransform rect,
+            Vector2 anchor,
+            Vector2 pivot,
+            Vector2 position,
+            Vector2 size)
+        {
+            if (rect == null) return;
+            rect.anchorMin = rect.anchorMax = anchor;
+            rect.pivot = pivot;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
         }
 
         private void RefreshDailyPresentation()

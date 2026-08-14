@@ -30,6 +30,17 @@ namespace Meowdoku.Editor
                 AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
         }
 
+        internal static bool InstallIfReady()
+        {
+            if (EditorApplication.isCompiling ||
+                EditorApplication.isUpdating ||
+                EditorApplication.isPlayingOrWillChangePlaymode)
+                return false;
+
+            InstallIfMissing();
+            return true;
+        }
+
         private static void HandlePlayModeChanged(PlayModeStateChange state)
         {
             if (state == PlayModeStateChange.EnteredEditMode)
@@ -44,7 +55,9 @@ namespace Meowdoku.Editor
                 return;
             }
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null)
+            GameObject existing =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (existing != null && !NeedsUpgrade(existing))
             {
                 UIRegistryAssetInstaller.InstallIfReady();
                 return;
@@ -56,10 +69,35 @@ namespace Meowdoku.Editor
             if (font == null || rounded == null) return;
 
             GameObject page = Build(font, rounded);
-            PrefabUtility.SaveAsPrefabAsset(page, PrefabPath);
-            Object.DestroyImmediate(page);
-            AssetDatabase.SaveAssets();
+            try
+            {
+                PrefabUtility.SaveAsPrefabAsset(page, PrefabPath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                Object.DestroyImmediate(page);
+            }
             UIRegistryAssetInstaller.InstallIfReady();
+        }
+
+        private static bool NeedsUpgrade(GameObject prefab)
+        {
+            if (prefab == null ||
+                prefab.GetComponent<BankBrowserPagePresenter>() == null)
+                return true;
+
+            Text title = prefab.transform.Find("Header/TitleLabel")
+                ?.GetComponent<Text>();
+            if (title == null || title.text != "Puzzle Bank")
+                return true;
+
+            Text regularCardTitle = prefab.transform.Find(
+                    "RootPanel/RootScroll/Viewport/Content/RegularCard/Title")
+                ?.GetComponent<Text>();
+            return regularCardTitle == null ||
+                   regularCardTitle.fontSize != 36 ||
+                   regularCardTitle.verticalOverflow != VerticalWrapMode.Overflow;
         }
 
         private static GameObject Build(Font font, Shader rounded)
@@ -95,12 +133,12 @@ namespace Meowdoku.Editor
                 "Label", homeBack.transform, font, 30, Color.white,
                 TextAnchor.MiddleCenter);
             Stretch(homeBackText.rectTransform);
-            homeBackText.text = "返回主页";
+            homeBackText.text = "Home";
             Text title = CreateText(
                 "TitleLabel", header, font, 56,
                 new Color(0.2f, 0.2f, 0.2f), TextAnchor.MiddleCenter);
             SetTopLeft(title.rectTransform, 240f, 60f, 600f, 100f);
-            title.text = "题  库";
+            title.text = "Puzzle Bank";
 
             GameObject rootPanel = CreatePanel("RootPanel", pageRect, true);
             ScrollRect rootScroll = CreateScroll(
@@ -127,7 +165,7 @@ namespace Meowdoku.Editor
             CreatePanelHeader(
                 regularPanel.transform,
                 "RegHeader",
-                "常规题库",
+                "Regular Puzzles",
                 new Color(0.18f, 0.55f, 0.28f),
                 font,
                 rounded,
@@ -148,7 +186,7 @@ namespace Meowdoku.Editor
             CreatePanelHeader(
                 variantPanel.transform,
                 "VariantHeader",
-                "LK 优化题库",
+                "LK Style",
                 new Color(0.38f, 0.18f, 0.72f),
                 font,
                 rounded,
@@ -179,7 +217,7 @@ namespace Meowdoku.Editor
                 new Color(0.55f, 0.55f, 0.55f),
                 TextAnchor.MiddleCenter);
             SetTopLeft(tierSubtitle.rectTransform, 24f, 148f, 1032f, 48f);
-            tierSubtitle.text = "选择策略等级";
+            tierSubtitle.text = "Choose difficulty";
             ScrollRect tierScroll = CreateScroll(
                 tierPanel.transform,
                 "TierScroll",
@@ -194,7 +232,7 @@ namespace Meowdoku.Editor
             CreatePanelHeader(
                 listPanel.transform,
                 "ListHeader",
-                "SP 特殊图案题库",
+                "SP Pattern Puzzles",
                 new Color(0.2f, 0.2f, 0.2f),
                 font,
                 rounded,
@@ -214,7 +252,7 @@ namespace Meowdoku.Editor
             CreatePanelHeader(
                 lkPanel.transform,
                 "LKHeader",
-                "LK 题库",
+                "LK Archive",
                 new Color(0.04f, 0.4f, 0.76f),
                 font,
                 rounded,
@@ -232,9 +270,9 @@ namespace Meowdoku.Editor
                 "Prompt", selector, font, 32,
                 new Color(0.2f, 0.2f, 0.2f), TextAnchor.MiddleLeft);
             SetTopLeft(prompt.rectTransform, 32f, 40f, 420f, 100f);
-            prompt.text = "输入关卡序号";
+            prompt.text = "Enter level number";
             Button lkMinus = CreateSmallButton(
-                "MinusBtn", selector, font, rounded, "−",
+                "MinusBtn", selector, font, rounded, "-",
                 new Color(0.04f, 0.4f, 0.76f));
             SetTopLeft((RectTransform)lkMinus.transform,
                 500f, 45f, 90f, 90f);
@@ -348,12 +386,14 @@ namespace Meowdoku.Editor
                 "Label", back.transform, font, 30, Color.white,
                 TextAnchor.MiddleCenter);
             Stretch(backText.rectTransform);
-            backText.text = "< 返回";
+            backText.text = "< Back";
             title = CreateText(
                 "Title", header, font, 44, titleColor,
                 TextAnchor.MiddleLeft);
             SetTopLeft(title.rectTransform, 200f, 10f, 832f, 100f);
             title.text = titleText;
+            title.resizeTextForBestFit = true;
+            title.resizeTextMinSize = 24;
         }
 
         private static BankRootCardView CreateRootCard(
@@ -366,9 +406,10 @@ namespace Meowdoku.Editor
                 name, parent, rounded, 24f, Color.white, 170f);
             Image image = button.GetComponent<Image>();
             Text title = CreateText(
-                "Title", button.transform, font, 42,
+                "Title", button.transform, font, 36,
                 new Color(0.2f, 0.2f, 0.2f), TextAnchor.MiddleLeft);
-            SetTopLeft(title.rectTransform, 48f, 20f, 650f, 58f);
+            SetTopLeft(title.rectTransform, 48f, 10f, 650f, 70f);
+            title.verticalOverflow = VerticalWrapMode.Overflow;
             Text subtitle = CreateText(
                 "Subtitle", button.transform, font, 25,
                 new Color(0.53f, 0.53f, 0.53f), TextAnchor.MiddleLeft);
@@ -385,7 +426,7 @@ namespace Meowdoku.Editor
                 "Arrow", button.transform, font, 56,
                 new Color(0.53f, 0.53f, 0.53f), TextAnchor.MiddleRight);
             SetTopLeft(arrow.rectTransform, 900f, 38f, 50f, 80f);
-            arrow.text = "›";
+            arrow.text = ">";
             BankRootCardView view =
                 button.gameObject.AddComponent<BankRootCardView>();
             SerializedObject data = new(view);
@@ -428,7 +469,7 @@ namespace Meowdoku.Editor
                 "Arrow", button.transform, font, 56,
                 new Color(0.53f, 0.53f, 0.53f), TextAnchor.MiddleRight);
             SetTopLeft(arrow.rectTransform, 900f, 40f, 50f, 80f);
-            arrow.text = "›";
+            arrow.text = ">";
             BankSizeCardView view =
                 button.gameObject.AddComponent<BankSizeCardView>();
             SerializedObject data = new(view);
@@ -463,12 +504,14 @@ namespace Meowdoku.Editor
                 "Description", root, font, 30,
                 new Color(0.2f, 0.2f, 0.2f), TextAnchor.MiddleLeft);
             SetTopLeft(description.rectTransform, 278f, 20f, 700f, 55f);
+            description.resizeTextForBestFit = true;
+            description.resizeTextMinSize = 20;
             Text count = CreateText(
                 "Count", root, font, 26,
                 new Color(0.53f, 0.53f, 0.53f), TextAnchor.MiddleLeft);
             SetTopLeft(count.rectTransform, 28f, 82f, 400f, 42f);
             Button minus = CreateSmallButton(
-                "MinusBtn", root, font, rounded, "−", Color.gray);
+                "MinusBtn", root, font, rounded, "-", Color.gray);
             SetTopLeft((RectTransform)minus.transform,
                 565f, 130f, 74f, 58f);
             Text number = CreateText(
@@ -535,7 +578,7 @@ namespace Meowdoku.Editor
                 "Arrow", button.transform, font, 50,
                 new Color(0.04f, 0.4f, 0.76f), TextAnchor.MiddleRight);
             SetTopLeft(arrow.rectTransform, 960f, 0f, 60f, height);
-            arrow.text = "›";
+            arrow.text = ">";
             BankLevelRowView view =
                 button.gameObject.AddComponent<BankLevelRowView>();
             SerializedObject data = new(view);

@@ -244,6 +244,7 @@ namespace Meowdoku.Gameplay
                 _floatingSelfRow.SelfRequested += OpenSelfProfile;
                 _floatingSelfRow.transform.SetAsLastSibling();
             }
+            _floatingSelfRow.SetFloatingSurface(true);
             _floatingSelfRow.Apply(info, group);
             _floatingSelfRow.gameObject.SetActive(true);
         }
@@ -273,9 +274,7 @@ namespace Meowdoku.Gameplay
                 ? Mathf.Clamp(position.y, low, high)
                 : (low + high) * 0.5f;
             floating.position = position;
-            _floatingSelfRow.SetSelfShadow(
-                _floatingAtTop || _floatingAtBottom,
-                _floatingAtTop);
+            _floatingSelfRow.SetSelfShadow(_floatingAtTop, true);
         }
 
         private void PlayIntro()

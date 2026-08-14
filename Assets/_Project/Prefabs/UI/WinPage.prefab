@@ -108,6 +108,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5517434131064324066}
+  - {fileID: 2625632259842933083}
   - {fileID: 931382084685732411}
   m_Father: {fileID: 3663518665102226804}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -206,6 +207,7 @@ GameObject:
   - component: {fileID: 5517434131064324066}
   - component: {fileID: 5930247795641623635}
   - component: {fileID: 862555164532104360}
+  - component: {fileID: 8438852558073374475}
   m_Layer: 0
   m_Name: RayLight
   m_TagString: Untagged
@@ -270,6 +272,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!225 &8438852558073374475
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 552554649522342459}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &604594435652638843
 GameObject:
   m_ObjectHideFlags: 0
@@ -472,6 +486,7 @@ GameObject:
   - component: {fileID: 931382084685732411}
   - component: {fileID: 7983015905662587493}
   - component: {fileID: 8516353770322521246}
+  - component: {fileID: 5561874869838878130}
   m_Layer: 0
   m_Name: VictoryCat
   m_TagString: Untagged
@@ -536,6 +551,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!225 &5561874869838878130
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1452185586312346739}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1470384098371719756
 GameObject:
   m_ObjectHideFlags: 0
@@ -1255,6 +1282,63 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!1 &2240652346661304222
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2559962326245902187}
+  - component: {fileID: 8803082850799846762}
+  m_Layer: 0
+  m_Name: Effects
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2559962326245902187
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2240652346661304222}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3663518665102226804}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &8803082850799846762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2240652346661304222}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afc725cb54e419d478ad1a55b4bb586c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.ResultCelebrationEffects
+  effectRoot: {fileID: 2559962326245902187}
+  lineSprite: {fileID: 5112795135943615386, guid: ab065fc0363b2b44a894784eaf156f5b, type: 3}
+  ribbonSprites:
+  - {fileID: 7309865821966294846, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  - {fileID: -6775254807992578624, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  - {fileID: 8453593653797419183, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  - {fileID: -8176820020048969991, guid: 05bf5b9ae40670549910f38b6d9e8f6b, type: 3}
+  starSprite: {fileID: 8377301715744239931, guid: 143311749fde29f4ebf1bd29905f17b2, type: 3}
+  glowSprite: {fileID: 4464149598342885048, guid: a7ea6872c8f7e13418d7e983824035a0, type: 3}
 --- !u!1 &2500347651810940037
 GameObject:
   m_ObjectHideFlags: 0
@@ -1454,6 +1538,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3362274847280152709}
+  - component: {fileID: 9037330937781008711}
   m_Layer: 0
   m_Name: Actions
   m_TagString: Untagged
@@ -1481,6 +1566,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -390}
   m_SizeDelta: {x: 820, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &9037330937781008711
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2962607576865220115}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &3585523376992892116
 GameObject:
   m_ObjectHideFlags: 0
@@ -1674,6 +1771,15 @@ MonoBehaviour:
   frameCloseButton: {fileID: 0}
   content: {fileID: 6743215738744693964}
   contentGroup: {fileID: 4058276865191434599}
+  pageGroup: {fileID: 8508775035012645407}
+  rayGroup: {fileID: 8438852558073374475}
+  victoryCatGroup: {fileID: 5561874869838878130}
+  victoryGlowGroup: {fileID: 7288216888834494844}
+  titleGroup: {fileID: 6904224656994107760}
+  bodyGroup: {fileID: 9011558919935123081}
+  nextGroup: {fileID: 9037330937781008711}
+  titleVisual: {fileID: 5642381366098533306}
+  celebrationEffects: {fileID: 8803082850799846762}
   defaultVisuals: {fileID: 130944634901928217}
   rayLight: {fileID: 5517434131064324066}
   victoryCat: {fileID: 931382084685732411}
@@ -1980,6 +2086,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 792288060989108011}
+  - component: {fileID: 9011558919935123081}
   m_Layer: 0
   m_Name: Body
   m_TagString: Untagged
@@ -2007,6 +2114,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!225 &9011558919935123081
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4282056077807759702}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &4730518941731957525
 GameObject:
   m_ObjectHideFlags: 0
@@ -2246,6 +2365,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3006929236525701027}
+  - {fileID: 2559962326245902187}
   - {fileID: 6743215738744693964}
   - {fileID: 684508163150069065}
   - {fileID: 2276308828894878311}
@@ -2961,6 +3081,7 @@ GameObject:
   - component: {fileID: 5642381366098533306}
   - component: {fileID: 7907712093738797115}
   - component: {fileID: 4444668066367808970}
+  - component: {fileID: 6904224656994107760}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -3029,6 +3150,18 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: WIN_TITLE
+--- !u!225 &6904224656994107760
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6715069837623763486}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &6722304119700714869
 GameObject:
   m_ObjectHideFlags: 0
@@ -3794,6 +3927,94 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &8523293985591188142
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2625632259842933083}
+  - component: {fileID: 4527049075597854200}
+  - component: {fileID: 4315809325985181641}
+  - component: {fileID: 7288216888834494844}
+  m_Layer: 0
+  m_Name: VictoryCatGlow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2625632259842933083
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8523293985591188142}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3006929236525701027}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 165}
+  m_SizeDelta: {x: 700, y: 220}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &4527049075597854200
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8523293985591188142}
+  m_CullTransparentMesh: 1
+--- !u!114 &4315809325985181641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8523293985591188142}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 0.55, b: 0.12, a: 0.62}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 7925182389692906845, guid: 66e070b9b4b51a742ab138bd0c1489ab, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 1
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!225 &7288216888834494844
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8523293985591188142}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &8582526035777264728
 GameObject:
   m_ObjectHideFlags: 0

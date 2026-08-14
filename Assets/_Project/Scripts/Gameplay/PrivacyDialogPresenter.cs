@@ -119,8 +119,8 @@ namespace Meowdoku.Gameplay
             return result == key ? fallback : result;
         }
 
-        private const string TermsUrl = "https://oakevergames.com/tos.html";
-        private const string PrivacyUrl = "https://oakevergames.com/pp.html";
+        private const string TermsUrl = PortfolioLinks.GitHub;
+        private const string PrivacyUrl = PortfolioLinks.GitHub;
 
         private static string ReplaceFirst(
             string value,

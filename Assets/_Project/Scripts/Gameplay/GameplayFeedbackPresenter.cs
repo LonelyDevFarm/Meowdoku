@@ -30,6 +30,7 @@ namespace Meowdoku.Gameplay
         [SerializeField] private GameplayFeedbackBubbleView[] skillBubbles;
         [SerializeField] private GameplayMultiplierView[] multiplierViews;
         [SerializeField] private GameplayScoreFlightView[] scoreFlights;
+        [SerializeField] private GameplayCatBurstView[] catBursts;
 
         private int _displayedScore;
         private int _scoreCursor;
@@ -37,6 +38,7 @@ namespace Meowdoku.Gameplay
         private int _skillCursor;
         private int _multiplierCursor;
         private int _flightCursor;
+        private int _catBurstCursor;
         private Tween _scoreRoll;
         private Sequence _scoreBounce;
         private Sequence _encourageSequence;
@@ -45,7 +47,16 @@ namespace Meowdoku.Gameplay
 
         private void Awake()
         {
+            EnsureSourceSortingOrder();
             _comboVoiceConfig = new ComboVoiceConfig();
+        }
+
+        // Godot game_page.tscn places ComboFeedback after RuleBar; this lifecycle guard
+        // preserves that order for cached/runtime-instantiated pages.
+        private void EnsureSourceSortingOrder()
+        {
+            if (transform.parent != null)
+                transform.SetAsLastSibling();
         }
 
         public void BindAbConfigRuntime(AbConfigRuntime runtime)
@@ -61,6 +72,7 @@ namespace Meowdoku.Gameplay
 
         private void OnEnable()
         {
+            EnsureSourceSortingOrder();
             if (gameplayManager == null) return;
             gameplayManager.GameplayFeedbackBatchRequested += HandleFeedbackBatch;
         }
@@ -87,6 +99,7 @@ namespace Meowdoku.Gameplay
             StopPool(skillBubbles);
             StopPool(multiplierViews);
             StopPool(scoreFlights);
+            StopPool(catBursts);
             _displayedScore = Mathf.Max(0, score);
             SetScoreText(_displayedScore);
         }
@@ -98,7 +111,9 @@ namespace Meowdoku.Gameplay
             if (plan.CompletionDelay > 0f)
                 gameplayManager.DelayWinSettlement(plan.CompletionDelay);
 
-            float lifeOffset = plan.CorrectFlyLaunchDelay;
+            // Source runs heart bonuses beside the last-cat score flight. The
+            // completion gate is the max of both timelines, not their sum.
+            const float lifeOffset = 0f;
             int lifeIndex = 0;
             for (int index = 0; index < feedback.Count; index++)
             {
@@ -119,6 +134,7 @@ namespace Meowdoku.Gameplay
 
         private void PresentCorrect(GameplayFeedbackData item)
         {
+            PlayCatBurst(item.Position);
             if (item.ShowsComboText)
             {
                 PlayEncourage(item.ComboCount);
@@ -352,6 +368,20 @@ namespace Meowdoku.Gameplay
             return center;
         }
 
+        private Vector2 CellCenter(Vector2Int cell)
+        {
+            if (boardView == null || feedbackArea == null ||
+                !boardView.TryGetCellCenter(
+                    feedbackArea, cell.x, cell.y, out Vector2 center))
+                return Vector2.zero;
+            return center;
+        }
+
+        private void PlayCatBurst(Vector2Int cell)
+        {
+            Acquire(catBursts, ref _catBurstCursor)?.Play(CellCenter(cell));
+        }
+
         private void SetScoreText(int value)
         {
             if (scoreValue != null) scoreValue.text = value.ToString();
@@ -418,6 +448,24 @@ namespace Meowdoku.Gameplay
             return oldest;
         }
 
+        private static GameplayCatBurstView Acquire(
+            GameplayCatBurstView[] pool,
+            ref int cursor)
+        {
+            if (pool == null || pool.Length == 0) return null;
+            for (int offset = 0; offset < pool.Length; offset++)
+            {
+                int index = (cursor + offset) % pool.Length;
+                GameplayCatBurstView candidate = pool[index];
+                if (candidate == null || candidate.IsPlaying) continue;
+                cursor = (index + 1) % pool.Length;
+                return candidate;
+            }
+            GameplayCatBurstView oldest = pool[cursor];
+            cursor = (cursor + 1) % pool.Length;
+            return oldest;
+        }
+
         private static void StopPool(GameplayFeedbackBubbleView[] pool)
         {
             if (pool == null) return;
@@ -450,5 +498,89 @@ namespace Meowdoku.Gameplay
                 pool[index].gameObject.SetActive(false);
             }
         }
+
+        private static void StopPool(GameplayCatBurstView[] pool)
+        {
+            if (pool == null) return;
+            for (int index = 0; index < pool.Length; index++)
+            {
+                if (pool[index] == null) continue;
+                pool[index].Stop();
+                pool[index].gameObject.SetActive(false);
+            }
+        }
+
+#if UNITY_INCLUDE_TESTS
+        internal int DisplayedScoreForTests => _displayedScore;
+
+        internal int PlayingScoreBubbleCountForTests =>
+            CountPlaying(scoreBubbles);
+
+        internal int PlayingMultiplierCountForTests =>
+            CountPlaying(multiplierViews);
+
+        internal int PlayingScoreFlightCountForTests =>
+            CountPlaying(scoreFlights);
+
+        internal int CatBurstPoolSizeForTests =>
+            catBursts != null ? catBursts.Length : 0;
+
+        internal int ActiveCatBurstCountForTests
+        {
+            get
+            {
+                int count = 0;
+                if (catBursts == null) return count;
+                for (int index = 0; index < catBursts.Length; index++)
+                    if (catBursts[index] != null &&
+                        catBursts[index].IsEmittingForTests)
+                        count++;
+                return count;
+            }
+        }
+
+        internal int PlayingCatBurstCountForTests
+        {
+            get
+            {
+                int count = 0;
+                if (catBursts == null) return count;
+                for (int index = 0; index < catBursts.Length; index++)
+                    if (catBursts[index] != null && catBursts[index].IsPlaying)
+                        count++;
+                return count;
+            }
+        }
+
+        private static int CountPlaying(GameplayFeedbackBubbleView[] pool)
+        {
+            int count = 0;
+            if (pool == null) return count;
+            for (int index = 0; index < pool.Length; index++)
+                if (pool[index] != null && pool[index].IsPlaying)
+                    count++;
+            return count;
+        }
+
+        private static int CountPlaying(GameplayMultiplierView[] pool)
+        {
+            int count = 0;
+            if (pool == null) return count;
+            for (int index = 0; index < pool.Length; index++)
+                if (pool[index] != null && pool[index].IsPlaying)
+                    count++;
+            return count;
+        }
+
+        private static int CountPlaying(GameplayScoreFlightView[] pool)
+        {
+            int count = 0;
+            if (pool == null) return count;
+            for (int index = 0; index < pool.Length; index++)
+                if (pool[index] != null && pool[index].IsPlaying)
+                    count++;
+            return count;
+        }
+#endif
     }
 }

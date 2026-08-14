@@ -105,8 +105,8 @@ namespace Meowdoku.Core.UI
 
     /// <summary>
     /// Pure page-state, filtering and Game launch contract ported from
-    /// bank_page.gd. It deliberately preserves the six source bank branches
-    /// rather than folding them into the normal level-selection pipeline.
+    /// bank_page.gd. Extracted Chinese labels were corrupted, so this portfolio
+    /// adapter uses English semantic equivalents while preserving all branches.
     /// </summary>
     public static class BankBrowserContract
     {
@@ -114,17 +114,17 @@ namespace Meowdoku.Core.UI
 
         private static readonly BankRankDefinition[] RankDefinitions =
         {
-            new(1, "R1 Beginner", "唯一候选"),
-            new(2, "R2 Easy", "区域-行列约束"),
-            new(3, "R3 Medium", "集合锁定(K≤3)"),
-            new(4, "R4 Hard", "高阶锁定/浅层推理"),
-            new(5, "R5 Expert", "深层链式推理")
+            new(1, "R1 Beginner", "Unique candidate"),
+            new(2, "R2 Easy", "Region, row and column constraints"),
+            new(3, "R3 Medium", "Locked sets (K <= 3)"),
+            new(4, "R4 Hard", "Advanced locks / shallow deduction"),
+            new(5, "R5 Expert", "Deep chained deduction")
         };
 
         private static readonly BankRankDefinition HardRank4 =
-            new(4, "R4H Hard+", "深度高阶推理");
+            new(4, "R4H Hard+", "Deep advanced deduction");
         private static readonly BankRankDefinition HardRank5 =
-            new(5, "R5H Expert+", "极深链式推理");
+            new(5, "R5H Expert+", "Extreme chained deduction");
 
         private static readonly HashSet<int> HardTierKeys = new()
         {
@@ -408,7 +408,7 @@ namespace Meowdoku.Core.UI
             int size = ReadInt(parameters, "bank_size", DefaultSize);
             int rank = ReadInt(parameters, "bank_rank", 1);
             int index = ReadInt(parameters, "bank_index", request.Index);
-            string dimensions = $"{size}\u00D7{size}";
+            string dimensions = $"{size} x {size}";
             return ReadBool(parameters, "bank_sp")
                 ? $"SP  {dimensions}  #{index}"
                 : $"{dimensions}  R{rank}  #{index}";
@@ -496,13 +496,13 @@ namespace Meowdoku.Core.UI
         {
             return size switch
             {
-                4 => "入门",
-                5 => "进阶",
-                6 => "挑战",
-                7 => "高手",
-                8 => "大师",
-                9 => "宗师",
-                10 => "传奇",
+                4 => "Beginner",
+                5 => "Intermediate",
+                6 => "Challenge",
+                7 => "Skilled",
+                8 => "Master",
+                9 => "Grandmaster",
+                10 => "Legendary",
                 _ => string.Empty
             };
         }

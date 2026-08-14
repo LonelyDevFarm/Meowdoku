@@ -21,6 +21,8 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Image promptFrame;
         [SerializeField] private Image promptCross;
         [SerializeField] private Shader roundedBackgroundShader;
+        [SerializeField] private CanvasGroup introCanvasGroup;
+        [SerializeField] private CatSpriteAnimationView catSpriteAnimation;
         
         [Header("Effects")]
         public ParticleSystem appearVFX; // Hiệu ứng nổ hạt khi mèo xuất hiện
@@ -43,6 +45,8 @@ namespace Meowdoku.Gameplay
         // Khởi tạo ban đầu
         private void Awake()
         {
+            if (introCanvasGroup == null)
+                introCanvasGroup = GetComponent<CanvasGroup>();
             // Godot's BoardView sets every CellView to MOUSE_FILTER_IGNORE.
             // The board is the sole input surface; cell graphics are visual only.
             SetGraphicsRaycastTarget(false);
@@ -102,6 +106,7 @@ namespace Meowdoku.Gameplay
 
         public void PrepareForUse(int row, int column)
         {
+            RestoreGridIntroVisual();
             Row = row;
             Col = column;
             transform.localPosition = Vector3.zero;
@@ -114,6 +119,7 @@ namespace Meowdoku.Gameplay
 
         public void ReleaseToPool()
         {
+            RestoreGridIntroVisual();
             ResetToEmpty();
             if (appearVFX != null)
                 appearVFX.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -206,6 +212,7 @@ namespace Meowdoku.Gameplay
         // Xóa sạch trạng thái, đưa về ô trống
         public void ResetToEmpty()
         {
+            catSpriteAnimation?.Stop();
             _visualSequence?.Kill(false);
             _visualSequence = null;
             HideHint(true);
@@ -229,6 +236,7 @@ namespace Meowdoku.Gameplay
         // Cập nhật hiển thị dựa trên trạng thái hiện tại
         private void UpdateVisuals(bool playAnim)
         {
+            catSpriteAnimation?.Stop();
             _visualSequence?.Kill(false);
             _visualSequence = null;
             // Tắt hết các icon đi trước
@@ -241,7 +249,15 @@ namespace Meowdoku.Gameplay
                 case CellStateType.CAT:
                     if (catIcon != null) catIcon.gameObject.SetActive(true);
                     if (playAnim && appearVFX != null) appearVFX.Play();
-                    if (playAnim) PlaySourceCatAppear();
+                    if (playAnim)
+                    {
+                        catSpriteAnimation?.PlayAppear();
+                        PlaySourceCatAppear();
+                    }
+                    else
+                    {
+                        catSpriteAnimation?.ShowIdleFinal();
+                    }
                     break;
 
                 case CellStateType.MARK:
@@ -440,8 +456,55 @@ namespace Meowdoku.Gameplay
             sequence.Join(image.DOFade(alpha, duration).SetEase(Ease.Linear));
         }
 
+        internal void PrepareGridIntroVisual()
+        {
+            transform.DOKill(false);
+            if (introCanvasGroup != null)
+            {
+                introCanvasGroup.DOKill(false);
+                introCanvasGroup.alpha = 0f;
+            }
+            transform.localScale = Vector3.zero;
+        }
+
+        internal void InsertGridIntroTweens(
+            Sequence sequence,
+            float delay,
+            float fadeDuration,
+            float scaleDuration,
+            AnimationCurve scaleCurve)
+        {
+            if (sequence == null) return;
+            if (introCanvasGroup != null)
+                sequence.Insert(delay, introCanvasGroup.DOFade(1f, fadeDuration)
+                    .SetEase(Ease.OutSine));
+            Tween scaleTween = transform.DOScale(1f, scaleDuration);
+            scaleTween.SetEase(scaleCurve != null ? scaleCurve : AnimationCurve.Linear(0f, 0f, 1f, 1f));
+            sequence.Insert(delay, scaleTween);
+        }
+
+        internal void RestoreGridIntroVisual()
+        {
+            transform.DOKill(false);
+            if (introCanvasGroup != null)
+            {
+                introCanvasGroup.DOKill(false);
+                introCanvasGroup.alpha = 1f;
+            }
+            transform.localScale = Vector3.one;
+        }
+
+#if UNITY_INCLUDE_TESTS
+        internal float IntroAlphaForTests => introCanvasGroup != null
+            ? introCanvasGroup.alpha
+            : 1f;
+        internal float IntroScaleForTests => transform.localScale.x;
+#endif
+
         private void OnDisable()
         {
+            catSpriteAnimation?.Stop();
+            RestoreGridIntroVisual();
             _visualSequence?.Kill(false);
             _hintSequence?.Kill(false);
             _previewSequence?.Kill(false);

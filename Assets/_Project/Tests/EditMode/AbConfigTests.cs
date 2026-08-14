@@ -40,7 +40,7 @@ namespace Meowdoku.Tests.EditMode
         [TestCase("thumb_up", 0, AbConfigTiming.GameStart, true)]
         [TestCase("daily_first_level_difficulty", 0, AbConfigTiming.AppStart, true)]
         [TestCase("daily_streak", 1, AbConfigTiming.AppStart, true)]
-        [TestCase("leaderboard_func", 0, AbConfigTiming.AppStart, true)]
+        [TestCase("leaderboard_func", 2, AbConfigTiming.AppStart, true)]
         [TestCase("hard_button", 0, AbConfigTiming.AppStart, true)]
         [TestCase("settings_language", 0, AbConfigTiming.OpenSetting, true)]
         [TestCase("blind_mod", 0, AbConfigTiming.GameStart, true)]
@@ -361,8 +361,8 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(daily.IsSkipLit(), Is.False);
             Assert.That(daily.HasPlayEntry(), Is.False);
             Assert.That(daily.IsSettleReorder(), Is.False);
-            Assert.That(leaderboard.IsEnabled(), Is.False);
-            Assert.That(leaderboard.GetGroup(), Is.EqualTo(LeaderboardFuncConfig.ValueControl));
+            Assert.That(leaderboard.IsEnabled(), Is.True);
+            Assert.That(leaderboard.GetGroup(), Is.EqualTo(LeaderboardFuncConfig.ValueFishProp));
             Assert.That(hardButton.EffectVariant(), Is.EqualTo(HardButtonConfig.ValueDefault));
         }
 
@@ -701,6 +701,8 @@ namespace Meowdoku.Tests.EditMode
             };
             provider.IntValues["daily_first_level_difficulty"] =
                 DailyFirstLevelDifficultyConfig.ValueReduceOne;
+            provider.IntValues["score_encourage"] =
+                ScoreEncourageConfig.ValueMultiplier;
             provider.IntValues["mark_sound"] = MarkSoundConfig.ValueSoft2;
             provider.IntValues["dda_rank"] = DdaRankConfig.ValueAnyAction;
             provider.IntValues["reward_unlock_level"] = 8;
@@ -727,8 +729,11 @@ namespace Meowdoku.Tests.EditMode
                 Is.EqualTo(MeowFeedbackConfig.ValueCrescendo));
             Assert.That(configs.DdaRank.IsValueLoaded, Is.False);
             Assert.That(configs.RuleHighlight.IsValueLoaded, Is.False);
+            Assert.That(configs.ScoreEncourage.IsValueLoaded, Is.False);
 
             service.ReloadTiming(AbConfigTiming.GameStart);
+            Assert.That(configs.ScoreEncourage.Value,
+                Is.EqualTo(ScoreEncourageConfig.ValueMultiplier));
             Assert.That(configs.RewardUnlockLevel.Value, Is.EqualTo(8));
             Assert.That(configs.PropHighlight.IsRepeatable(), Is.True);
             Assert.That(configs.RuleHighlight.IsAllLevels(), Is.True);
@@ -746,6 +751,7 @@ namespace Meowdoku.Tests.EditMode
                 "daily_first_level_difficulty",
                 "mark_sound",
                 "meow_feedback",
+                "score_encourage",
                 "reward_unlock_level",
                 "prop_highlight",
                 "rule_highlight",

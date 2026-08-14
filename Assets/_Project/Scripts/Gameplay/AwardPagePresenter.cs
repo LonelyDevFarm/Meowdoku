@@ -5,6 +5,7 @@ using Meowdoku.Core.Localization;
 using Meowdoku.Core.Profile;
 using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
+using Meowdoku.Services;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,7 +14,8 @@ namespace Meowdoku.Gameplay
     [DisallowMultipleComponent]
     public sealed class AwardPagePresenter : UIFrameWindow,
         IDailyMetaConsumer,
-        IProfileConsumer
+        IProfileConsumer,
+        ISoundServiceConsumer
     {
         public override string GetTrackingDialogName() => _rankPhase switch
         {
@@ -43,6 +45,7 @@ namespace Meowdoku.Gameplay
         private bool _closing;
         private int _generation;
         private int _rankPhase;
+        private SoundService _soundService;
 
         protected override void OnCreate()
         {
@@ -51,7 +54,11 @@ namespace Meowdoku.Gameplay
             if (doubleCollectButton != null)
                 doubleCollectButton.gameObject.SetActive(false);
             if (rankGiftView != null)
+            {
                 rankGiftView.CollectRequested += HandleRankGiftCollect;
+                if (_soundService != null)
+                    rankGiftView.BindSoundService(_soundService);
+            }
         }
 
         protected override void OnShow(
@@ -147,6 +154,12 @@ namespace Meowdoku.Gameplay
         public void BindProfileRuntime(ProfileRuntime runtime)
         {
             _profileRuntime = runtime;
+        }
+
+        public void BindSoundService(SoundService service)
+        {
+            _soundService = service;
+            rankGiftView?.BindSoundService(service);
         }
 
         private IEnumerator UnlockCollect(int generation)

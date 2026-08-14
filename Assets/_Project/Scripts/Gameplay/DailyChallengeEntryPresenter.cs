@@ -40,6 +40,7 @@ namespace Meowdoku.Gameplay
 
         private void Awake()
         {
+            ApplyLayout();
             if (clickButton != null)
                 clickButton.onClick.AddListener(HandleClick);
         }
@@ -194,6 +195,66 @@ namespace Meowdoku.Gameplay
         private static void SetText(Text target, string value)
         {
             if (target != null) target.text = value ?? string.Empty;
+        }
+
+        public bool ApplyLayout()
+        {
+            bool changed = ConfigureTextLayout(
+                normalTitle,
+                50,
+                TextAnchor.MiddleLeft,
+                new Vector2(-35f, 205f),
+                new Vector2(300f, 100f));
+            changed |= ConfigureTextLayout(
+                lockedTitle,
+                50,
+                TextAnchor.MiddleLeft,
+                new Vector2(-35f, 205f),
+                new Vector2(300f, 100f));
+            changed |= ConfigureTextLayout(
+                doneTitle,
+                50,
+                TextAnchor.MiddleLeft,
+                new Vector2(-35f, 205f),
+                new Vector2(300f, 100f));
+            changed |= ConfigureTextLayout(
+                normalDate,
+                64,
+                TextAnchor.MiddleLeft,
+                new Vector2(-35f, 100f),
+                new Vector2(300f, 62f));
+            changed |= ConfigureTextLayout(
+                doneDate,
+                64,
+                TextAnchor.MiddleLeft,
+                new Vector2(-35f, 100f),
+                new Vector2(300f, 62f));
+            return changed;
+        }
+
+        private static bool ConfigureTextLayout(
+            Text target,
+            int fontSize,
+            TextAnchor alignment,
+            Vector2 position,
+            Vector2 size)
+        {
+            if (target == null) return false;
+            RectTransform rect = target.rectTransform;
+            bool changed = target.fontSize != fontSize ||
+                           target.alignment != alignment ||
+                           rect.anchorMin != new Vector2(0.5f, 0.5f) ||
+                           rect.anchorMax != new Vector2(0.5f, 0.5f) ||
+                           rect.pivot != new Vector2(0.5f, 0.5f) ||
+                           rect.anchoredPosition != position ||
+                           rect.sizeDelta != size;
+            target.fontSize = fontSize;
+            target.alignment = alignment;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            return changed;
         }
     }
 }

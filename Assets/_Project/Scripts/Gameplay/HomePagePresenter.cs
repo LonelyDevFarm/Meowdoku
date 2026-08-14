@@ -33,6 +33,8 @@ namespace Meowdoku.Gameplay
 
         private static readonly UiName[] HomeAndGame =
             { UiName.Home, UiName.Game };
+        public const string ReturnFromGameplayParameter =
+            nameof(ReturnFromGameplayParameter);
 
         [Header("Source hierarchy")]
         [SerializeField] private RectTransform layoutSpace;
@@ -53,9 +55,11 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Button settingsButton;
         [SerializeField] private GameObject profileEntry;
         [SerializeField] private Button profileButton;
+        [SerializeField] private ProfileAvatarView profileAvatar;
         [SerializeField] private GameObject dailyStreakLayout;
         [SerializeField] private DailyChallengeEntryPresenter dailyEntry;
         [SerializeField] private StreakEntryPresenter streakEntry;
+        [SerializeField] private StreakEntryPresenter streakMiniEntry;
         [SerializeField] private RankActivityEntryPresenter rankEntry;
         [SerializeField] private TextAsset dialogPriorityConfig;
         [SerializeField] private TextAsset abSwitchPopupConfig;
@@ -77,6 +81,7 @@ namespace Meowdoku.Gameplay
         private bool _isExiting;
         private DailyMetaRuntime _dailyMetaRuntime;
         private ProfileRuntime _profileRuntime;
+        private ProfileService _subscribedProfileService;
         private RankActivityRuntime _rankActivityRuntime;
         private AbConfigRuntime _abConfigRuntime;
         private DataSyncRuntime _dataSyncRuntime;
@@ -110,6 +115,8 @@ namespace Meowdoku.Gameplay
                 dailyEntry.PlayRequested += StartDaily;
             if (streakEntry != null)
                 streakEntry.OpenRequested += OpenStreak;
+            if (streakMiniEntry != null)
+                streakMiniEntry.OpenRequested += OpenStreak;
             if (rankEntry != null)
                 rankEntry.OpenRequested += OpenRankEntry;
             if (localization != null)
@@ -131,20 +138,35 @@ namespace Meowdoku.Gameplay
                 languageConfig.IsLanguageSwitchEnabledPeek(
                     _abConfigRuntime?.ValueProvider));
             soundService?.StartBgm();
+            // Preserve tutorial/early progression, then expose offline portfolio
+            // features at the existing preview checkpoint.
+            PortfolioFeatureUnlockPolicy.Apply(GameStateRuntime.Current);
             GameStateRuntime.Current.AdvanceMaxDailyDate(
                 DailyEntryStateContract.DateKey(CurrentLocalNow));
             RefreshPresentation();
+            SubscribeProfileService();
             dailyEntry?.Show();
             streakEntry?.Show();
+            streakMiniEntry?.Show();
             _rankActivityRuntime?.Manager?.OnHomeShown();
             rankEntry?.Show();
+            ApplyMetaEntryLayout();
             ApplyHeaderLayout();
-            PlayAppear();
+            bool returningFromGameplay = parameters != null &&
+                parameters.TryGetValue(
+                    ReturnFromGameplayParameter,
+                    out object returnValue) &&
+                returnValue is true;
+            if (returningFromGameplay)
+                ShowImmediate();
+            else
+                PlayAppear();
             BuildPopupQueue();
         }
 
         protected override IEnumerator OnHide()
         {
+            UnsubscribeProfileService();
             KillTransition();
             KillProfileShake();
             _popupQueue.Abort();
@@ -152,6 +174,7 @@ namespace Meowdoku.Gameplay
             _newPage = null;
             dailyEntry?.Hide();
             streakEntry?.Hide();
+            streakMiniEntry?.Hide();
             rankEntry?.Hide();
             _rankPopupPending = false;
             yield break;
@@ -171,6 +194,25 @@ namespace Meowdoku.Gameplay
             return true;
         }
 
+        protected override void OnStackTop()
+        {
+            if (!IsShowing) return;
+            bool controlsReady =
+                (startButton == null || startButton.interactable) &&
+                (settingsButton == null || settingsButton.interactable) &&
+                (profileButton == null || profileButton.interactable);
+            if (!_isExiting && controlsReady) return;
+
+            // Game is shown at the source entry marker, slightly before Home's
+            // exit animation finishes. A very fast Game -> Home transition can
+            // therefore expose this still-showing page with its buttons locked.
+            // Becoming the top window is the authoritative point at which Home
+            // must be interactive again, regardless of the interrupted tween.
+            _isExiting = false;
+            _newPage = null;
+            PlayAppear();
+        }
+
 #if UNITY_INCLUDE_TESTS
         internal void ConfigureQuitForTests(Action quit)
         {
@@ -186,6 +228,7 @@ namespace Meowdoku.Gameplay
 
         protected override void OnDestroyWindow()
         {
+            UnsubscribeProfileService();
             KillTransition();
             KillProfileShake();
             if (startButton != null) startButton.onClick.RemoveListener(StartGame);
@@ -197,6 +240,8 @@ namespace Meowdoku.Gameplay
                 dailyEntry.PlayRequested -= StartDaily;
             if (streakEntry != null)
                 streakEntry.OpenRequested -= OpenStreak;
+            if (streakMiniEntry != null)
+                streakMiniEntry.OpenRequested -= OpenStreak;
             if (rankEntry != null)
                 rankEntry.OpenRequested -= OpenRankEntry;
             if (localization != null)
@@ -224,11 +269,15 @@ namespace Meowdoku.Gameplay
         {
             _dailyMetaRuntime = runtime;
             streakEntry?.BindDailyMetaRuntime(runtime);
+            streakMiniEntry?.BindDailyMetaRuntime(runtime);
         }
 
         public void BindProfileRuntime(ProfileRuntime runtime)
         {
+            UnsubscribeProfileService();
             _profileRuntime = runtime;
+            if (IsShowing) SubscribeProfileService();
+            RefreshProfileAvatar();
         }
 
         public void BindAbConfigRuntime(AbConfigRuntime runtime)
@@ -241,6 +290,8 @@ namespace Meowdoku.Gameplay
         {
             _rankActivityRuntime = runtime;
             rankEntry?.BindRankActivityRuntime(runtime);
+            if (IsShowing)
+                ApplyMetaEntryLayout();
         }
 
         public void BindDataSyncRuntime(DataSyncRuntime runtime)
@@ -268,6 +319,7 @@ namespace Meowdoku.Gameplay
             localization = catalog;
             dailyEntry?.BindLocalization(catalog);
             streakEntry?.BindLocalization(catalog);
+            streakMiniEntry?.BindLocalization(catalog);
             if (localization != null)
                 localization.LocaleChanged += RefreshPresentation;
             RefreshPresentation();
@@ -300,8 +352,56 @@ namespace Meowdoku.Gameplay
                 dailyStreakLayout.SetActive(state.ShowDailyStreak);
             dailyEntry?.RefreshNow();
             streakEntry?.RefreshNow();
+            streakMiniEntry?.RefreshNow();
+            rankEntry?.RefreshNow();
+            ApplyMetaEntryLayout(false);
             if (profileEntry != null)
                 profileEntry.SetActive(state.ShowProfile);
+            RefreshProfileAvatar();
+        }
+
+        private void ApplyMetaEntryLayout(bool refreshRankEntry = true)
+        {
+            if (refreshRankEntry)
+                rankEntry?.RefreshNow();
+            bool rankOn =
+                _rankActivityRuntime?.Manager?.HasHomeEntry == true;
+            if (rankEntry != null)
+                rankEntry.gameObject.SetActive(rankOn);
+            if (streakEntry != null)
+                streakEntry.gameObject.SetActive(!rankOn);
+            if (streakMiniEntry != null)
+                streakMiniEntry.gameObject.SetActive(rankOn);
+        }
+
+        private void SubscribeProfileService()
+        {
+            ProfileService service = _profileRuntime?.Service;
+            if (service == null || _subscribedProfileService == service) return;
+            UnsubscribeProfileService();
+            service.AvatarFrameChanged += HandleAvatarFrameChanged;
+            _subscribedProfileService = service;
+        }
+
+        private void UnsubscribeProfileService()
+        {
+            if (_subscribedProfileService == null) return;
+            _subscribedProfileService.AvatarFrameChanged -=
+                HandleAvatarFrameChanged;
+            _subscribedProfileService = null;
+        }
+
+        private void HandleAvatarFrameChanged()
+        {
+            RefreshProfileAvatar();
+        }
+
+        private void RefreshProfileAvatar()
+        {
+            ProfileService service = _profileRuntime?.Service;
+            if (profileAvatar == null || service == null) return;
+            profileAvatar.Apply(service.GetPlayerInfo());
+            profileAvatar.SetRedDot(service.HasFrameRedDot);
         }
 
         public void PlayProfileShake()
@@ -674,6 +774,18 @@ namespace Meowdoku.Gameplay
                 0f,
                 HomePageContract.DisappearMarkerSeconds -
                 _transition.Duration()));
+        }
+
+        private void ShowImmediate()
+        {
+            KillTransition();
+            SetButtonsInteractable(true);
+            SetAlpha(backgroundGroup, 1f);
+            SetAlpha(gridFlowGroup, 1f);
+            SetAlpha(logoGroup, 1f);
+            SetAlpha(startGroup, 1f);
+            SetAlpha(settingsGroup, 1f);
+            ResetLogo(1f);
         }
 
         private void PlayExitToGame()

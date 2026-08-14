@@ -79,7 +79,6 @@ namespace Meowdoku.Gameplay
         private Action _onRestart;
         private Action _onPatternChanged;
         private Action _onClose;
-        private Action _onFeedback;
         private Action _onCmp;
         private Action _onVibrationPreview;
         private bool _isGameMode;
@@ -128,7 +127,6 @@ namespace Meowdoku.Gameplay
             _onRestart = Parameter<Action>(parameters, "on_restart");
             _onPatternChanged = Parameter<Action>(parameters, "on_pattern_changed");
             _onClose = Parameter<Action>(parameters, "on_close");
-            _onFeedback = Parameter<Action>(parameters, "on_feedback");
             _onCmp = Parameter<Action>(parameters, "on_cmp");
             _onVibrationPreview = Parameter<Action>(parameters, "on_vibration_preview");
             _restartConsumed = false;
@@ -295,6 +293,76 @@ namespace Meowdoku.Gameplay
             if (versionRow != null) versionRow.SetActive(state.ShowVersion);
             if (bottomSpacer != null)
                 bottomSpacer.preferredHeight = state.BottomSpacerMinimum;
+
+            ConfigureActionRows(state);
+            ConfigureLegalLinks();
+        }
+
+        private void ConfigureActionRows(SettingsPresentationState state)
+        {
+            RectTransform container = feedbackButton != null
+                ? feedbackButton.transform.parent as RectTransform
+                : null;
+            if (container == null) return;
+
+            int visibleRows = 0;
+            if (state.ShowLanguageButton) visibleRows++;
+            if (state.ShowFeedback) visibleRows++;
+            if (state.ShowHowToPlay) visibleRows++;
+            if (state.ShowRestart) visibleRows++;
+
+            VerticalLayoutGroup layout =
+                container.GetComponent<VerticalLayoutGroup>();
+            float spacing = layout != null ? layout.spacing : 0f;
+            float height = visibleRows > 0
+                ? visibleRows * SettingsPageContract.MainButtonHeight +
+                  (visibleRows - 1) * spacing
+                : 0f;
+            LayoutElement element = container.GetComponent<LayoutElement>();
+            if (element == null)
+                element = container.gameObject.AddComponent<LayoutElement>();
+            element.minHeight = height;
+            element.preferredHeight = height;
+        }
+
+        private void ConfigureLegalLinks()
+        {
+            if (termsRow == null) return;
+            HorizontalLayoutGroup layout =
+                termsRow.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null)
+            {
+                layout.spacing = 20f;
+                layout.childControlWidth = true;
+                layout.childControlHeight = true;
+                layout.childForceExpandWidth = true;
+                layout.childForceExpandHeight = true;
+            }
+
+            LayoutElement row = termsRow.GetComponent<LayoutElement>();
+            if (row != null) row.preferredHeight = 90f;
+            ConfigureLegalLink(termsButton);
+            ConfigureLegalLink(privacyButton);
+        }
+
+        private static void ConfigureLegalLink(Button button)
+        {
+            if (button == null) return;
+            LayoutElement element = button.GetComponent<LayoutElement>();
+            if (element != null)
+            {
+                element.minWidth = 0f;
+                element.preferredWidth = 390f;
+                element.flexibleWidth = 1f;
+            }
+
+            Text label = button.GetComponentInChildren<Text>(true);
+            if (label == null) return;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = 24;
+            label.resizeTextMaxSize = 48;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
         private void RefreshToggleValues()
@@ -490,17 +558,8 @@ namespace Meowdoku.Gameplay
         private void OpenFeedback()
         {
             TrackButton(TrackerCatalog.Button.Feedback);
-            bool online = _onFeedback != null
-                ? Application.internetReachability !=
-                  NetworkReachability.NotReachable
-                : _externalServices.IsOnline;
-            if (!online)
-            {
-                ShowToast("NETWORK_ERROR", "Please check your network connection.");
-                return;
-            }
-            if (_onFeedback != null) _onFeedback.Invoke();
-            else _externalServices.OpenFeedbackFaq();
+            _externalServices.OpenLocalizedPrivacyUrl(
+                PortfolioLinks.GitHub);
         }
 
         private void OpenCmp()
@@ -514,14 +573,14 @@ namespace Meowdoku.Gameplay
         {
             TrackButton(TrackerCatalog.Button.Terms);
             _externalServices.OpenLocalizedPrivacyUrl(
-                "https://oakevergames.com/tos.html");
+                PortfolioLinks.GitHub);
         }
 
         private void OpenPrivacy()
         {
             TrackButton(TrackerCatalog.Button.Privacy);
             _externalServices.OpenLocalizedPrivacyUrl(
-                "https://oakevergames.com/pp.html");
+                PortfolioLinks.GitHub);
         }
 
         private void HandleLanguageDropdownOpened()

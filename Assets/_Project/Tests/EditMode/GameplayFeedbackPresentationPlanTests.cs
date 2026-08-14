@@ -75,7 +75,10 @@ namespace Meowdoku.Tests.EditMode
             GameplayFeedbackPresentationPlan plan =
                 GameplayFeedbackPresentationPlan.Build(feedback);
 
-            float expected = 0.8f + 0.6f + 0.57f + 0.35f;
+            // The correct-cat score flight (0.8s launch delay) and heart
+            // sequence start together in base_game_page.gd. The gate uses the
+            // longer timeline instead of summing them.
+            float expected = 0.6f + 0.57f + 0.35f;
             Assert.That(plan.CompletionDelay, Is.EqualTo(expected).Within(0.0001f));
             Assert.That(plan.LifeBonusCount, Is.EqualTo(3));
         }

@@ -48,8 +48,16 @@ namespace Meowdoku.Gameplay
 
         private void Apply(SourceRankActivityPageLayoutResult value)
         {
-            SetTop(header, value.HeaderTop, SourceRankActivityLayout.PageHeaderHeight);
-            SetTop(podium, value.PodiumTop, SourceRankActivityLayout.PagePodiumHeight);
+            SetTop(
+                header,
+                value.HeaderTop,
+                SourceRankActivityLayout.PageHeaderHeight,
+                SourceRankActivityLayout.PageWidth);
+            SetTop(
+                podium,
+                value.PodiumTop,
+                SourceRankActivityLayout.PagePodiumHeight,
+                SourceRankActivityLayout.PageWidth);
             SetVerticalStretch(list, value.ListTop, value.ListBottomInset,
                 SourceRankActivityLayout.PageListWidth);
             if (cta != null)
@@ -63,13 +71,22 @@ namespace Meowdoku.Gameplay
             }
         }
 
-        private static void SetTop(RectTransform rect, float top, float height)
+        private static void SetTop(
+            RectTransform rect,
+            float top,
+            float height,
+            float width)
         {
             if (rect == null) return;
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
             rect.anchoredPosition = new Vector2(0f, -top);
-            rect.sizeDelta = new Vector2(rect.sizeDelta.x, height);
+            // Header is authored as a horizontal stretch RectTransform, whose
+            // sizeDelta.x is zero. Once its anchors are collapsed to center,
+            // retaining that zero width shifts all source-positioned children
+            // to the right of screen center. Restore the 1080-wide source
+            // coordinate space explicitly.
+            rect.sizeDelta = new Vector2(width, height);
         }
 
         private static void SetVerticalStretch(

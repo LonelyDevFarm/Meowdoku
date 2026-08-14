@@ -114,7 +114,11 @@ namespace Meowdoku.Gameplay
                 string author = localization != null
                     ? localization.Translate(key)
                     : key;
-                authorLabel.text = "- " + author;
+                bool authorAvailable = !string.IsNullOrWhiteSpace(author) &&
+                    !string.Equals(author, key, StringComparison.Ordinal);
+                authorLabel.gameObject.SetActive(authorAvailable);
+                if (authorAvailable)
+                    authorLabel.text = "- " + author;
             }
         }
 

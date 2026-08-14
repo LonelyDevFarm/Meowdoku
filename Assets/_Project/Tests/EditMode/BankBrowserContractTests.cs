@@ -6,11 +6,17 @@ using Meowdoku.Gameplay;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Meowdoku.Tests.EditMode
 {
     public sealed class BankBrowserContractTests
     {
+        private static readonly string[] MojibakeMarkers =
+        {
+            "\uFFFD", "?", "Ã", "Â", "â", "å", "ä", "é", "è", "æ", "ç"
+        };
+
         [SetUp]
         public void SetUp()
         {
@@ -193,8 +199,34 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(buckets[1].Tier, Is.EqualTo("H"));
             Assert.That(buckets[1].Definition.Label,
                 Is.EqualTo("R4H Hard+"));
+            Assert.That(buckets[1].Definition.Description,
+                Is.EqualTo("Deep advanced deduction"));
             Assert.That(buckets[1].Count, Is.EqualTo(1));
             Assert.That(buckets[1].IsHardTier, Is.True);
+        }
+
+        [Test]
+        public void HardRankFiveDescription_IsReadableEnglish()
+        {
+            LevelBankIO.LoadOverride = filename => filename ==
+                "bankData8x8.json"
+                ? new Dictionary<string, object>
+                {
+                    ["5"] = new List<object>
+                    {
+                        EntryDictionary(8, 5, "H", seed: 12)
+                    }
+                }
+                : null;
+
+            BankTierBucket hard = BankBrowserContract.GetTierBuckets(
+                    BankPoolKind.Regular, 8)
+                .Single(bucket => bucket.Rank == 5 && bucket.IsHardTier);
+            Assert.That(hard.Definition.Label, Is.EqualTo("R5H Expert+"));
+            Assert.That(hard.Definition.Description,
+                Is.EqualTo("Extreme chained deduction"));
+            AssertReadable(hard.Definition.Label);
+            AssertReadable(hard.Definition.Description);
         }
 
         [Test]
@@ -364,6 +396,40 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void PortfolioLabels_AreReadableEnglishSemanticEquivalents()
+        {
+            Assert.That(BankBrowserContract.Ranks.Select(rank => rank.Label),
+                Is.EqualTo(new[]
+                {
+                    "R1 Beginner", "R2 Easy", "R3 Medium", "R4 Hard",
+                    "R5 Expert"
+                }));
+            Assert.That(
+                BankBrowserContract.Ranks.Select(rank => rank.Description),
+                Is.EqualTo(new[]
+                {
+                    "Unique candidate",
+                    "Region, row and column constraints",
+                    "Locked sets (K <= 3)",
+                    "Advanced locks / shallow deduction",
+                    "Deep chained deduction"
+                }));
+            Assert.That(Enumerable.Range(4, 7)
+                    .Select(BankBrowserContract.SizeTierLabel),
+                Is.EqualTo(new[]
+                {
+                    "Beginner", "Intermediate", "Challenge", "Skilled",
+                    "Master", "Grandmaster", "Legendary"
+                }));
+
+            foreach (BankRankDefinition rank in BankBrowserContract.Ranks)
+            {
+                AssertReadable(rank.Label);
+                AssertReadable(rank.Description);
+            }
+        }
+
+        [Test]
         public void InstalledPrefab_HasSourcePanelBranchesAndNoMissingScripts()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -371,18 +437,50 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(prefab, Is.Not.Null);
             Assert.That(prefab.GetComponent<BankBrowserPagePresenter>(),
                 Is.Not.Null);
+            Text title = prefab.transform.Find("Header/TitleLabel")
+                ?.GetComponent<Text>();
+            Assert.That(title, Is.Not.Null);
+            Assert.That(title.text, Is.EqualTo("Puzzle Bank"));
             Assert.That(prefab.transform.Find("RootPanel"), Is.Not.Null);
             Assert.That(prefab.transform.Find("RegularSizePanel"), Is.Not.Null);
             Assert.That(prefab.transform.Find("TierPanel"), Is.Not.Null);
             Assert.That(prefab.transform.Find("ListPanel"), Is.Not.Null);
             Assert.That(prefab.transform.Find("LKPanel"), Is.Not.Null);
             Assert.That(prefab.transform.Find("VariantSizePanel"), Is.Not.Null);
-            Assert.That(prefab.GetComponentsInChildren<BankRootCardView>(true)
-                .Length, Is.EqualTo(6));
+            BankRootCardView[] rootCardViews =
+                prefab.GetComponentsInChildren<BankRootCardView>(true);
+            Assert.That(rootCardViews.Length, Is.EqualTo(6));
+            foreach (BankRootCardView rootCardView in rootCardViews)
+            {
+                Text cardTitle = rootCardView.transform.Find("Title")
+                    ?.GetComponent<Text>();
+                Assert.That(cardTitle, Is.Not.Null);
+                Assert.That(cardTitle.fontSize, Is.EqualTo(36));
+                Assert.That(cardTitle.verticalOverflow,
+                    Is.EqualTo(VerticalWrapMode.Overflow));
+                Assert.That(cardTitle.rectTransform.rect.height,
+                    Is.GreaterThanOrEqualTo(70f));
+            }
 
             Component[] components =
                 prefab.GetComponentsInChildren<Component>(true);
             Assert.That(components, Has.None.Null);
+
+            foreach (Text text in prefab.GetComponentsInChildren<Text>(true))
+                AssertReadable(text.text, text.name);
+        }
+
+        private static void AssertReadable(
+            string value,
+            string context = null)
+        {
+            Assert.That(value, Is.Not.Null, context);
+            foreach (string marker in MojibakeMarkers)
+                Assert.That(value, Does.Not.Contain(marker), context);
+            Assert.That(value.Any(character =>
+                    character >= '\u4E00' && character <= '\u9FFF'),
+                Is.False,
+                context);
         }
 
         private static void AssertBack(

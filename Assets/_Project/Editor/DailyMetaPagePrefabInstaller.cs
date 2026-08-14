@@ -28,18 +28,36 @@ namespace Meowdoku.Editor
             "Assets/_Project/Fonts/Roboto.ttf";
         private const string BgPath =
             "Assets/_Project/Sprites/daily_streak/bg_9grid.png";
+        private const string BestFramePath =
+            "Assets/_Project/Sprites/daily_streak/sudoku_bg_round20.png";
         private const string SunPath =
             "Assets/_Project/Sprites/daily_streak/sun.png";
         private const string DotPath =
             "Assets/_Project/Sprites/daily_streak/dot.png";
+        private const string CheckBarPath =
+            "Assets/_Project/Sprites/Effects/mask/et_mask_008.png";
         private const string ChestPath =
             "Assets/_Project/Sprites/daily_streak/treasure_box.png";
         private const string EntryCheckedPath =
             "Assets/_Project/Sprites/daily_streak/state_checked1.png";
         private const string EntryUncheckedPath =
             "Assets/_Project/Sprites/daily_streak/state_unchecked.png";
+        private const string MiniBgPath =
+            "Assets/_Project/Sprites/daily_streak/mini_bg.png";
+        private const string MiniGlowPath =
+            "Assets/_Project/Sprites/daily_streak/mini_glow.png";
+        private const string MiniSunPath =
+            "Assets/_Project/Sprites/daily_streak/sun.png";
+        private const string MiniCheckedPath =
+            "Assets/_Project/Sprites/daily_streak/state_checked2.png";
+        private const string MiniUncheckedPath =
+            "Assets/_Project/Sprites/daily_streak/mini_unchecked_icon.png";
         private const string ArrowPath =
             "Assets/_Project/Sprites/daily_streak/streak_arrow.png";
+        private const string BackIconPath =
+            "Assets/_Project/Sprites/daily_streak/vector_1.png";
+        private const string RoundedShaderPath =
+            "Assets/_Project/Shaders/UIRoundedRect.shader";
         private const string PrimaryButtonPath =
             "Assets/_Project/Sprites/common/btn_primary.png";
         private const string NormalButtonPath =
@@ -99,14 +117,24 @@ namespace Meowdoku.Editor
             LocalizationCatalog localization =
                 LocalizationCatalogAssetInstaller.GetOrCreate();
             Sprite bg = LoadSprite(BgPath);
+            Sprite bestFrame = LoadSprite(BestFramePath);
             Sprite sun = LoadSprite(SunPath);
             Sprite dot = LoadSprite(DotPath);
+            Sprite checkBar = LoadSprite(CheckBarPath);
             Sprite chest = LoadSprite(ChestPath);
             Sprite checkedEntry = LoadSprite(EntryCheckedPath);
             Sprite uncheckedEntry = LoadSprite(EntryUncheckedPath);
+            Sprite miniBg = LoadSprite(MiniBgPath);
+            Sprite miniGlow = LoadSprite(MiniGlowPath);
+            Sprite miniSun = LoadSprite(MiniSunPath);
+            Sprite miniChecked = LoadSprite(MiniCheckedPath);
+            Sprite miniUnchecked = LoadSprite(MiniUncheckedPath);
             Sprite arrow = LoadSprite(ArrowPath);
+            Sprite backIcon = LoadSprite(BackIconPath);
             Sprite primary = LoadSprite(PrimaryButtonPath);
             Sprite normal = LoadSprite(NormalButtonPath);
+            Shader roundedShader =
+                AssetDatabase.LoadAssetAtPath<Shader>(RoundedShaderPath);
             Sprite toolBg = LoadSprite(ToolBgPath);
             Sprite locate = LoadSprite(LocatePath);
             Sprite hint = LoadSprite(HintPath);
@@ -119,19 +147,24 @@ namespace Meowdoku.Editor
                 AssetDatabase.LoadAssetAtPath<TextAsset>(
                     AbSwitchStrategyPath);
             if (font == null || localization == null || bg == null ||
+                bestFrame == null || backIcon == null ||
                 sun == null || dot == null || chest == null ||
+                checkBar == null ||
                 checkedEntry == null || uncheckedEntry == null ||
                 arrow == null || primary == null || normal == null ||
                 toolBg == null || locate == null || hint == null ||
                 dialogFrame == null || streakCat == null ||
+                roundedShader == null ||
                 dialogPriority == null || abSwitchStrategy == null)
                 return;
 
             EnsureFolder("Assets/_Project/Prefabs", "UI");
-            EnsurePrefab(
+            EnsureStreakPresentationPrefab(
                 StreakPrefabPath,
                 () => BuildStreak(
-                    font, localization, bg, sun, dot, chest, primary));
+                    font, localization, bg, sun, dot, chest,
+                    checkBar, bestFrame, primary, normal, backIcon,
+                    roundedShader));
             EnsurePrefab(
                 ResumePrefabPath,
                 () => BuildRevive(
@@ -163,6 +196,14 @@ namespace Meowdoku.Editor
                 localization,
                 checkedEntry,
                 uncheckedEntry,
+                sun,
+                miniChecked,
+                miniBg,
+                miniGlow,
+                miniSun,
+                miniChecked,
+                miniUnchecked,
+                roundedShader,
                 dialogPriority,
                 abSwitchStrategy);
             UIRegistryAssetInstaller.InstallIfReady();
@@ -175,31 +216,46 @@ namespace Meowdoku.Editor
             Sprite sun,
             Sprite dot,
             Sprite chest,
-            Sprite primary)
+            Sprite checkBar,
+            Sprite bestFrameSprite,
+            Sprite primary,
+            Sprite normal,
+            Sprite backIcon,
+            Shader roundedShader)
         {
             GameObject page =
                 CreatePage<StreakPagePresenter>("StreakPage");
             RectTransform root = CreateRect("StreakContent", page.transform);
             Stretch(root);
+
             Image bg = CreateImage("Background", root, background);
             Stretch(bg.rectTransform);
-            bg.type = Image.Type.Sliced;
+            bg.type = Image.Type.Simple;
 
+            RectTransform top = CreateRect("Top", root);
+            Stretch(top);
             Text title = CreateText(
-                "Title", root, font, 72, "Daily Streak", Brown);
+                "Title", top, font, 56, "Daily Streak", Brown);
             SetCentered(title.rectTransform, new Vector2(0f, 920f),
-                new Vector2(800f, 100f));
+                new Vector2(700f, 90f));
 
             Button back = CreateButton(
-                "BackBtn", root, null, new Color(1f, 1f, 1f, 0.9f));
+                "BackBtn", top, null, Color.clear);
             SetCentered((RectTransform)back.transform,
                 new Vector2(-450f, 920f), new Vector2(100f, 100f));
-            Text backText = CreateText(
-                "Text", back.transform, font, 64, "‹", Brown);
-            Stretch(backText.rectTransform);
+            Image backBase = CreateImage("Base", back.transform, normal);
+            SetCentered(backBase.rectTransform, Vector2.zero,
+                new Vector2(140f, 140f));
+            backBase.preserveAspect = true;
+            Image backVisual = CreateImage("Icon", back.transform, backIcon);
+            SetCentered(backVisual.rectTransform, Vector2.zero,
+                new Vector2(54f, 46f));
+            backVisual.preserveAspect = true;
 
+            RectTransform hero = CreateRect("Hero", root);
+            Stretch(hero);
             GameObject sunRoot = CreateRect(
-                "SunRoot", root).gameObject;
+                "SunRoot", hero).gameObject;
             SetCentered((RectTransform)sunRoot.transform,
                 new Vector2(0f, 450f), new Vector2(512f, 512f));
             Image sunImage = CreateImage(
@@ -210,19 +266,19 @@ namespace Meowdoku.Editor
             sunButton.targetGraphic = sunImage;
 
             Text number = CreateText(
-                "StreakNumber", root, font, 200, "0", Orange);
+                "StreakNumber", hero, font, 200, "0", Orange);
             SetCentered(number.rectTransform, new Vector2(0f, 35f),
                 new Vector2(1000f, 300f));
             Text current = CreateText(
-                "CurrentStreak", root, font, 70,
+                "CurrentStreak", hero, font, 70,
                 "Current Streak", Brown);
             SetCentered(current.rectTransform, new Vector2(0f, -120f),
                 new Vector2(720f, 90f));
             Image bestFrame = CreateImage(
-                "BestFrame", root, background);
+                "BestFrame", hero, bestFrameSprite);
             SetCentered(bestFrame.rectTransform, new Vector2(0f, -225f),
                 new Vector2(470f, 80f));
-            bestFrame.type = Image.Type.Sliced;
+            bestFrame.preserveAspect = true;
             Text best = CreateText(
                 "BestStreak", bestFrame.transform, font, 50,
                 "Best Streak: 0", Brown);
@@ -240,17 +296,22 @@ namespace Meowdoku.Editor
                     new Vector2(-420f + index * 140f, 0f),
                     new Vector2(120f, 200f));
                 slotViews[index] = BuildDaySlot(
-                    slot, font, localization, dot, chest);
+                    slot, font, localization, dot, chest, checkBar,
+                    roundedShader);
             }
 
+            RectTransform instructions = CreateRect("Instructions", root);
+            Stretch(instructions);
             Text tapText = CreateText(
-                "TapSunText", root, font, 54,
+                "TapSunText", instructions, font, 54,
                 "Tap the sun, spark your streak!", Brown);
             SetCentered(tapText.rectTransform, new Vector2(0f, -650f),
                 new Vector2(900f, 130f));
 
+            RectTransform actions = CreateRect("Actions", root);
+            Stretch(actions);
             Button claim = CreateButton(
-                "ClaimBtn", root, primary, Color.white);
+                "ClaimBtn", actions, primary, Color.white);
             SetCentered((RectTransform)claim.transform,
                 new Vector2(0f, -790f), new Vector2(750f, 160f));
             Text claimText = CreateText(
@@ -259,7 +320,7 @@ namespace Meowdoku.Editor
             Stretch(claimText.rectTransform, new Vector2(55f, 20f));
 
             Button play = CreateButton(
-                "GoToPlayBtn", root, primary, Color.white);
+                "GoToPlayBtn", actions, primary, Color.white);
             SetCentered((RectTransform)play.transform,
                 new Vector2(0f, -790f), new Vector2(750f, 160f));
             Text playText = CreateText(
@@ -300,7 +361,9 @@ namespace Meowdoku.Editor
             Font font,
             LocalizationCatalog localization,
             Sprite dot,
-            Sprite chest)
+            Sprite chest,
+            Sprite checkBar,
+            Shader roundedShader)
         {
             StreakDaySlotView view =
                 root.gameObject.AddComponent<StreakDaySlotView>();
@@ -314,12 +377,31 @@ namespace Meowdoku.Editor
             SetCentered(uncheckedDot.rectTransform,
                 new Vector2(0f, -40f), new Vector2(120f, 120f));
             uncheckedDot.color = new Color(0.886f, 0.835f, 0.769f, 1f);
+            ConfigureRounded(uncheckedDot, roundedShader, 60f);
 
             Image checkedDot = CreateImage(
                 "CheckedDot", root, dot);
             SetCentered(checkedDot.rectTransform,
                 new Vector2(0f, -44f), new Vector2(148f, 148f));
             checkedDot.preserveAspect = true;
+
+            Image checkShort = CreateImage(
+                "CheckShort", checkedDot.transform, checkBar);
+            SetCentered(checkShort.rectTransform,
+                new Vector2(-20f, -7f), new Vector2(58f, 20f));
+            checkShort.rectTransform.localEulerAngles =
+                new Vector3(0f, 0f, -45f);
+            checkShort.color = Color.white;
+            checkShort.preserveAspect = false;
+
+            Image checkLong = CreateImage(
+                "CheckLong", checkedDot.transform, checkBar);
+            SetCentered(checkLong.rectTransform,
+                new Vector2(17f, 5f), new Vector2(88f, 20f));
+            checkLong.rectTransform.localEulerAngles =
+                new Vector3(0f, 0f, 45f);
+            checkLong.color = Color.white;
+            checkLong.preserveAspect = false;
 
             Image chestImage = CreateImage("Chest", root, chest);
             SetCentered(chestImage.rectTransform,
@@ -688,6 +770,14 @@ namespace Meowdoku.Editor
             LocalizationCatalog localization,
             Sprite checkedSprite,
             Sprite uncheckedSprite,
+            Sprite sunSprite,
+            Sprite checkedBadgeSprite,
+            Sprite miniBackground,
+            Sprite miniGlow,
+            Sprite miniSun,
+            Sprite miniChecked,
+            Sprite miniUnchecked,
+            Shader roundedShader,
             TextAsset dialogPriority,
             TextAsset abSwitchStrategy)
         {
@@ -702,21 +792,56 @@ namespace Meowdoku.Editor
                     root.GetComponent<HomePagePresenter>();
                 Transform slot = root.transform.Find(
                     "Root/DailyStreakLayout/StreakEntrySlot");
-                if (home == null || slot is not RectTransform slotRect)
+                Transform miniSlot = root.transform.Find(
+                    "Root/DailyStreakLayout/StreakSmallEntrySlot");
+                if (home == null || slot is not RectTransform slotRect ||
+                    miniSlot is not RectTransform miniSlotRect)
                     return;
 
                 StreakEntryPresenter entry =
                     slot.GetComponentInChildren<StreakEntryPresenter>(true);
                 bool changed = false;
-                if (entry == null)
+                bool rebuildEntry = entry == null ||
+                    entry.transform.Find("StateChecked/Sun") == null ||
+                    entry.transform.Find("StateChecked/Checkmark") == null;
+                if (rebuildEntry)
                 {
+                    if (entry != null)
+                        UnityEngine.Object.DestroyImmediate(entry.gameObject);
                     entry = BuildHomeEntry(
                         slotRect,
                         font,
                         localization,
                         checkedSprite,
-                        uncheckedSprite);
+                        uncheckedSprite,
+                        sunSprite,
+                        checkedBadgeSprite,
+                        roundedShader);
                     changed = entry != null;
+                }
+
+                StreakEntryPresenter miniEntry =
+                    miniSlot.GetComponentInChildren<StreakEntryPresenter>(
+                        true);
+                bool rebuildMiniEntry = miniEntry == null ||
+                    miniEntry.transform.Find("Panel") == null ||
+                    miniEntry.transform.Find("Shadow") == null;
+                if (rebuildMiniEntry)
+                {
+                    if (miniEntry != null)
+                        UnityEngine.Object.DestroyImmediate(
+                            miniEntry.gameObject);
+                    miniEntry = BuildHomeMiniEntry(
+                        miniSlotRect,
+                        font,
+                        localization,
+                        miniBackground,
+                        miniGlow,
+                        miniSun,
+                        miniChecked,
+                        miniUnchecked,
+                        roundedShader);
+                    changed |= miniEntry != null;
                 }
 
                 SerializedObject homeData = new(home);
@@ -728,6 +853,14 @@ namespace Meowdoku.Editor
                     entryProperty.objectReferenceValue != entry)
                 {
                     entryProperty.objectReferenceValue = entry;
+                    changed = true;
+                }
+                SerializedProperty miniEntryProperty =
+                    homeData.FindProperty("streakMiniEntry");
+                if (miniEntryProperty != null &&
+                    miniEntryProperty.objectReferenceValue != miniEntry)
+                {
+                    miniEntryProperty.objectReferenceValue = miniEntry;
                     changed = true;
                 }
                 changed |= homeData.ApplyModifiedPropertiesWithoutUndo();
@@ -746,17 +879,34 @@ namespace Meowdoku.Editor
             Font font,
             LocalizationCatalog localization,
             Sprite checkedSprite,
-            Sprite uncheckedSprite)
+            Sprite uncheckedSprite,
+            Sprite sunSprite,
+            Sprite checkedBadgeSprite,
+            Shader roundedShader)
         {
             RectTransform root = CreateRect("StreakEntryCell", parent);
             Stretch(root);
             StreakEntryPresenter presenter =
                 root.gameObject.AddComponent<StreakEntryPresenter>();
 
-            Image checkedImage = CreateImage(
-                "StateChecked", root, checkedSprite);
-            Stretch(checkedImage.rectTransform, new Vector2(20f, 20f));
-            checkedImage.preserveAspect = true;
+            RectTransform checkedState = CreateRect("StateChecked", root);
+            Stretch(checkedState);
+            Image checkedBackground = CreateImage(
+                "Background", checkedState, checkedSprite);
+            Stretch(checkedBackground.rectTransform,
+                new Vector2(20f, 20f));
+            checkedBackground.preserveAspect = true;
+            Image checkedSun = CreateImage(
+                "Sun", checkedState, sunSprite);
+            SetCentered(checkedSun.rectTransform,
+                new Vector2(0f, 17f), new Vector2(297f, 297f));
+            checkedSun.preserveAspect = true;
+            Image checkedBadge = CreateImage(
+                "Checkmark", checkedState, checkedBadgeSprite);
+            SetCentered(checkedBadge.rectTransform,
+                new Vector2(158f, 232f), new Vector2(104f, 86f));
+            checkedBadge.preserveAspect = true;
+
             Image uncheckedImage = CreateImage(
                 "StateUnchecked", root, uncheckedSprite);
             Stretch(uncheckedImage.rectTransform);
@@ -772,6 +922,7 @@ namespace Meowdoku.Editor
             SetCentered(badge.rectTransform,
                 new Vector2(0f, -205f), new Vector2(370f, 90f));
             badge.color = new Color(1f, 0.945f, 0.733f, 1f);
+            ConfigureRounded(badge, roundedShader, 45f);
             Text count = CreateText(
                 "CountTxt", badge.transform, font, 70, "0",
                 new Color(0.676f, 0.387f, 0f, 1f));
@@ -782,9 +933,88 @@ namespace Meowdoku.Editor
             Stretch((RectTransform)click.transform);
 
             SerializedObject data = new(presenter);
-            SetRef(data, "checkedState", checkedImage.gameObject);
+            SetRef(data, "checkedState", checkedState.gameObject);
             SetRef(data, "uncheckedState", uncheckedImage.gameObject);
             SetRef(data, "titleText", title);
+            SetRef(data, "countText", count);
+            SetRef(data, "clickButton", click);
+            SetRef(data, "localization", localization);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            return presenter;
+        }
+
+        private static StreakEntryPresenter BuildHomeMiniEntry(
+            RectTransform parent,
+            Font font,
+            LocalizationCatalog localization,
+            Sprite backgroundSprite,
+            Sprite glowSprite,
+            Sprite sunSprite,
+            Sprite checkedSprite,
+            Sprite uncheckedSprite,
+            Shader roundedShader)
+        {
+            if (backgroundSprite == null || glowSprite == null ||
+                sunSprite == null || checkedSprite == null ||
+                uncheckedSprite == null)
+                return null;
+
+            RectTransform root = CreateRect("StreakMiniEntryCell", parent);
+            Stretch(root);
+            StreakEntryPresenter presenter =
+                root.gameObject.AddComponent<StreakEntryPresenter>();
+
+            Image shadow = CreateImage(
+                "Shadow", root, backgroundSprite);
+            Stretch(shadow.rectTransform, new Vector2(-18f, -18f));
+            Image panel = CreateImage("Panel", root, null);
+            Stretch(panel.rectTransform);
+            panel.color = new Color(1f, 0.8318f, 0.4064f, 1f);
+            ConfigureRounded(panel, roundedShader, 30f);
+
+            Image glow = CreateImage("Glow", root, glowSprite);
+            SetCentered(glow.rectTransform,
+                new Vector2(0f, 35f), new Vector2(213f, 212.5f));
+            glow.preserveAspect = true;
+
+            RectTransform checkedState = CreateRect("CheckedState", root);
+            Stretch(checkedState);
+            Image sun = CreateImage("Sun", checkedState, sunSprite);
+            SetCentered(sun.rectTransform,
+                new Vector2(0f, 35f), new Vector2(163f, 163f));
+            sun.preserveAspect = true;
+            Image checkmark = CreateImage(
+                "Checkmark", checkedState, checkedSprite);
+            SetCentered(checkmark.rectTransform,
+                new Vector2(158f, 84.5f), new Vector2(104f, 86f));
+            checkmark.preserveAspect = true;
+
+            RectTransform uncheckedState = CreateRect(
+                "UncheckedState", root);
+            Stretch(uncheckedState);
+            Image uncheckedIcon = CreateImage(
+                "Icon", uncheckedState, uncheckedSprite);
+            SetCentered(uncheckedIcon.rectTransform,
+                new Vector2(0f, 35f), new Vector2(163f, 164f));
+            uncheckedIcon.preserveAspect = true;
+
+            Image badge = CreateImage("CountBadge", root, null);
+            SetCentered(badge.rectTransform,
+                new Vector2(0f, -82.5f), new Vector2(300f, 56f));
+            badge.color = new Color(1f, 0.945f, 0.733f, 1f);
+            ConfigureRounded(badge, roundedShader, 28f);
+            Text count = CreateText(
+                "CountTxt", badge.transform, font, 46, "0",
+                new Color(0.676f, 0.387f, 0f, 1f));
+            Stretch(count.rectTransform);
+
+            Button click = CreateButton(
+                "ClickBtn", root, null, Color.clear);
+            Stretch((RectTransform)click.transform);
+
+            SerializedObject data = new(presenter);
+            SetRef(data, "checkedState", checkedState.gameObject);
+            SetRef(data, "uncheckedState", uncheckedState.gameObject);
             SetRef(data, "countText", count);
             SetRef(data, "clickButton", click);
             SetRef(data, "localization", localization);
@@ -832,6 +1062,52 @@ namespace Meowdoku.Editor
             data.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        private static void EnsureStreakPresentationPrefab(
+            string path,
+            Func<GameObject> factory)
+        {
+            GameObject existing =
+                AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            Transform content = existing != null
+                ? existing.transform.Find("StreakContent")
+                : null;
+            Transform sun = content?.Find("Hero/SunRoot/SunImg");
+            Transform best = content?.Find("Hero/BestFrame");
+            Transform backBase = content?.Find("Top/BackBtn/Base");
+            Transform back = content?.Find("Top/BackBtn/Icon");
+            Transform uncheckedDot = content?.Find(
+                "WeekSlots/Day1/UncheckedDot");
+            Transform checkShort = content?.Find(
+                "WeekSlots/Day1/CheckedDot/CheckShort");
+            Transform checkLong = content?.Find(
+                "WeekSlots/Day1/CheckedDot/CheckLong");
+            bool current = SpriteNameMatches(
+                    sun?.GetComponent<Image>()?.sprite, "sun") &&
+                SpriteNameMatches(
+                    best?.GetComponent<Image>()?.sprite,
+                    "sudoku_bg_round20") &&
+                SpriteNameMatches(
+                    backBase?.GetComponent<Image>()?.sprite,
+                    "normal_btn_bg") &&
+                SpriteNameMatches(
+                    back?.GetComponent<Image>()?.sprite, "vector_1") &&
+                SpriteNameMatches(
+                    checkShort?.GetComponent<Image>()?.sprite,
+                    "et_mask_008") &&
+                SpriteNameMatches(
+                    checkLong?.GetComponent<Image>()?.sprite,
+                    "et_mask_008") &&
+                uncheckedDot?.GetComponent<RoundedImageView>() != null;
+            if (current) return;
+
+            GameObject root = factory();
+            if (root == null) return;
+            // Saving over the existing prefab preserves its .meta GUID and
+            // every registry reference while replacing deterministic content.
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            UnityEngine.Object.DestroyImmediate(root);
+        }
+
         private static void EnsurePrefab(
             string path,
             Func<GameObject> factory)
@@ -864,6 +1140,35 @@ namespace Meowdoku.Editor
             image.sprite = sprite;
             image.raycastTarget = false;
             return image;
+        }
+
+        private static void ConfigureRounded(
+            Image image,
+            Shader shader,
+            float radius)
+        {
+            RoundedImageView rounded =
+                image.gameObject.AddComponent<RoundedImageView>();
+            SerializedObject data = new(rounded);
+            data.FindProperty("target").objectReferenceValue = image;
+            data.FindProperty("roundedShader").objectReferenceValue = shader;
+            data.FindProperty("cornerRadius").floatValue = radius;
+            data.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static bool SpriteNameMatches(
+            Sprite sprite,
+            string expectedName)
+        {
+            if (sprite == null || string.IsNullOrEmpty(expectedName))
+                return false;
+            return string.Equals(
+                       sprite.name,
+                       expectedName,
+                       StringComparison.Ordinal) ||
+                   sprite.name.StartsWith(
+                       expectedName + "_",
+                       StringComparison.Ordinal);
         }
 
         private static Text CreateText(

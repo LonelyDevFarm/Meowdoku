@@ -1,3 +1,4 @@
+using Meowdoku.Core.Localization;
 using Meowdoku.Gameplay;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -16,7 +17,10 @@ namespace Meowdoku.Editor
     {
         private const string ScenePath = "Assets/_Project/Scenes/GameplayScene.unity";
         private const string CellPrefabPath = "Assets/_Project/Prefabs/Cell.prefab";
+        private const string GamePagePrefabPath = "Assets/_Project/Prefabs/UI/GamePage.prefab";
         private const string FontPath = "Assets/_Project/Fonts/Roboto.ttf";
+        private const string EastAsianFontPath =
+            "Assets/_Project/Fonts/NotoSourceHan-subset.ttf";
         private const string RoundedShaderPath =
             "Assets/_Project/Shaders/UIRoundedRect.shader";
         private const string ToolBackgroundPath =
@@ -145,6 +149,9 @@ namespace Meowdoku.Editor
             {
                 CellView view = root.GetComponent<CellView>();
                 if (view == null) return;
+                CanvasGroup introCanvasGroup = root.GetComponent<CanvasGroup>();
+                if (introCanvasGroup == null)
+                    introCanvasGroup = root.AddComponent<CanvasGroup>();
                 Image pattern = EnsureImage("Pattern", root.transform);
                 SetRect(pattern.rectTransform, Vector2.zero, new Vector2(95f, 95f));
                 pattern.sprite = null;
@@ -177,6 +184,8 @@ namespace Meowdoku.Editor
                 if (error != null)
                     error.color = new Color(0.99215686f, 0.41568628f, 0.18039216f, 1f);
                 SerializedObject data = new SerializedObject(view);
+                data.FindProperty("introCanvasGroup").objectReferenceValue =
+                    introCanvasGroup;
                 data.FindProperty("patternImage").objectReferenceValue = pattern;
                 data.FindProperty("hintLight").objectReferenceValue = light;
                 data.FindProperty("promptFrame").objectReferenceValue = frame;
@@ -192,6 +201,32 @@ namespace Meowdoku.Editor
             }
         }
 
+        internal static void UpgradeGamePageRuleBar()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(GamePagePrefabPath) == null ||
+                EditorApplication.isCompiling ||
+                EditorApplication.isUpdating ||
+                EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            GameObject root = PrefabUtility.LoadPrefabContents(GamePagePrefabPath);
+            if (root == null) return;
+            try
+            {
+                GameplayManager manager = root.GetComponentInChildren<GameplayManager>(true);
+                RectTransform hud = root.transform.Find("HUD") as RectTransform;
+                if (manager == null || hud == null) return;
+
+                InstallRuleBar(hud, manager);
+                PrefabUtility.SaveAsPrefabAsset(root, GamePagePrefabPath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
         private static RectTransform InstallRuleBar(
             RectTransform hud,
             GameplayManager manager)
@@ -200,6 +235,9 @@ namespace Meowdoku.Editor
             root.anchorMin = root.anchorMax = new Vector2(0.5f, 0.5f);
             root.pivot = new Vector2(0.5f, 0.5f);
             root.sizeDelta = new Vector2(1080f, 170f);
+            CanvasGroup contentGroup = root.GetComponent<CanvasGroup>();
+            if (contentGroup == null)
+                contentGroup = root.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform effects = EnsureRect("Effects", root, true);
             effects.SetAsFirstSibling();
@@ -222,9 +260,15 @@ namespace Meowdoku.Editor
             RectTransform highlights = EnsureRect("Highlights", root, true);
             string[] labels =
             {
-                "1 Cat per color",
-                "1 Cat per column and row",
-                "Cats can't be adjacent"
+                "1 mèo mỗi màu",
+                "1 mèo mỗi cột và hàng",
+                "Mèo không được kề nhau"
+            };
+            string[] localizationKeys =
+            {
+                "GAME_RULE_ONE_PER_COLOR",
+                "GAME_RULE_ONE_PER_LINE",
+                "GAME_RULE_NO_TOUCH"
             };
             float[] x = { -329f, 0f, 329f };
             Image[] highlightImages = new Image[3];
@@ -238,6 +282,10 @@ namespace Meowdoku.Editor
                     new Vector2(310f, 120f));
                 ConfigureRoundedImage(pill, new Color(0.9843f, 0.95686f, 0.93333f, 1f));
                 Text text = EnsureText("Label", pill.transform, font, 36, labels[index]);
+                ConfigureLocalizedText(
+                    text,
+                    localizationKeys[index],
+                    labels[index]);
                 Stretch(text.rectTransform, new Vector2(12f, 4f));
                 text.horizontalOverflow = HorizontalWrapMode.Wrap;
                 text.verticalOverflow = VerticalWrapMode.Truncate;
@@ -265,8 +313,33 @@ namespace Meowdoku.Editor
             SerializedObject serialized = new SerializedObject(presenter);
             serialized.FindProperty("gameplayManager").objectReferenceValue = manager;
             SetObjectArray(serialized.FindProperty("highlights"), highlightImages);
+            serialized.FindProperty("animatedContent").objectReferenceValue = root;
+            serialized.FindProperty("contentGroup").objectReferenceValue = contentGroup;
+            serialized.FindProperty("entryGlow").objectReferenceValue = glow;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             return root;
+        }
+
+        private static void ConfigureLocalizedText(
+            Text target,
+            string key,
+            string fallback)
+        {
+            if (target == null) return;
+            LocalizedText localized = target.GetComponent<LocalizedText>();
+            if (localized == null)
+                localized = target.gameObject.AddComponent<LocalizedText>();
+            SerializedObject data = new(localized);
+            data.FindProperty("catalog").objectReferenceValue =
+                LocalizationCatalogAssetInstaller.GetOrCreate();
+            data.FindProperty("target").objectReferenceValue = target;
+            data.FindProperty("key").stringValue = key;
+            data.FindProperty("fallbackText").stringValue = fallback;
+            data.FindProperty("primaryFont").objectReferenceValue = target.font;
+            data.FindProperty("eastAsianFallbackFont").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Font>(EastAsianFontPath);
+            data.ApplyModifiedPropertiesWithoutUndo();
+            localized.Refresh();
         }
 
         private static void InstallPageLayout(
@@ -371,19 +444,25 @@ namespace Meowdoku.Editor
             Image background = EnsureImage("Background", visual);
             SetRect(background.rectTransform, Vector2.zero,
                 new Vector2(210f, 210f));
-            background.sprite = LoadSprite(ToolBackgroundPath);
+            changed |= SetSpriteIfChanged(
+                background,
+                LoadSprite(ToolBackgroundPath));
             background.preserveAspect = true;
             background.raycastTarget = true;
             Image light = EnsureImage("Light", visual);
             SetRect(light.rectTransform, Vector2.zero, new Vector2(228f, 228f));
-            light.sprite = LoadSprite(ToolLightPath);
+            changed |= SetSpriteIfChanged(light, LoadSprite(ToolLightPath));
             light.preserveAspect = true;
             light.color = new Color(1f, 1f, 1f, 0f);
             light.gameObject.SetActive(false);
             Image icon = EnsureImage("Icon", visual);
             SetRect(icon.rectTransform, new Vector2(0f, -6f), iconSize);
-            icon.sprite = iconSprite;
+            changed |= SetSpriteIfChanged(icon, iconSprite);
             icon.preserveAspect = true;
+
+            changed |= SetSiblingIndexIfChanged(background.transform, 0);
+            changed |= SetSiblingIndexIfChanged(light.transform, 1);
+            changed |= SetSiblingIndexIfChanged(icon.transform, 2);
 
             RectTransform badge = EnsureRect("Badge", root, false);
             SetRect(badge, new Vector2(70f, 98f), new Vector2(90f, 54f));
@@ -406,7 +485,7 @@ namespace Meowdoku.Editor
             ConfigureRounded(action, 27f);
             Image plus = EnsureImage("Plus", action.transform);
             SetRect(plus.rectTransform, Vector2.zero, new Vector2(38f, 38f));
-            plus.sprite = LoadSprite(PlusIconPath);
+            changed |= SetSpriteIfChanged(plus, LoadSprite(PlusIconPath));
             plus.preserveAspect = true;
             Text free = EnsureText(
                 "Free",
@@ -446,6 +525,15 @@ namespace Meowdoku.Editor
             data.FindProperty("showBadge").boolValue = true;
             data.ApplyModifiedPropertiesWithoutUndo();
             return view;
+        }
+
+        private static bool SetSiblingIndexIfChanged(
+            Transform transform,
+            int siblingIndex)
+        {
+            if (transform.GetSiblingIndex() == siblingIndex) return false;
+            transform.SetSiblingIndex(siblingIndex);
+            return true;
         }
 
         private static void ConfigureRounded(Image image, float radius)
@@ -662,6 +750,13 @@ namespace Meowdoku.Editor
         internal static bool ConfigureBoardPatterns(BoardView board)
         {
             if (board == null) return false;
+            CanvasGroup introCanvasGroup = board.GetComponent<CanvasGroup>();
+            bool changed = false;
+            if (introCanvasGroup == null)
+            {
+                introCanvasGroup = Undo.AddComponent<CanvasGroup>(board.gameObject);
+                changed = true;
+            }
             var sprites = new Object[PatternSpritePaths.Length];
             for (int index = 0; index < PatternSpritePaths.Length; index++)
                 sprites[index] = LoadSprite(PatternSpritePaths[index]);
@@ -669,22 +764,29 @@ namespace Meowdoku.Editor
             SerializedObject data = new SerializedObject(board);
             SerializedProperty property = data.FindProperty("patternIcons");
             if (property == null) return false;
-            bool changed = property.arraySize != sprites.Length;
-            if (!changed)
+            bool spritesChanged = property.arraySize != sprites.Length;
+            if (!spritesChanged)
             {
                 for (int index = 0; index < sprites.Length; index++)
                 {
                     if (property.GetArrayElementAtIndex(index)
                             .objectReferenceValue == sprites[index])
                         continue;
-                    changed = true;
+                    spritesChanged = true;
                     break;
                 }
             }
-            if (!changed) return false;
-            SetObjectArray(property, sprites);
+            if (spritesChanged)
+                SetObjectArray(property, sprites);
+            SerializedProperty canvasProperty = data.FindProperty("introCanvasGroup");
+            if (canvasProperty != null &&
+                canvasProperty.objectReferenceValue != introCanvasGroup)
+            {
+                canvasProperty.objectReferenceValue = introCanvasGroup;
+                changed = true;
+            }
             data.ApplyModifiedPropertiesWithoutUndo();
-            return true;
+            return changed || spritesChanged;
         }
 
         private static void SetRect(RectTransform rect, Vector2 center, Vector2 size)
@@ -713,7 +815,19 @@ namespace Meowdoku.Editor
 
         private static Sprite LoadSprite(string path)
         {
-            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                if (asset is Sprite sprite) return sprite;
+            }
+            return null;
+        }
+
+        private static bool SetSpriteIfChanged(Image image, Sprite sprite)
+        {
+            if (image == null || sprite == null || image.sprite == sprite)
+                return false;
+            image.sprite = sprite;
+            return true;
         }
 
         private static Sprite LoadNineSliceSprite(string path, Vector4 border)

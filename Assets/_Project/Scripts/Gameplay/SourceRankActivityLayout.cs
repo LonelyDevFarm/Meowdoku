@@ -60,6 +60,7 @@ namespace Meowdoku.Gameplay
     /// </summary>
     public static class SourceRankActivityLayout
     {
+        public const float PageWidth = 1080f;
         public const float PageHeaderHeight = 184f;
         public const float PagePodiumHeight = 521f;
         public const float PageListWidth = 1008f;

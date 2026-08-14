@@ -173,8 +173,7 @@ namespace Meowdoku.Core.Platform
 
         public void OpenLocalizedPrivacyUrl(string defaultUrl)
         {
-            string url = Provider.GetLocalizedPrivacyUrl(defaultUrl);
-            if (!string.IsNullOrWhiteSpace(url)) Application.OpenURL(url);
+            Application.OpenURL(PortfolioLinks.GitHub);
         }
 
         public void PrepareNormalGameEnd(int level)

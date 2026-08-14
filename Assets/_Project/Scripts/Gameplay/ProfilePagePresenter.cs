@@ -247,6 +247,8 @@ namespace Meowdoku.Gameplay
         {
             if (avatarActive != null) avatarActive.SetActive(!_showingFrames);
             if (frameActive != null) frameActive.SetActive(_showingFrames);
+            SetTabLabelVisible(avatarTabText, _showingFrames);
+            SetTabLabelVisible(frameTabText, !_showingFrames);
             if (avatarGrid != null) avatarGrid.gameObject.SetActive(!_showingFrames);
             if (leaderboardDivider != null)
                 leaderboardDivider.SetActive(_showingFrames);
@@ -563,6 +565,52 @@ namespace Meowdoku.Gameplay
             SetText(confirmText, "PROFILE_CONFIRM", "Confirm");
         }
 
+        private void RefreshTabLabels()
+        {
+            Text avatarSelected = GetActiveTabLabel(avatarActive);
+            Text frameSelected = GetActiveTabLabel(frameActive);
+            if (avatarSelected != null && avatarTabText != null)
+                avatarSelected.text = avatarTabText.text;
+            if (frameSelected != null && frameTabText != null)
+                frameSelected.text = frameTabText.text;
+
+            ConfigureTabLabel(avatarTabText);
+            ConfigureTabLabel(frameTabText);
+            ConfigureTabLabel(avatarSelected);
+            ConfigureTabLabel(frameSelected);
+            SetTabLabelVisible(avatarTabText, _showingFrames);
+            SetTabLabelVisible(frameTabText, !_showingFrames);
+        }
+
+        private static Text GetActiveTabLabel(GameObject activeRoot)
+        {
+            return activeRoot != null
+                ? activeRoot.GetComponentInChildren<Text>(true)
+                : null;
+        }
+
+        private static void ConfigureTabLabel(Text target)
+        {
+            if (target == null) return;
+            target.fontSize = 50;
+            target.resizeTextForBestFit = false;
+            target.alignment = TextAnchor.MiddleCenter;
+            target.horizontalOverflow = HorizontalWrapMode.Overflow;
+            target.verticalOverflow = VerticalWrapMode.Truncate;
+            RectTransform rect = target.rectTransform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -7f);
+            rect.sizeDelta = new Vector2(-40f, 86f);
+        }
+
+        private static void SetTabLabelVisible(Text target, bool visible)
+        {
+            if (target != null && target.gameObject.activeSelf != visible)
+                target.gameObject.SetActive(visible);
+        }
+
         private void SetText(Text target, string key, string fallback)
         {
             if (target == null) return;
@@ -570,6 +618,8 @@ namespace Meowdoku.Gameplay
                 ? localization.Translate(key)
                 : key;
             target.text = value == key ? fallback : value;
+            if (target == avatarTabText || target == frameTabText)
+                RefreshTabLabels();
         }
 
         private void SubscribeService()

@@ -1,13 +1,61 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Meowdoku.Services;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEngine;
 
 namespace Meowdoku.Tests.EditMode
 {
     public sealed class SoundContractTests
     {
+        [Test]
+        public void SerializedCatalog_AllClipsDecodeWithFiniteNonSilentSignal()
+        {
+            SoundCatalog catalog = AssetDatabase.LoadAssetAtPath<SoundCatalog>(
+                "Assets/_Project/Settings/SoundCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+
+            var clips = new HashSet<AudioClip>();
+            foreach (SoundClipEntry entry in catalog.FixedClips)
+                if (entry?.clip != null) clips.Add(entry.clip);
+            foreach (PathSoundClipEntry entry in catalog.PathClips)
+                if (entry?.clip != null) clips.Add(entry.clip);
+
+            Assert.That(clips, Has.Count.EqualTo(66));
+            foreach (AudioClip clip in clips)
+            {
+                Assert.That(clip.samples, Is.GreaterThan(0), clip.name);
+                Assert.That(clip.channels, Is.GreaterThan(0), clip.name);
+                Assert.That(clip.frequency, Is.GreaterThan(0), clip.name);
+                Assert.That(clip.length, Is.GreaterThan(0f), clip.name);
+                Assert.That(clip.length, Is.LessThan(10f), clip.name);
+
+                if (clip.loadState != AudioDataLoadState.Loaded)
+                    clip.LoadAudioData();
+                Assert.That(clip.loadState,
+                    Is.Not.EqualTo(AudioDataLoadState.Failed), clip.name);
+
+                var samples = new float[clip.samples * clip.channels];
+                Assert.That(clip.GetData(samples, 0), Is.True, clip.name);
+
+                float peak = 0f;
+                double squareSum = 0d;
+                foreach (float sample in samples)
+                {
+                    Assert.That(float.IsNaN(sample), Is.False, clip.name);
+                    Assert.That(float.IsInfinity(sample), Is.False, clip.name);
+                    peak = Mathf.Max(peak, Mathf.Abs(sample));
+                    squareSum += sample * sample;
+                }
+
+                double rms = Math.Sqrt(squareSum / samples.Length);
+                Assert.That(peak, Is.GreaterThan(0.0001f), clip.name);
+                Assert.That(rms, Is.GreaterThan(0.00001d), clip.name);
+                Assert.That(peak, Is.LessThanOrEqualTo(1.0001f), clip.name);
+            }
+        }
         [Test]
         public void KindOrderAndMappedCount_MatchGodotEnumAndPathTable()
         {

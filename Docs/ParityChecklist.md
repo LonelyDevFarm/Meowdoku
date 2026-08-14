@@ -135,6 +135,8 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
   scale, xoay icon và light pulse, cleanup khi page ẩn. Bằng chứng:
   `ToolResourceCoordinatorTests.RepeatableIdleHint_UsesTwentyTenTwentyCadence`
   và Platform ToolBar fixture.
+- `[x]` `P-GAME-014`: Board enter dùng delay ring `column + (N - 1 - row)`, nên cell hiện theo diagonal bottom-left → top-right; normal/reduce-spacing/single-line giữ ba curve và timing nguồn, input chỉ mở sau callback kết thúc. Stop/restart không reset nhầm visual trước lần init.
+- `[x]` `P-GAME-015`: `score_encourage` thuộc shared `GameplayConfigSet` và reload ở `GameStart` trước khi dựng session. Runtime 6×6 đã xác minh bubble, multiplier, score-flight hội tụ về authoritative score, RuleBar pulse hai vòng, ToolButton pulse cleanup, completion không mở Win cùng frame; Win phủ trên Game như source và các pool tự trả về 0 sau trail/burst cuối.
 
 ## P-TUTORIAL — Tutorial
 
@@ -189,7 +191,7 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
 
 - `[x]` `P-RESULT-001`: Win default + đủ sáu giá trị pass-text V0/V1/V2/V3-G1/G2/G3 và pass-page Control/G1/G2/G4 đã port. AppScene matrix mở/đóng cùng cached presenter qua mọi variant, khóa default/panel/extra-stat state, Size/Time/Score/Combo, Completion/Mistake/Tools, percent highlight, G1/G2 CTA marker, G4 roll và Back consume; pixel/Spine được theo dõi riêng ở nhóm visual.
 - `[x]` `P-RESULT-002`: Coordinator settle/Next main và Bank next-launch có guard một lần cùng fixtures. AppScene PlayMode xác nhận Main Win → Streak/Award → level 2 và cả sáu Bank pool Win/Next đều giữ đúng pool/index, tải đúng một lần.
-- `[~]` `P-RESULT-003`: Fail presenter dùng remaining cats từ terminal transition, đúng title/encourage/promote source; AppScene PlayMode xác nhận toàn page bị chặn 1,5 giây trong khi button giữ trạng thái/tint, còn visual parity.
+- `[x]` `P-RESULT-003`: Fail presenter đã khóa timeline phong cách nguồn theo overlay/cat/title/remaining/encourage/CTA bằng các group riêng biệt; button mở khóa sau `1.5s`, close dài `0.1s`, cleanup và reopen không giữ tween/state cũ. Bằng chứng: AppScene PlayMode xác nhận timing, interaction gate và vòng đóng/mở lại.
 - `[~]` `P-RESULT-004`: Fail restart không settle/advance lần hai và giữ `restart_count`; AppScene PlayMode đã xác nhận 3 wrong → Fail → Restart vẫn level 1/3 mạng rồi Win → level 2. Rewarded revive cũng chịu được vòng Fail thứ hai; còn app-kill PlayMode.
 - `[x]` `P-RESULT-005`: Revive khôi phục 1/3 lives theo `revive_life`, resume clock và đóng Fail. AppScene PlayMode xác nhận default hồi đúng 1 mạng sau callback reward và không settle lặp khi ad đóng.
 - `[x]` `P-RESULT-006`: Free-once persisted/idempotent và reward revive đi qua boundary. AppScene PlayMode xác nhận null provider ẩn Revive; test provider xác nhận đúng position Main, chỉ `ad_rewarded` mới hồi sinh, còn `ad_closed` không cấp mạng và mở lại nút. Provider test không tồn tại trong runtime production.
@@ -204,6 +206,7 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
 - `[x]` `P-AUDIO-005`: Combo/meow voice-by-path dùng shared GameStart/AppStart config, catalog cache và meow delay theo MARK_CAT; mặc định meow=0 vẫn tắt đúng nguồn.
 - `[x]` `P-AUDIO-006`: Unsupported/editor vibration là no-op không exception; Android port duration/amplitude low/high-RAM, iOS dùng fallback thô. Cảm nhận native thuộc device QA.
 - `[x]` `P-AUDIO-007`: Completion delay chỉ mở rộng một settlement deadline; Platform lifecycle đã khóa Fail/Win đúng một lần, không bị tween/audio callback transition lặp.
+- `[~]` `P-AUDIO-008`: Toàn bộ `66` clip serialized decode thành sample hữu hạn, không im lặng; visual primary flow khóa play-count cho `BoardEnter/MarkCat/Wrong/Fail/AllCleared/Win`. Đánh giá chủ quan bằng tai/thiết bị vẫn là `USER QA`.
 
 ## P-META — Daily, streak và award
 
@@ -359,3 +362,7 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
 | 2026-08-13 | Unity 6000.3.19f1 | R13 Win pass-page/pass-text runtime closure | Control/G1/G2/G4 cùng V0/V1/V2/V3-G1/G2/G3, stats/layout/highlight/CTA marker/G4 roll/Back và cached reopen đạt; Platform PlayMode 22/22, full EditMode gần nhất 679/679 | `Reports/Codex/R13_Win_Pass_Page_Text_Runtime_Closure_2026-08-13.md` |
 | 2026-08-13 | Unity 6000.3.19f1 | R12 Settings toggle/mode-layout closure | Music hidden, Sound/Vibration/People On/Off persistence, Home↔Game cached layout, Pattern dot/state/board refresh và hierarchy reset đạt; Platform PlayMode 23/23, full EditMode gần nhất 679/679 | `Reports/Codex/R12_Settings_Toggle_Mode_Layout_Closure_2026-08-13.md` |
 | 2026-08-13 | Unity 6000.3.19f1 | R15 Profile layout + locked-frame Rank closure | Prefab migration/Refresh bridge, source title-tab-grid geometry, centered 900×1253 aspect contract, Avatar/Frame viewport, GO/from-rank guide và Rank route đạt; Platform EditMode 51/51, Platform PlayMode 24/24 | `Reports/Codex/R15_Profile_Rank_Layout_Closure_2026-08-13.md` |
+| 2026-08-13 | Unity 6000.3.19f1 | F1 portfolio primary visual pass | Splash/Home/Tutorial/Game/Fail/Win; Game và Win xác minh thêm 1080×2400; Win sorting/title band và UI sorting activation đạt; Platform EditMode 60/60, Visual PlayMode 1/1 | `Reports/Codex/R17_Portfolio_Visual_Pass_2026-08-13.md` |
+| 2026-08-13 | Unity 6000.3.19f1 | F2 CAT star/glow burst + feedback sorting | Timing nguồn 0.1164/0.5/1.02; sáu view pooled; score bubble trên RuleBar; cleanup đạt; EditMode 61/61, Platform PlayMode 25/25, Visual 1/1 | `Reports/Codex/R17_Gameplay_Cat_Burst_2026-08-13.md` |
+| 2026-08-14 | Unity 6000.3.19f1 | F2 board enter + gameplay presentation lifecycle | Diagonal/curve source, shared score_encourage, bubble/multiplier/flight, RuleBar/ToolButton, completion/Win overlay và pool-return đạt; Platform EditMode 70/70, Platform PlayMode 27/27, Visual 1/1 | `Reports/Codex/R17_Gameplay_Presentation_Closure_2026-08-14.md` |
+| 2026-08-14 | Unity 6000.3.19f1 | F2 Fail/Win result VFX + objective audio QA | Timing Fail/Win bám nguồn, Win confetti dùng pool, RateUs không còn missing script, DOTween capacity 512/128; Platform EditMode 88/88, Platform PlayMode 27/27, Visual 1/1 | `Reports/Codex/R17_Gameplay_Presentation_Closure_2026-08-14.md` |

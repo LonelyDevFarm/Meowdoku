@@ -72,7 +72,7 @@ namespace Meowdoku.Core.Config
                 0,
                 AbConfigTiming.AppStart),
             new AbConfigDefinition("daily_streak", 1, AbConfigTiming.AppStart),
-            new AbConfigDefinition("leaderboard_func", 0, AbConfigTiming.AppStart),
+            new AbConfigDefinition("leaderboard_func", 2, AbConfigTiming.AppStart),
             new AbConfigDefinition("hard_button", 0, AbConfigTiming.AppStart),
             new AbConfigDefinition("settings_language", 0, AbConfigTiming.OpenSetting),
             new AbConfigDefinition("blind_mod", 0, AbConfigTiming.GameStart),

@@ -5,6 +5,7 @@
         "Meowdoku.Core",
         "Meowdoku.Gameplay",
         "Meowdoku.Services",
+        "Unity.2D.Sprite.Editor",
         "UnityEngine.UI",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

@@ -41,6 +41,16 @@ namespace Meowdoku.Gameplay
 
         [SerializeField] private RectTransform content;
         [SerializeField] private CanvasGroup contentGroup;
+        [Header("Source default presentation")]
+        [SerializeField] private CanvasGroup pageGroup;
+        [SerializeField] private CanvasGroup rayGroup;
+        [SerializeField] private CanvasGroup victoryCatGroup;
+        [SerializeField] private CanvasGroup victoryGlowGroup;
+        [SerializeField] private CanvasGroup titleGroup;
+        [SerializeField] private CanvasGroup bodyGroup;
+        [SerializeField] private CanvasGroup nextGroup;
+        [SerializeField] private RectTransform titleVisual;
+        [SerializeField] private ResultCelebrationEffects celebrationEffects;
         [SerializeField] private GameObject defaultVisuals;
         [SerializeField] private RectTransform rayLight;
         [SerializeField] private RectTransform victoryCat;
@@ -97,6 +107,7 @@ namespace Meowdoku.Gameplay
         private Tween _catTween;
         private Sequence _statisticsTween;
         private Tween _passNextReadyTween;
+        private Tween _hideTween;
         private string _lastNormalTitleKey = string.Empty;
         private MainGameTransitionData _transition;
         private UiName _selfName = UiName.Win;
@@ -108,6 +119,11 @@ namespace Meowdoku.Gameplay
         private ProductServiceRuntime _productRuntime;
         private int _pushFlowGeneration;
         private const float ProductFlowAppearDelaySeconds = 2.467f;
+        private const float HideSeconds = 0.1f;
+        // game_win_page.tscn: TitleLabel spans source Y 396..568 in the
+        // 1080x2400 design space. Converting that top-origin center to UGUI's
+        // centered Y keeps the title in the same visual band on short screens.
+        private const float SourceTitleCenterFromTop = 482f;
 
         protected override void OnCreate()
         {
@@ -125,13 +141,28 @@ namespace Meowdoku.Gameplay
         }
 
 #if UNITY_INCLUDE_TESTS
+        internal float DefaultIntroDurationForTests => _openTween != null && _openTween.IsActive() ? _openTween.Duration(false) : 0f;
         internal int PassPageValueForTests => _passPageConfig.Value;
         internal int PassTextValueForTests => _passTextConfig.Value;
+        internal RectTransform DefaultTitleRectForTests =>
+            titleText != null ? titleText.rectTransform : null;
+        internal bool CelebrationRunningForTests =>
+            celebrationEffects != null && celebrationEffects.IsRunningForTests;
+        internal int CelebrationActiveCountForTests =>
+            celebrationEffects != null ? celebrationEffects.ActiveCountForTests : 0;
+        internal bool DefaultIntroActiveForTests =>
+            _openTween != null && _openTween.IsActive();
+        internal float PageAlphaForTests => pageGroup != null ? pageGroup.alpha : 1f;
 #endif
 
         protected override void OnShow(
             IReadOnlyDictionary<string, object> parameters)
         {
+            _hideTween?.Kill(false);
+            _hideTween = null;
+            KillTweens();
+            celebrationEffects?.Clear();
+            if (pageGroup != null) pageGroup.alpha = 1f;
             MainGameTransitionData transition = ReadTransition(parameters);
             _transition = transition;
             _gameplayManager = ReadManager(parameters);
@@ -146,6 +177,7 @@ namespace Meowdoku.Gameplay
             _selfName = transition.IsDailySession
                 ? UiName.DailyWin
                 : UiName.Win;
+            ApplySourceViewportLayout();
 
             bool passPanel = RefreshText(transition);
             if (transition.IsDailySession)
@@ -195,6 +227,15 @@ namespace Meowdoku.Gameplay
         protected override IEnumerator OnHide()
         {
             KillTweens();
+            celebrationEffects?.Clear();
+            if (pageGroup != null)
+            {
+                _hideTween = pageGroup.DOFade(0f, HideSeconds)
+                    .SetUpdate(true)
+                    .SetLink(gameObject);
+                yield return _hideTween.WaitForCompletion();
+                _hideTween = null;
+            }
             _gameplayManager = null;
             _transition = null;
             _continuing = false;
@@ -204,9 +245,29 @@ namespace Meowdoku.Gameplay
 
         protected override bool OnBackRequest() => true;
 
+        private void OnRectTransformDimensionsChange()
+        {
+            ApplySourceViewportLayout();
+        }
+
+        private void ApplySourceViewportLayout()
+        {
+            if (titleText == null || transform is not RectTransform viewport)
+                return;
+            float viewportHeight = viewport.rect.height;
+            if (viewportHeight <= 0f) return;
+            RectTransform titleRect = titleText.rectTransform;
+            Vector2 position = titleRect.anchoredPosition;
+            position.y = viewportHeight * 0.5f - SourceTitleCenterFromTop;
+            titleRect.anchoredPosition = position;
+        }
+
         protected override void OnDestroyWindow()
         {
             KillTweens();
+            celebrationEffects?.Clear();
+            _hideTween?.Kill(false);
+            _hideTween = null;
             if (nextButton != null) nextButton.onClick.RemoveListener(Continue);
             if (passNextButton != null)
                 passNextButton.onClick.RemoveListener(Continue);
@@ -456,6 +517,7 @@ namespace Meowdoku.Gameplay
         private void PlayPassPanelAnimation()
         {
             KillTweens();
+            celebrationEffects?.Clear();
             if (passPanelPopup != null)
                 passPanelPopup.localScale = Vector3.one * 0.5f;
             if (passPanelGroup != null) passPanelGroup.alpha = 0f;
@@ -484,14 +546,48 @@ namespace Meowdoku.Gameplay
         private void PlayOpenAnimation()
         {
             KillTweens();
-            if (content != null) content.localScale = Vector3.one * 0.7f;
-            if (contentGroup != null) contentGroup.alpha = 0f;
-            _openTween = DOTween.Sequence().SetLink(gameObject);
-            if (content != null)
-                _openTween.Append(content.DOScale(1.05f, 0.18f).SetEase(Ease.OutQuad))
-                    .Append(content.DOScale(1f, 0.08f).SetEase(Ease.InOutQuad));
-            if (contentGroup != null)
-                _openTween.Insert(0f, contentGroup.DOFade(1f, 0.18f));
+            if (content != null) content.localScale = Vector3.one;
+            if (contentGroup != null) contentGroup.alpha = 1f;
+            if (rayGroup != null) rayGroup.alpha = 0f;
+            if (victoryCatGroup != null) victoryCatGroup.alpha = 0f;
+            if (victoryGlowGroup != null) victoryGlowGroup.alpha = 0f;
+            if (titleGroup != null) titleGroup.alpha = 0f;
+            if (titleVisual != null) titleVisual.localScale = Vector3.one * 1.6f;
+            if (bodyGroup != null) bodyGroup.alpha = 0f;
+            if (nextGroup != null) nextGroup.alpha = 0f;
+
+            _openTween = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+            if (rayGroup != null)
+                _openTween.Insert(0.1848762f,
+                    rayGroup.DOFade(1f, 0.35679764f - 0.1848762f));
+            if (victoryCatGroup != null)
+                _openTween.Insert(0.016666668f,
+                    victoryCatGroup.DOFade(1f, 0.033333335f - 0.016666668f));
+            if (victoryGlowGroup != null)
+            {
+                _openTween.Insert(0.31957272f,
+                    victoryGlowGroup.DOFade(1f, 0.39310646f - 0.31957272f));
+                _openTween.Insert(0.39310646f,
+                    victoryGlowGroup.DOFade(0f, 0.79174024f - 0.39310646f));
+            }
+            if (titleGroup != null)
+                _openTween.Insert(0.16442053f,
+                    titleGroup.DOFade(1f, 0.27560806f - 0.16442053f));
+            if (titleVisual != null)
+            {
+                _openTween.Insert(0.16442053f,
+                    titleVisual.DOScale(0.9f, 0.39264965f - 0.16442053f)
+                        .SetEase(Ease.OutQuad));
+                _openTween.Insert(0.39264965f,
+                    titleVisual.DOScale(1f, 0.62883145f - 0.39264965f)
+                        .SetEase(Ease.OutQuad));
+            }
+            if (bodyGroup != null && bodyGroup.gameObject.activeInHierarchy)
+                _openTween.Insert(0.6333334f,
+                    bodyGroup.DOFade(1f, 0.90000004f - 0.6333334f));
+            if (nextGroup != null)
+                _openTween.Insert(0.91271144f,
+                    nextGroup.DOFade(1f, 1.2759178f - 0.91271144f));
             _openTween.OnComplete(() => _openTween = null);
 
             if (rayLight != null)
@@ -501,18 +597,23 @@ namespace Meowdoku.Gameplay
                         RotateMode.FastBeyond360)
                     .SetEase(Ease.Linear)
                     .SetLoops(-1)
+                    .SetUpdate(true)
                     .SetLink(gameObject);
             if (victoryCat != null)
                 _catTween = victoryCat.DOScale(1.035f, 0.65f)
+                    .SetDelay(0.033333335f)
                     .SetEase(Ease.InOutSine)
                     .SetLoops(-1, LoopType.Yoyo)
+                    .SetUpdate(true)
                     .SetLink(gameObject);
             PlayStatisticsRoll();
+            celebrationEffects?.Play();
         }
 
         private void PlayDailyOpenAnimation()
         {
             KillTweens();
+            celebrationEffects?.Clear();
             if (dailyContent != null)
                 dailyContent.localScale = Vector3.one * 0.7f;
             if (dailyContentGroup != null)

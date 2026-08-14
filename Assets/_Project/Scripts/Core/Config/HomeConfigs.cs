@@ -39,7 +39,8 @@ namespace Meowdoku.Core.Config
         public const int ValueCatsFrameOnly = 3;
 
         public LeaderboardFuncConfig()
-            : base("leaderboard_func", ValueControl, AbConfigTiming.AppStart) { }
+            // Offline portfolio follows the current app config strategy (group 2).
+            : base("leaderboard_func", ValueFishProp, AbConfigTiming.AppStart) { }
 
         public bool IsEnabled() => Value != ValueControl;
         public int GetGroup() => Value;

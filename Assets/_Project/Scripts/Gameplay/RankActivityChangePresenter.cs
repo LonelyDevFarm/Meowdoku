@@ -7,6 +7,7 @@ using Meowdoku.Core.Rank;
 using Meowdoku.Core.Robot;
 using Meowdoku.Core.Tracking;
 using Meowdoku.Core.UI;
+using Meowdoku.Services;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,7 +15,8 @@ namespace Meowdoku.Gameplay
 {
     [DisallowMultipleComponent]
     public sealed class RankActivityChangePresenter : UIFrameWindow,
-        IRankActivityConsumer
+        IRankActivityConsumer,
+        ISoundServiceConsumer
     {
         public override string GetTrackingDialogName() =>
             TrackerCatalog.Dialog.ChallengeRank;
@@ -61,12 +63,14 @@ namespace Meowdoku.Gameplay
         private RankInfo _selfFinal;
         private RankActivityRowView _floatingSelfRow;
         private VerticalLayoutGroup _rowLayout;
+        private ContentSizeFitter _rowFitter;
         private int _selfIndex = -1;
         private int _effectiveAdvance;
         private int _group;
         private float _selfBaseY;
         private float _rowStride;
         private bool _risePrepared;
+        private SoundService _soundService;
 
         protected override void OnCreate()
         {
@@ -100,6 +104,7 @@ namespace Meowdoku.Gameplay
         protected override IEnumerator OnHide()
         {
             KillSequence();
+            _soundService?.Stop(SoundKind.RankScoreCount);
             RestoreFinalLayout();
             Unsubscribe();
             _animating = false;
@@ -115,6 +120,7 @@ namespace Meowdoku.Gameplay
         protected override void OnDestroyWindow()
         {
             KillSequence();
+            _soundService?.Stop(SoundKind.RankScoreCount);
             RestoreFinalLayout();
             Unsubscribe();
             if (maskButton != null)
@@ -131,6 +137,11 @@ namespace Meowdoku.Gameplay
             Unsubscribe();
             _runtime = runtime;
             Subscribe();
+        }
+
+        public void BindSoundService(SoundService service)
+        {
+            _soundService = service;
         }
 
         public void BindLocalization(LocalizationCatalog catalog)
@@ -233,7 +244,11 @@ namespace Meowdoku.Gameplay
             if (presentationTarget != null)
                 _sequence.InsertCallback(
                     CountStart,
-                    presentationTarget.PlayCollection);
+                    () =>
+                    {
+                        presentationTarget.PlayCollection();
+                        _soundService?.Play(SoundKind.RankScoreCount);
+                    });
 
             float cursor = CountStart;
             if (_selfRow != null && _selfFinal != null && _increment > 0)
@@ -258,6 +273,7 @@ namespace Meowdoku.Gameplay
                 {
                     presentationTarget.PlayArrow(ArrowFadeDuration);
                     presentationTarget.PlayLift();
+                    _soundService?.Play(SoundKind.RankRiseUp);
                 });
                 cursor += LiftDuration;
                 _sequence.InsertCallback(
@@ -279,9 +295,11 @@ namespace Meowdoku.Gameplay
                 cursor += SourceRankActivityLayout.RiseDuration(_effectiveAdvance);
                 cursor += SettleHold;
                 float dropStart = cursor;
-                _sequence.InsertCallback(
-                    dropStart,
-                    presentationTarget.PlayDrop);
+                _sequence.InsertCallback(dropStart, () =>
+                {
+                    presentationTarget.PlayDrop();
+                    _soundService?.Play(SoundKind.RankRiseDown);
+                });
                 _sequence.InsertCallback(
                     dropStart + RiseDownSwapDelay,
                     FinalizeRise);
@@ -299,13 +317,17 @@ namespace Meowdoku.Gameplay
                     RankActivityRowCelebrationView.CollectionDuration);
                 _sequence.InsertCallback(cursor, () =>
                     SetSelfRank(_selfFinal.Rank));
-                _sequence.InsertCallback(
-                    cursor,
-                    presentationTarget.PlayLift);
+                _sequence.InsertCallback(cursor, () =>
+                {
+                    presentationTarget.PlayLift();
+                    _soundService?.Play(SoundKind.RankRiseUp);
+                });
                 cursor += LiftDuration;
-                _sequence.InsertCallback(
-                    cursor,
-                    presentationTarget.PlayDrop);
+                _sequence.InsertCallback(cursor, () =>
+                {
+                    presentationTarget.PlayDrop();
+                    _soundService?.Play(SoundKind.RankRiseDown);
+                });
                 cursor += DropDuration;
             }
             _sequence.AppendInterval(Mathf.Max(
@@ -362,6 +384,7 @@ namespace Meowdoku.Gameplay
             if (rowList == null || _selfRow == null || scroll?.viewport == null)
                 return;
             _rowLayout = rowList.GetComponent<VerticalLayoutGroup>();
+            _rowFitter = rowList.GetComponent<ContentSizeFitter>();
             if (_rowLayout != null) _rowLayout.enabled = true;
             LayoutRebuilder.ForceRebuildLayoutImmediate(rowList);
 
@@ -377,6 +400,7 @@ namespace Meowdoku.Gameplay
             _displaced.Clear();
             _selfBaseY = selfRect.anchoredPosition.y;
             _risePrepared = _effectiveAdvance > 0;
+            if (_rowFitter != null) _rowFitter.enabled = false;
             if (_rowLayout != null) _rowLayout.enabled = false;
 
             if (_risePrepared)
@@ -490,6 +514,7 @@ namespace Meowdoku.Gameplay
                     _group);
             }
             if (_rowLayout != null) _rowLayout.enabled = true;
+            if (_rowFitter != null) _rowFitter.enabled = true;
             if (rowList != null)
                 LayoutRebuilder.ForceRebuildLayoutImmediate(rowList);
             _risePrepared = false;
@@ -511,12 +536,15 @@ namespace Meowdoku.Gameplay
                 _rows[index].ShowStatic();
             }
             if (_rowLayout != null) _rowLayout.enabled = true;
+            if (_rowFitter != null) _rowFitter.enabled = true;
             if (_floatingSelfRow != null)
             {
                 _floatingSelfRow.transform.localScale = Vector3.one;
                 _floatingSelfRow.gameObject.SetActive(false);
             }
             _displaced.Clear();
+            if (rowList != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rowList);
         }
 
         private void SetSelfScore(int value)

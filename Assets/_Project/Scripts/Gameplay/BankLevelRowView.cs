@@ -45,7 +45,7 @@ namespace Meowdoku.Gameplay
             if (primaryLabel != null)
             {
                 primaryLabel.fontSize = 32;
-                primaryLabel.text = $"{entry.Size}×{entry.Size}";
+                primaryLabel.text = $"{entry.Size} x {entry.Size}";
             }
             if (secondaryLabel != null) secondaryLabel.text = entry.Date;
             if (badgeLabel != null)
@@ -84,7 +84,7 @@ namespace Meowdoku.Gameplay
             }
             if (secondaryLabel != null)
                 secondaryLabel.text =
-                    $"{entry.Size}×{entry.Size}  R{entry.Rank}";
+                    $"{entry.Size} x {entry.Size}  R{entry.Rank}";
             if (badgeLabel != null)
             {
                 badgeLabel.text = $"R{entry.Rank}";

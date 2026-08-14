@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7277937784821798758}
   - component: {fileID: 7238385689465913335}
   - component: {fileID: 8172395517525384768}
-  - component: {fileID: 7866339889853347835}
+  - component: {fileID: 7229730335303927480}
   m_Layer: 5
   m_Name: Star_1
   m_TagString: Untagged
@@ -121,7 +121,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &7866339889853347835
+--- !u!114 &7229730335303927480
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -130,7 +130,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 32467486800263300}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: df9c0552c9b445f4b969e84bafd6fc20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.RateUsStarPointerView
   starIndex: 1
@@ -324,7 +324,7 @@ GameObject:
   - component: {fileID: 3490529283481614908}
   - component: {fileID: 8237079687759299768}
   - component: {fileID: 3599478316988035757}
-  - component: {fileID: 4801460147871990008}
+  - component: {fileID: 1834931765339125605}
   m_Layer: 5
   m_Name: Star_4
   m_TagString: Untagged
@@ -433,7 +433,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &4801460147871990008
+--- !u!114 &1834931765339125605
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -442,7 +442,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2220070014568946725}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: df9c0552c9b445f4b969e84bafd6fc20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.RateUsStarPointerView
   starIndex: 4
@@ -657,7 +657,7 @@ GameObject:
   - component: {fileID: 9156616104166159385}
   - component: {fileID: 3175191550026476958}
   - component: {fileID: 4067777484921527353}
-  - component: {fileID: 7844796510750210195}
+  - component: {fileID: 5681392142835255309}
   m_Layer: 5
   m_Name: Star_5
   m_TagString: Untagged
@@ -766,7 +766,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &7844796510750210195
+--- !u!114 &5681392142835255309
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -775,7 +775,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 3200075402277823269}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: df9c0552c9b445f4b969e84bafd6fc20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.RateUsStarPointerView
   starIndex: 5
@@ -1058,7 +1058,7 @@ GameObject:
   - component: {fileID: 6738726535559120340}
   - component: {fileID: 6986550929740004468}
   - component: {fileID: 2273227707003975694}
-  - component: {fileID: 594084808238811421}
+  - component: {fileID: 3170634430857796969}
   m_Layer: 5
   m_Name: Star_2
   m_TagString: Untagged
@@ -1167,7 +1167,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &594084808238811421
+--- !u!114 &3170634430857796969
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1176,7 +1176,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5908700085647922509}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: df9c0552c9b445f4b969e84bafd6fc20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.RateUsStarPointerView
   starIndex: 2
@@ -1285,7 +1285,7 @@ RectTransform:
   m_GameObject: {fileID: 8292168391937032549}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8572294865571362156}
@@ -1404,6 +1404,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.GenericPopupAnimator
   content: {fileID: 636182010114312713}
   contentGroup: {fileID: 5652034867578144682}
+  overlayGroup: {fileID: 0}
 --- !u!1 &8728436190700166510
 GameObject:
   m_ObjectHideFlags: 0
@@ -1492,7 +1493,7 @@ GameObject:
   - component: {fileID: 6629560767860191354}
   - component: {fileID: 8407849517953730698}
   - component: {fileID: 6429721288021746127}
-  - component: {fileID: 8270151654113248464}
+  - component: {fileID: 2176813308433256595}
   m_Layer: 5
   m_Name: Star_3
   m_TagString: Untagged
@@ -1601,7 +1602,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &8270151654113248464
+--- !u!114 &2176813308433256595
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1610,7 +1611,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 9058172485721725970}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: df9c0552c9b445f4b969e84bafd6fc20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Meowdoku.Gameplay::Meowdoku.Gameplay.RateUsStarPointerView
   starIndex: 3

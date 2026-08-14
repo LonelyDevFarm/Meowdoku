@@ -390,33 +390,33 @@ namespace Meowdoku.Editor
                     1f);
                 changed |= UpgradeLabel(
                     root.transform.Find("Content/TabGroup/AvatarTab/Label"),
-                    110f,
+                    20f,
                     7f,
-                    174f,
+                    355f,
                     86f,
                     inactiveTab);
                 changed |= UpgradeLabel(
                     root.transform.Find("Content/TabGroup/FrameTab/Label"),
-                    112f,
-                    6f,
-                    170f,
-                    88f,
+                    20f,
+                    7f,
+                    355f,
+                    86f,
                     inactiveTab);
                 changed |= UpgradeLabel(
                     root.transform.Find(
                         "Content/TabGroup/AvatarTab/Active/ActiveLabel"),
-                    110f,
-                    13.5f,
-                    174f,
-                    73f,
+                    20f,
+                    7f,
+                    355f,
+                    86f,
                     activeTab);
                 changed |= UpgradeLabel(
                     root.transform.Find(
                         "Content/TabGroup/FrameTab/Active/ActiveLabel"),
-                    110f,
+                    20f,
                     7f,
-                    170f,
-                    88f,
+                    355f,
+                    86f,
                     activeTab);
 
                 LayoutElement bottomPad = root.transform.Find(

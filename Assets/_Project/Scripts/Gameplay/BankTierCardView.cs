@@ -61,7 +61,7 @@ namespace Meowdoku.Gameplay
             if (badgeLabel != null) badgeLabel.text = bucket.Definition.Label;
             if (descriptionLabel != null)
                 descriptionLabel.text = bucket.Definition.Description;
-            if (countLabel != null) countLabel.text = $"共 {_count} 关";
+            if (countLabel != null) countLabel.text = $"Total: {_count} levels";
             RefreshNumber();
         }
 

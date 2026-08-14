@@ -281,10 +281,12 @@ namespace Meowdoku.Core.Rank
         public void NotifyLevelExit()
         {
             _inLevel = false;
+            bool cacheChanged = _data.LevelCache != 0 ||
+                                _data.LevelCacheActive;
             ClearLevelCache();
             if (_data.State == RankActivityState.Settling)
                 Settle();
-            else
+            else if (cacheChanged)
                 Save();
         }
 

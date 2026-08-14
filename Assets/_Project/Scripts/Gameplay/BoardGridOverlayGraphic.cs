@@ -60,10 +60,17 @@ namespace Meowdoku.Gameplay
             SetVerticesDirty();
         }
 
+        public void EndGridIntroImmediately()
+        {
+            _elapsed = 99999f;
+            _introActive = false;
+            SetVerticesDirty();
+        }
+
         private void Update()
         {
             if (!_introActive) return;
-            _elapsed += Time.deltaTime;
+            _elapsed += Time.unscaledDeltaTime;
             SetVerticesDirty();
             if (_elapsed < IntroEnd()) return;
             _elapsed = 99999f;

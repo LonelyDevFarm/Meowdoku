@@ -97,6 +97,7 @@ namespace Meowdoku.Gameplay
         private bool _entryAdPending;
         private bool _applicationSuspended;
         private bool _gameplayEntryStarted;
+        private int _gameplayEntryGeneration;
         private const double SnapshotDebounceSeconds = 0.5;
 
         public QueendokuCore.Rule LastRuleViolation => _session != null
@@ -171,6 +172,9 @@ namespace Meowdoku.Gameplay
 
         internal int BoardSizeBigValueForTests =>
             _boardSizeBigConfig?.Value ?? int.MinValue;
+
+        internal int ScoreEncourageValueForTests =>
+            _scoreEncourageConfig?.Value ?? int.MinValue;
 
         internal SessionActionResult DoubleTapForTests(int row, int column)
         {
@@ -399,9 +403,13 @@ namespace Meowdoku.Gameplay
             if (_session != null &&
                 _session.State != GameSessionState.Leaving)
                 _session.BeginLeaving();
-            GameStateRuntime.FlushPendingWrites();
+            // Snapshot writes are already queued in order by GameStateRepository.
+            // Waiting for the encrypted fsync here stalls the UI thread and can
+            // keep the closing fullscreen page above Home for several frames.
+            // Durability flushes belong to pause/quit/destroy boundaries.
             _pageOpen = false;
             _entryAdPending = false;
+            _gameplayEntryGeneration++;
         }
 
         private void InitializeIfNeeded()
@@ -508,6 +516,7 @@ namespace Meowdoku.Gameplay
             _inputLocked = true;
             _entryAdPending = false;
             _gameplayEntryStarted = false;
+            _gameplayEntryGeneration++;
             _elapsedPlaySeconds = 0.0;
             _activePlayStartedAt = 0.0;
             _toolsUsed = 0;
@@ -781,6 +790,8 @@ namespace Meowdoku.Gameplay
             GameplayConfigSet configs = _abConfigRuntime?.Gameplay;
             _dailyFirstDifficultyConfig = configs?.DailyFirstLevelDifficulty ??
                                           new DailyFirstLevelDifficultyConfig();
+            _scoreEncourageConfig = configs?.ScoreEncourage ??
+                                    new ScoreEncourageConfig();
             _rewardUnlockConfig = configs?.RewardUnlockLevel ??
                                   new RewardUnlockLevelConfig();
             _propHighlightConfig = configs?.PropHighlight ??
@@ -842,11 +853,26 @@ namespace Meowdoku.Gameplay
         {
             if (_gameplayEntryStarted || _session == null) return;
             _gameplayEntryStarted = true;
-            _inputLocked = false;
-            _session.FinishEntering();
-            StartGameplayClock();
+            _inputLocked = true;
+            int generation = ++_gameplayEntryGeneration;
+            GameSession entrySession = _session;
             soundService?.Play(SoundKind.BoardEnter);
-            boardView?.PlayGridIntro();
+            if (boardView != null)
+                boardView.PlayGridIntro(() => CompleteGameplayEntry(
+                    generation, entrySession));
+            else
+                CompleteGameplayEntry(generation, entrySession);
+        }
+
+        private void CompleteGameplayEntry(int generation, GameSession entrySession)
+        {
+            if (generation != _gameplayEntryGeneration || !_pageOpen ||
+                !_gameplayEntryStarted || _session != entrySession ||
+                entrySession == null || entrySession.State != GameSessionState.Entering)
+                return;
+            entrySession.FinishEntering();
+            _inputLocked = false;
+            StartGameplayClock();
         }
 
         public IReadOnlyDictionary<string, object> BuildTrackingEndParameters(
@@ -1509,7 +1535,6 @@ namespace Meowdoku.Gameplay
                 _rankActivityRuntime?.Manager?.NotifyLevelExit();
             PublishTransition(transition);
             _session.BeginLeaving();
-            GameStateRuntime.FlushPendingWrites();
             return true;
         }
 

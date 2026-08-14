@@ -60,6 +60,8 @@ namespace Meowdoku.Gameplay
         internal StreakDisplayState StateForTests => _state;
         internal bool SettleRevealCompleteForTests =>
             _settleRevealComplete;
+        internal bool SunVisibleForTests =>
+            sunRoot != null && sunRoot.activeSelf;
 #endif
 
         protected override void OnCreate()
@@ -177,13 +179,20 @@ namespace Meowdoku.Gameplay
             bool settle = _state == StreakDisplayState.Settle;
             SetActive(backButton, main);
             SetActive(continueButton, settle);
-            SetActive(sunRoot, _state == StreakDisplayState.Lit);
+            // Source keeps SunImg visible in every display state and only
+            // hides/disables SunBtn outside LIT. Disabling the whole root
+            // removed the main visual from the portfolio Streak page.
+            SetActive(sunRoot, true);
             SetActive(goToPlayButton, main &&
                 streak != null && streak.HasPlayEntry);
             if (continueButton != null && !settle)
                 continueButton.interactable = false;
             if (sunButton != null)
-                sunButton.interactable = _litReady;
+            {
+                sunButton.enabled = _state == StreakDisplayState.Lit;
+                sunButton.interactable =
+                    _state == StreakDisplayState.Lit && _litReady;
+            }
             if (tapSurface != null)
                 tapSurface.interactable = _litReady;
 

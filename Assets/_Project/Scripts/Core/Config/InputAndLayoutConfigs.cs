@@ -513,6 +513,7 @@ namespace Meowdoku.Core.Config
             _all = new IAbConfig[]
             {
                 DailyFirstLevelDifficulty,
+                ScoreEncourage,
                 DdaRank,
                 RewardUnlockLevel,
                 PropHighlight,
@@ -526,6 +527,7 @@ namespace Meowdoku.Core.Config
         }
 
         public DailyFirstLevelDifficultyConfig DailyFirstLevelDifficulty { get; } = new();
+        public ScoreEncourageConfig ScoreEncourage { get; } = new();
         public DdaRankConfig DdaRank { get; } = new();
         public RewardUnlockLevelConfig RewardUnlockLevel { get; } = new();
         public PropHighlightConfig PropHighlight { get; } = new();

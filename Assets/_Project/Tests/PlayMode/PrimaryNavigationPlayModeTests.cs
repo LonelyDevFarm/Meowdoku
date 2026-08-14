@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
+using System.Text;
 using Meowdoku.Core;
 using Meowdoku.Core.Ads;
 using Meowdoku.Core.Config;
@@ -145,6 +147,32 @@ namespace Meowdoku.Tests.PlayMode
                     }
                 }
             }
+
+            public void SeedVisibleScoresBelowPlayer(int count = 5, int score = 1)
+            {
+                score = Mathf.Max(1, score);
+
+                foreach (RobotPool pool in _pools.Values)
+                {
+                    foreach (RobotData robot in pool.Robots)
+                    {
+                        robot.FinalScore = 0;
+                        robot.Timeline.Clear();
+                    }
+
+                    int seededCount = Mathf.Clamp(count, 0, pool.Robots.Count);
+                    for (int i = 0; i < seededCount; i++)
+                    {
+                        RobotData robot = pool.Robots[i];
+                        robot.FinalScore = score;
+                        robot.Timeline.Add(new RobotTimelinePoint
+                        {
+                            Minute = 0,
+                            Delta = score
+                        });
+                    }
+                }
+            }
         }
 
         private sealed class MemoryProfileDataStore : IProfileDataStore
@@ -271,6 +299,14 @@ namespace Meowdoku.Tests.PlayMode
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            if (TestContext.CurrentContext.Test.Name.Contains(
+                    "PortfolioVisualCapture_",
+                    StringComparison.Ordinal))
+            {
+                Screen.SetResolution(1080, 1920, FullScreenMode.Windowed);
+                yield return null;
+            }
+
             Scene appScene = SceneManager.GetSceneByPath(AppScenePath);
             if (appScene.IsValid() && appScene.isLoaded)
             {
@@ -382,6 +418,427 @@ namespace Meowdoku.Tests.PlayMode
             manager.Hide(UiName.Game);
             yield return WaitForState(manager, UiName.Game,
                 UiWindowState.Hidden);
+
+            AssertShowing(manager, UiName.Home);
+            Assert.That(manager.IsAnyLoading, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator PortfolioVisualCapture_PrimaryFlow()
+        {
+            SoundService soundService = Find<SoundService>();
+            Assert.That(soundService, Is.Not.Null,
+                "SoundService must exist for primary-flow audio QA.");
+            AppBootstrap bootstrap = Find<AppBootstrap>();
+            UIManager manager = Find<UIManager>();
+            Assert.That(bootstrap, Is.Not.Null,
+                "AppScene is missing AppBootstrap.");
+            Assert.That(manager, Is.Not.Null,
+                "AppScene is missing UIManager.");
+
+            if (!IsShowing(manager, UiName.Splash))
+                manager.Show(UiName.Splash);
+            yield return WaitForState(manager, UiName.Splash,
+                UiWindowState.Showing);
+            yield return CapturePortfolioFrame("01_Splash", true);
+
+            yield return WaitUntil(
+                () => bootstrap.IsComplete ||
+                      bootstrap.Phase == AppStartupPhase.Failed,
+                StartupTimeoutSeconds,
+                "AppBootstrap did not finish within the timeout.");
+            Assert.That(bootstrap.Phase, Is.EqualTo(AppStartupPhase.Complete),
+                bootstrap.FailureReason);
+            if (IsShowing(manager, UiName.Splash))
+                manager.Hide(UiName.Splash);
+            yield return WaitForState(manager, UiName.Splash,
+                UiWindowState.Hidden);
+            yield return WaitForState(manager, UiName.Home,
+                UiWindowState.Showing);
+            yield return CapturePortfolioFrame("02_Home", false);
+
+            manager.Show(UiName.Tutorial);
+            yield return WaitForState(manager, UiName.Tutorial,
+                UiWindowState.Showing);
+            yield return CapturePortfolioFrame("03_Tutorial", false);
+            manager.Hide(UiName.Tutorial);
+            yield return WaitForState(manager, UiName.Tutorial,
+                UiWindowState.Hidden);
+
+            UIFrameWindow home = manager.Get(UiName.Home);
+            FindButton(home, "StartBtn").onClick.Invoke();
+            yield return WaitForState(manager, UiName.Game,
+                UiWindowState.Showing);
+            UIFrameWindow game = manager.Get(UiName.Game);
+            GameplayManager gameplay =
+                game.GetComponentInChildren<GameplayManager>(true);
+            Assert.That(gameplay, Is.Not.Null,
+                "GamePage is missing GameplayManager at runtime.");
+            yield return WaitForSession(gameplay, GameSessionState.Playing);
+            Assert.That(soundService.FixedPlayCount(SoundKind.BoardEnter),
+                Is.GreaterThan(0));
+            yield return CapturePortfolioFrame("04_Game", false);
+            yield return SetPortfolioResolution(1080, 2400);
+            yield return CapturePortfolioFrame("04b_Game_1080x2400", false);
+            yield return SetPortfolioResolution(1080, 1920);
+
+            GameplayFeedbackPresenter feedback = game
+                .GetComponentInChildren<GameplayFeedbackPresenter>(true);
+            Assert.That(feedback, Is.Not.Null);
+            RectTransform ruleBar = game.transform.Find("HUD/RuleBar") as RectTransform;
+            Assert.That(ruleBar, Is.Not.Null);
+            Assert.That(feedback.transform.GetSiblingIndex(),
+                Is.GreaterThan(ruleBar.GetSiblingIndex()),
+                "Source sorting requires feedback effects/bubbles above RuleBar.");
+            Assert.That(feedback.CatBurstPoolSizeForTests, Is.EqualTo(6));
+
+            Vector2Int catCell = FindInputCell(gameplay, solution: true);
+            Assert.That(catCell.x, Is.GreaterThanOrEqualTo(0));
+            int markCatBefore =
+                soundService.FixedPlayCount(SoundKind.MarkCat);
+            SessionActionResult catAction = gameplay.DoubleTapForTests(
+                catCell.x,
+                catCell.y);
+            Assert.That(soundService.FixedPlayCount(SoundKind.MarkCat),
+                Is.EqualTo(markCatBefore + 1));
+            Assert.That(catAction.Kind,
+                Is.EqualTo(SessionActionKind.CorrectCat));
+
+            BoardView board = game.GetComponentInChildren<BoardView>(true);
+            Assert.That(board, Is.Not.Null,
+                "GamePage is missing BoardView at runtime.");
+            CellView selectedCell = board.GetCellForTests(
+                catCell.x,
+                catCell.y);
+            Assert.That(selectedCell, Is.Not.Null,
+                "The selected CAT cell was not available from BoardView.");
+            CatSpriteAnimationView catAnimation = selectedCell
+                .GetComponentInChildren<CatSpriteAnimationView>(true);
+            Assert.That(catAnimation, Is.Not.Null,
+                "The selected CAT cell is missing CatSpriteAnimationView.");
+            Assert.That(catAnimation.IsPlayingForTests, Is.True,
+                "The selected CAT animation did not start after the action.");
+            Image targetCatImage = catAnimation.GetComponent<Image>();
+            Assert.That(targetCatImage, Is.Not.Null,
+                "CatSpriteAnimationView is missing its target Image.");
+            Assert.That(targetCatImage.sprite, Is.Not.Null,
+                "The selected CAT animation did not assign a target sprite.");
+
+            yield return new WaitForSecondsRealtime(0.14f);
+            Assert.That(catAnimation.IsPlayingForTests, Is.True,
+                "The selected CAT animation stopped before visual capture.");
+            Assert.That(targetCatImage.sprite, Is.Not.Null,
+                "The selected CAT sprite was cleared before visual capture.");
+            Assert.That(feedback.ActiveCatBurstCountForTests, Is.EqualTo(1));
+            yield return CapturePortfolioFrame("04c_CatBurst", false);
+
+            yield return new WaitForSecondsRealtime(1.05f);
+            Assert.That(feedback.PlayingCatBurstCountForTests, Is.Zero);
+
+            int markWrongBefore =
+                soundService.FixedPlayCount(SoundKind.MarkWrong);
+            int levelFailBefore =
+                soundService.FixedPlayCount(SoundKind.LevelFail);
+            yield return FailCurrentSession(gameplay, manager);
+            Assert.That(soundService.FixedPlayCount(SoundKind.MarkWrong),
+                Is.GreaterThanOrEqualTo(markWrongBefore + 3));
+            Assert.That(soundService.FixedPlayCount(SoundKind.LevelFail),
+                Is.EqualTo(levelFailBefore + 1));
+            yield return CapturePortfolioFrame("05_Fail", false);
+            yield return WaitUntil(
+                () => !manager.IsInputBrieflyBlocked(
+                    game.transform as RectTransform),
+                3f,
+                "GamePage input remained briefly blocked after Fail capture.");
+            UIFrameWindow fail = manager.Get(UiName.Fail);
+            Button restart = FindButton(fail, "RestartButton", false);
+            yield return WaitUntil(
+                () => restart.isActiveAndEnabled && restart.interactable,
+                TransitionTimeoutSeconds,
+                "Fail RestartButton did not unlock.");
+            restart.onClick.Invoke();
+            yield return WaitForState(manager, UiName.Fail,
+                UiWindowState.Hidden);
+            yield return WaitForSession(gameplay, GameSessionState.Playing);
+
+            int allClearedBefore =
+                soundService.FixedPlayCount(SoundKind.AllCleared);
+            int levelWinBefore =
+                soundService.FixedPlayCount(SoundKind.LevelWin);
+            // Use the real CAT action path because RunAutoComplete
+            // intentionally suppresses sounds.
+            SessionActionResult completed = null;
+            for (int row = 0; row < gameplay.CurrentPuzzleSize; row++)
+            {
+                int solutionColumn = gameplay.SolutionColumnForTests(row);
+                if (gameplay.GetCellState(row, solutionColumn) == CellStateType.CAT)
+                    continue;
+
+                completed = gameplay.DoubleTapForTests(row, solutionColumn);
+                Assert.That(completed.Accepted, Is.True);
+            }
+
+            Assert.That(completed, Is.Not.Null);
+            Assert.That(completed.Accepted, Is.True);
+            Assert.That(completed.IsComplete, Is.True);
+            yield return CompletePreWinMetaFlow(manager);
+            GameWinPagePresenter win =
+                manager.Get(UiName.Win) as GameWinPagePresenter;
+            Assert.That(win, Is.Not.Null);
+            Assert.That(soundService.FixedPlayCount(SoundKind.AllCleared),
+                Is.EqualTo(allClearedBefore + 1));
+            Assert.That(soundService.FixedPlayCount(SoundKind.LevelWin),
+                Is.EqualTo(levelWinBefore + 1));
+            Assert.That(win.SortingOrder, Is.GreaterThan(game.SortingOrder));
+            RectTransform titleRect = win.DefaultTitleRectForTests;
+            Assert.That(titleRect, Is.Not.Null);
+            RectTransform viewport = win.transform as RectTransform;
+            Assert.That(viewport, Is.Not.Null);
+            Assert.That(
+                titleRect.anchoredPosition.y,
+                Is.EqualTo(viewport.rect.height * 0.5f - 482f).Within(1f),
+                "Win title must remain in the source 396..568 visual band.");
+            yield return new WaitForSecondsRealtime(0.65f);
+            Assert.That(win.CelebrationRunningForTests, Is.True,
+                "The 0.65s visual capture must include the source burst/ribbon timeline.");
+            Assert.That(win.CelebrationActiveCountForTests, Is.GreaterThan(0),
+                "The 0.65s visual capture must include the source burst/ribbon timeline.");
+            yield return CapturePortfolioFrame("06_Win", false);
+            yield return SetPortfolioResolution(1080, 2400);
+            Assert.That(
+                titleRect.anchoredPosition.y,
+                Is.EqualTo(viewport.rect.height * 0.5f - 482f).Within(1f),
+                "Win title must remain in the source 396..568 visual band.");
+            yield return CapturePortfolioFrame("06b_Win_1080x2400", false);
+            yield return SetPortfolioResolution(1080, 1920);
+        }
+
+        [UnityTest]
+        public IEnumerator PortfolioVisualCapture_CorePages()
+        {
+            yield return SetPortfolioResolution(1080, 1920);
+
+            AppBootstrap bootstrap = Find<AppBootstrap>();
+            UIManager manager = Find<UIManager>();
+            Assert.That(bootstrap, Is.Not.Null,
+                "AppScene is missing AppBootstrap.");
+            Assert.That(manager, Is.Not.Null,
+                "AppScene is missing UIManager.");
+
+            yield return WaitUntil(
+                () => bootstrap.IsComplete ||
+                      bootstrap.Phase == AppStartupPhase.Failed,
+                StartupTimeoutSeconds,
+                "AppBootstrap did not finish within the timeout.");
+            Assert.That(bootstrap.Phase, Is.EqualTo(AppStartupPhase.Complete),
+                bootstrap.FailureReason);
+            yield return WaitForState(manager, UiName.Home,
+                UiWindowState.Showing);
+
+            UIFrameWindow home = manager.Get(UiName.Home);
+            HomePagePresenter homePresenter =
+                home.GetComponentInChildren<HomePagePresenter>(true);
+            Assert.That(homePresenter, Is.Not.Null);
+            Assert.That(homePresenter.ProfileEntryRect, Is.Not.Null);
+            Button profileButton =
+                homePresenter.ProfileEntryRect.GetComponent<Button>();
+            Assert.That(profileButton, Is.Not.Null);
+            Assert.That(profileButton.gameObject.activeInHierarchy, Is.True);
+            Assert.That(profileButton.targetGraphic, Is.Not.Null);
+            Assert.That(profileButton.targetGraphic.raycastTarget, Is.True);
+            profileButton.onClick.Invoke();
+            yield return WaitForState(manager, UiName.Profile,
+                UiWindowState.Showing);
+            manager.Hide(UiName.Profile);
+            yield return WaitForState(manager, UiName.Profile,
+                UiWindowState.Hidden);
+            AssertShowing(manager, UiName.Home);
+
+            UiName[] routes =
+            {
+                UiName.Setting,
+                UiName.Language,
+                UiName.HowToPlay,
+                UiName.HowToPlayPaged,
+                UiName.Bank
+            };
+            string[] captureNames =
+            {
+                "10_Settings",
+                "11_Language",
+                "12_HowToPlay",
+                "13_HowToPlayPaged",
+                "14_Bank"
+            };
+
+            for (int index = 0; index < routes.Length; index++)
+            {
+                UiName route = routes[index];
+                UIFrameWindow page = manager.Show(route);
+                Assert.That(page, Is.Not.Null);
+                yield return WaitForState(manager, route,
+                    UiWindowState.Showing);
+                Assert.That(manager.IsAnyLoading, Is.False);
+
+                if (page is HowToPlayPagePresenter howToPlay)
+                    Assert.That(howToPlay.FailureReason, Is.Empty);
+                if (page is HowToPlayPagedPagePresenter howToPlayPaged)
+                    Assert.That(howToPlayPaged.FailureReason, Is.Empty);
+
+                yield return CapturePortfolioFrame(
+                    captureNames[index],
+                    index == 0,
+                    "PortfolioAuxiliaryAudit");
+                if (route == UiName.Setting || route == UiName.Bank)
+                {
+                    yield return SetPortfolioResolution(1080, 2400);
+                    string tallCaptureName = route == UiName.Setting
+                        ? "10b_Settings_1080x2400"
+                        : "14b_Bank_1080x2400";
+                    yield return CapturePortfolioFrame(
+                        tallCaptureName,
+                        false,
+                        "PortfolioAuxiliaryAudit");
+                    yield return SetPortfolioResolution(1080, 1920);
+                }
+
+                manager.Hide(route);
+                yield return WaitForState(manager, route,
+                    UiWindowState.Hidden);
+                UIFrameWindow reopened = manager.Show(route);
+                Assert.That(reopened, Is.SameAs(page));
+                yield return WaitForState(manager, route,
+                    UiWindowState.Showing);
+                Assert.That(manager.IsAnyLoading, Is.False);
+                manager.Hide(route);
+                yield return WaitForState(manager, route,
+                    UiWindowState.Hidden);
+            }
+
+            AssertShowing(manager, UiName.Home);
+            Assert.That(manager.IsAnyLoading, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator PortfolioVisualCapture_MetaPages()
+        {
+            yield return SetPortfolioResolution(1080, 1920);
+
+            GameStateRuntime.Current.Data.CurrentLevel = 21;
+
+            AbConfigRuntime abRuntime = Find<AbConfigRuntime>();
+            Assert.That(abRuntime, Is.Not.Null,
+                "AppScene is missing AbConfigRuntime.");
+            PlayModeAbProvider provider =
+                abRuntime.gameObject.AddComponent<PlayModeAbProvider>();
+            provider.SetInt(
+                "daily_streak",
+                DailyStreakConfig.ValueBasic);
+            provider.SetInt(
+                "leaderboard_func",
+                LeaderboardFuncConfig.ValueControl);
+            abRuntime.BindProvider(provider);
+
+            AppBootstrap bootstrap = Find<AppBootstrap>();
+            UIManager manager = Find<UIManager>();
+            Assert.That(bootstrap, Is.Not.Null,
+                "AppScene is missing AppBootstrap.");
+            Assert.That(manager, Is.Not.Null,
+                "AppScene is missing UIManager.");
+
+            yield return WaitUntil(
+                () => bootstrap.IsComplete ||
+                      bootstrap.Phase == AppStartupPhase.Failed,
+                StartupTimeoutSeconds,
+                "AppBootstrap did not finish within the timeout.");
+            Assert.That(bootstrap.Phase, Is.EqualTo(AppStartupPhase.Complete),
+                bootstrap.FailureReason);
+            yield return WaitForState(manager, UiName.Home,
+                UiWindowState.Showing);
+
+            UIFrameWindow profile = manager.Show(UiName.Profile);
+            Assert.That(profile, Is.Not.Null);
+            ProfilePagePresenter profilePresenter =
+                profile as ProfilePagePresenter ??
+                profile.GetComponentInChildren<ProfilePagePresenter>(true);
+            Assert.That(profilePresenter, Is.Not.Null);
+            yield return WaitForState(manager, UiName.Profile,
+                UiWindowState.Showing);
+            yield return CapturePortfolioFrame(
+                "30_Profile",
+                true,
+                "PortfolioMetaAudit");
+            manager.Hide(UiName.Profile);
+            yield return WaitForState(manager, UiName.Profile,
+                UiWindowState.Hidden);
+
+            UIFrameWindow streak = manager.Show(
+                UiName.Streak,
+                new Dictionary<string, object>
+                {
+                    [StreakPagePresenter.StateParameter] =
+                        (int)StreakDisplayState.Main
+                });
+            Assert.That(streak, Is.Not.Null);
+            StreakPagePresenter streakPresenter =
+                streak as StreakPagePresenter ??
+                streak.GetComponentInChildren<StreakPagePresenter>(true);
+            Assert.That(streakPresenter, Is.Not.Null);
+            yield return WaitForState(manager, UiName.Streak,
+                UiWindowState.Showing);
+            Assert.That(streakPresenter.SunVisibleForTests, Is.True,
+                "The source SunImg must stay visible in the main state.");
+            StreakDaySlotView[] streakSlots = streakPresenter
+                .GetComponentsInChildren<StreakDaySlotView>(true);
+            Assert.That(streakSlots, Has.Length.EqualTo(7));
+            foreach (StreakDaySlotView slot in streakSlots)
+            {
+                Transform uncheckedDot = slot.transform.Find("UncheckedDot");
+                Assert.That(uncheckedDot, Is.Not.Null);
+                Assert.That(
+                    uncheckedDot.GetComponent<RoundedImageView>(),
+                    Is.Not.Null,
+                    "Unchecked streak days must remain circular.");
+            }
+            yield return CapturePortfolioFrame(
+                "31_Streak",
+                false,
+                "PortfolioMetaAudit");
+            manager.Hide(UiName.Streak);
+            yield return WaitForState(manager, UiName.Streak,
+                UiWindowState.Hidden);
+
+            UIFrameWindow home = manager.Get(UiName.Home);
+            Assert.That(home, Is.Not.Null);
+            HomePagePresenter homePresenter =
+                home.GetComponentInChildren<HomePagePresenter>(true);
+            DailyChallengeEntryPresenter dailyEntry =
+                home.GetComponentInChildren<DailyChallengeEntryPresenter>(true);
+            Assert.That(homePresenter, Is.Not.Null);
+            Assert.That(dailyEntry, Is.Not.Null);
+            homePresenter.RefreshPresentation();
+            dailyEntry.RefreshNow();
+            Button dailyButton = FindEntryButton(dailyEntry);
+            Assert.That(dailyButton.gameObject.activeInHierarchy, Is.True);
+            dailyButton.onClick.Invoke();
+            yield return WaitForState(manager, UiName.DailyGame,
+                UiWindowState.Showing);
+            UIFrameWindow dailyGame = manager.Get(UiName.DailyGame);
+            GameplayManager gameplay =
+                dailyGame.GetComponentInChildren<GameplayManager>(true);
+            Assert.That(gameplay, Is.Not.Null);
+            yield return WaitForSession(gameplay, GameSessionState.Playing);
+            Assert.That(gameplay.SessionMode,
+                Is.EqualTo(GameplaySessionMode.Daily));
+            yield return CapturePortfolioFrame(
+                "32_DailyGame",
+                false,
+                "PortfolioMetaAudit");
+            FindButton(dailyGame, "BackBtn").onClick.Invoke();
+            yield return WaitForState(manager, UiName.DailyGame,
+                UiWindowState.Hidden);
+            yield return WaitForState(manager, UiName.Home,
+                UiWindowState.Showing);
 
             AssertShowing(manager, UiName.Home);
             Assert.That(manager.IsAnyLoading, Is.False);
@@ -1380,6 +1837,250 @@ namespace Meowdoku.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator PlatformPresentation_BoardIntroUsesSourceStaggerAndInputBoundary()
+        {
+            AppBootstrap bootstrap = Find<AppBootstrap>();
+            UIManager manager = Find<UIManager>();
+            Assert.That(bootstrap, Is.Not.Null);
+            Assert.That(manager, Is.Not.Null);
+
+            yield return WaitUntil(
+                () => bootstrap.IsComplete ||
+                      bootstrap.Phase == AppStartupPhase.Failed,
+                StartupTimeoutSeconds,
+                "AppBootstrap did not finish within the timeout.");
+            Assert.That(bootstrap.Phase, Is.EqualTo(AppStartupPhase.Complete),
+                bootstrap.FailureReason);
+            yield return WaitForState(manager, UiName.Splash, UiWindowState.Hidden);
+            yield return WaitForState(manager, UiName.Home, UiWindowState.Showing);
+
+            FindButton(manager.Get(UiName.Home), "StartBtn").onClick.Invoke();
+            UIFrameWindow gamePage = manager.Get(UiName.Game);
+            GameplayManager gameplay = gamePage
+                .GetComponentInChildren<GameplayManager>(true);
+            BoardView board = gamePage.GetComponentInChildren<BoardView>(true);
+            Assert.That(gameplay, Is.Not.Null);
+            Assert.That(board, Is.Not.Null);
+
+            yield return WaitUntil(
+                () => gameplay.SessionState == GameSessionState.Entering &&
+                      board.IsGridIntroPlayingForTests,
+                TransitionTimeoutSeconds,
+                "Board intro did not begin while the session was Entering.");
+            float expectedInputDuration =
+                BoardView.CalculateGridIntroInputReadyDuration(
+                    gameplay.CurrentPuzzleSize);
+            Assert.That(board.GridIntroInputReadyDurationForTests,
+                Is.EqualTo(expectedInputDuration).Within(0.001f));
+            Assert.That(board.CellIntroAlphaForTests(0, 0), Is.LessThan(1f));
+            Assert.That(board.CellIntroScaleForTests(0, 0), Is.LessThan(1f));
+
+            yield return WaitForSession(gameplay, GameSessionState.Playing);
+            Assert.That(board.CellIntroAlphaForTests(0, 0),
+                Is.EqualTo(1f).Within(0.02f));
+
+            float remainingVisualTime = Mathf.Max(0f,
+                board.GridIntroVisualDurationForTests -
+                board.GridIntroInputReadyDurationForTests) + 0.1f;
+            yield return new WaitForSecondsRealtime(remainingVisualTime);
+            Assert.That(board.IsGridIntroPlayingForTests, Is.False);
+            Assert.That(board.CellIntroAlphaForTests(0, 0),
+                Is.EqualTo(1f).Within(0.001f));
+            Assert.That(board.CellIntroScaleForTests(0, 0),
+                Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator PlatformPresentation_CorrectCatUsesSourceBurstPool()
+        {
+            AppBootstrap bootstrap = Find<AppBootstrap>();
+            UIManager manager = Find<UIManager>();
+            Assert.That(bootstrap, Is.Not.Null);
+            Assert.That(manager, Is.Not.Null);
+
+            yield return WaitUntil(
+                () => bootstrap.IsComplete ||
+                      bootstrap.Phase == AppStartupPhase.Failed,
+                StartupTimeoutSeconds,
+                "AppBootstrap did not finish within the timeout.");
+            Assert.That(bootstrap.Phase, Is.EqualTo(AppStartupPhase.Complete),
+                bootstrap.FailureReason);
+            yield return WaitForState(manager, UiName.Splash,
+                UiWindowState.Hidden);
+            yield return WaitForState(manager, UiName.Home,
+                UiWindowState.Showing);
+
+            FindButton(manager.Get(UiName.Home), "StartBtn").onClick.Invoke();
+            yield return WaitForState(manager, UiName.Game,
+                UiWindowState.Showing);
+            UIFrameWindow gamePage = manager.Get(UiName.Game);
+            GameplayManager gameplay = gamePage
+                .GetComponentInChildren<GameplayManager>(true);
+            Assert.That(gameplay, Is.Not.Null);
+            yield return WaitForSession(gameplay, GameSessionState.Playing);
+
+            GameplayFeedbackPresenter feedback = gamePage
+                .GetComponentInChildren<GameplayFeedbackPresenter>(true);
+            Assert.That(feedback, Is.Not.Null);
+            RectTransform ruleBar = gamePage.transform.Find("HUD/RuleBar") as RectTransform;
+            Assert.That(ruleBar, Is.Not.Null);
+            Assert.That(feedback.transform.GetSiblingIndex(),
+                Is.GreaterThan(ruleBar.GetSiblingIndex()),
+                "Source sorting requires feedback effects/bubbles above RuleBar.");
+            Assert.That(feedback.CatBurstPoolSizeForTests, Is.EqualTo(6));
+
+            Vector2Int catCell = FindInputCell(gameplay, solution: true);
+            Assert.That(catCell.x, Is.GreaterThanOrEqualTo(0));
+            SessionActionResult action = gameplay.DoubleTapForTests(
+                catCell.x,
+                catCell.y);
+            Assert.That(action.Kind, Is.EqualTo(SessionActionKind.CorrectCat));
+            Assert.That(feedback.PlayingCatBurstCountForTests, Is.EqualTo(1));
+            Assert.That(feedback.ActiveCatBurstCountForTests, Is.Zero);
+
+            yield return new WaitForSecondsRealtime(0.14f);
+            Assert.That(feedback.ActiveCatBurstCountForTests, Is.EqualTo(1));
+
+            yield return new WaitForSecondsRealtime(1.05f);
+            Assert.That(feedback.PlayingCatBurstCountForTests, Is.Zero);
+            Assert.That(feedback.ActiveCatBurstCountForTests, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator PlatformPresentation_FeedbackToolRuleAndCompletionCleanUpAcrossWin()
+        {
+            AppBootstrap bootstrap = Find<AppBootstrap>();
+            UIManager manager = Find<UIManager>();
+            AbConfigRuntime abRuntime = Find<AbConfigRuntime>();
+            Assert.That(bootstrap, Is.Not.Null);
+            Assert.That(manager, Is.Not.Null);
+            Assert.That(abRuntime, Is.Not.Null);
+
+            PlayModeAbProvider provider =
+                abRuntime.gameObject.AddComponent<PlayModeAbProvider>();
+            provider.SetInt(
+                "score_encourage",
+                ScoreEncourageConfig.ValueMultiplier);
+            provider.SetInt(
+                "rule_highlight",
+                RuleHighlightConfig.ValueHighlightAllLevels);
+            provider.SetInt(
+                "prop_highlight",
+                PropHighlightConfig.ValueControlRepeatable);
+            abRuntime.BindProvider(provider);
+
+            yield return WaitUntil(
+                () => bootstrap.IsComplete ||
+                      bootstrap.Phase == AppStartupPhase.Failed,
+                StartupTimeoutSeconds,
+                "AppBootstrap did not finish within the timeout.");
+            Assert.That(bootstrap.Phase, Is.EqualTo(AppStartupPhase.Complete),
+                bootstrap.FailureReason);
+            yield return WaitForState(manager, UiName.Splash,
+                UiWindowState.Hidden);
+            yield return WaitForState(manager, UiName.Home,
+                UiWindowState.Showing);
+
+            GameStateRuntime.Current.Data.CurrentLevel = 3;
+            FindButton(manager.Get(UiName.Home), "StartBtn").onClick.Invoke();
+            yield return WaitForState(manager, UiName.Game,
+                UiWindowState.Showing);
+            UIFrameWindow gamePage = manager.Get(UiName.Game);
+            GameplayManager gameplay = gamePage
+                .GetComponentInChildren<GameplayManager>(true);
+            Assert.That(gameplay, Is.Not.Null);
+            yield return WaitForSession(gameplay, GameSessionState.Playing);
+
+            Assert.That(gameplay.CurrentPuzzleSize, Is.EqualTo(6));
+            Assert.That(gameplay.ScoreEncourageValueForTests,
+                Is.EqualTo(ScoreEncourageConfig.ValueMultiplier),
+                "Gameplay must consume the shared GameStart score_encourage config.");
+
+            GameplayFeedbackPresenter feedback = gamePage
+                .GetComponentInChildren<GameplayFeedbackPresenter>(true);
+            GameplayRuleBarPresenter ruleBar = gamePage
+                .GetComponentInChildren<GameplayRuleBarPresenter>(true);
+            GameplayToolBarPresenter toolBar = gamePage
+                .GetComponentInChildren<GameplayToolBarPresenter>(true);
+            Assert.That(feedback, Is.Not.Null);
+            Assert.That(ruleBar, Is.Not.Null);
+            Assert.That(toolBar, Is.Not.Null);
+            yield return WaitUntil(
+                () => !ruleBar.EntryAnimationActiveForTests,
+                3f,
+                "RuleBar entry animation did not finish within the timeout.");
+            Assert.That(ruleBar.EntryGlowAlphaForTests, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(ruleBar.EntryScaleForTests, Is.EqualTo(1f).Within(0.01f));
+
+            for (int index = 0; index < 3; index++)
+            {
+                Vector2Int catCell = FindInputCell(gameplay, solution: true);
+                Assert.That(catCell.x, Is.GreaterThanOrEqualTo(0),
+                    "The fixture must have an empty solution cat for each source combo step.");
+                SessionActionResult cat = gameplay.DoubleTapForTests(
+                    catCell.x,
+                    catCell.y);
+                Assert.That(cat.Kind, Is.EqualTo(SessionActionKind.CorrectCat));
+            }
+
+            Assert.That(feedback.PlayingScoreBubbleCountForTests,
+                Is.GreaterThanOrEqualTo(1));
+            Assert.That(feedback.PlayingMultiplierCountForTests,
+                Is.GreaterThanOrEqualTo(1));
+
+            yield return WaitUntil(
+                () => feedback.DisplayedScoreForTests == gameplay.ScoreForTests,
+                5f,
+                "Source score flights did not settle on the authoritative score.");
+            Assert.That(feedback.DisplayedScoreForTests, Is.GreaterThan(0));
+
+            ruleBar.PlayViolation(QueendokuCore.Rule.SameColor);
+            Assert.That(ruleBar.IsHighlightVisibleForTests(
+                QueendokuCore.Rule.SameColor), Is.True);
+            yield return new WaitForSecondsRealtime(1.25f);
+            Assert.That(ruleBar.IsHighlightVisibleForTests(
+                QueendokuCore.Rule.SameColor), Is.False);
+
+            ToolButtonView locate = toolBar.LocateButtonForTests;
+            ToolButtonView hint = toolBar.HintButtonForTests;
+            Assert.That(locate, Is.Not.Null);
+            Assert.That(hint, Is.Not.Null);
+            Assert.That(locate.PlayIdlePulse(), Is.True);
+            Assert.That(locate.IsIdlePulsePlaying, Is.True);
+            yield return new WaitForSecondsRealtime(0.1f);
+            locate.StopIdlePulse();
+            Assert.That(locate.IsIdlePulsePlaying, Is.False);
+
+            SessionActionResult completed = gameplay.RunAutoComplete();
+            Assert.That(completed.Accepted, Is.True);
+            Assert.That(completed.IsComplete, Is.True);
+            Assert.That(IsShowing(manager, UiName.Win), Is.False,
+                "Final feedback must gate the Win route beyond the completion frame.");
+
+            yield return CompletePreWinMetaFlow(manager);
+            Assert.That(IsShowing(manager, UiName.Win), Is.True);
+            Assert.That(IsShowing(manager, UiName.Game), Is.True,
+                "Win is a source-style overlay and must keep Game underneath it.");
+            yield return WaitUntil(
+                () => feedback.PlayingScoreBubbleCountForTests == 0 &&
+                      feedback.PlayingMultiplierCountForTests == 0 &&
+                      feedback.PlayingScoreFlightCountForTests == 0,
+                4f,
+                "Feedback pools did not finish and return after the Win overlay.");
+
+            Assert.That(feedback.PlayingScoreBubbleCountForTests, Is.Zero);
+            Assert.That(feedback.PlayingMultiplierCountForTests, Is.Zero);
+            Assert.That(feedback.PlayingScoreFlightCountForTests, Is.Zero);
+            Assert.That(locate.IsIdlePulsePlaying, Is.False);
+            Assert.That(hint.IsIdlePulsePlaying, Is.False);
+            Assert.That(ruleBar.IsHighlightVisibleForTests(
+                QueendokuCore.Rule.SameColor), Is.False);
+            Assert.That(ruleBar.EntryAnimationActiveForTests, Is.False);
+            Assert.That(ruleBar.EntryGlowAlphaForTests,
+                Is.EqualTo(0f).Within(0.01f));
+        }
+
+        [UnityTest]
         public IEnumerator PlatformInput_TapToggleAndDoubleTapUseRuntimeGestureFlow()
         {
             AppBootstrap bootstrap = Find<AppBootstrap>();
@@ -1684,14 +2385,28 @@ namespace Meowdoku.Tests.PlayMode
             Assert.That(failPresenter.FailTextValueForTests,
                 Is.EqualTo(FailTextConfig.ValueRevivePromote),
                 "Fail must reload the source game_end timing before presentation.");
+            Assert.That(failPresenter.IntroActiveForTests, Is.True,
+                "Fail intro must be active immediately after Fail appears.");
+            Assert.That(failPresenter.ButtonsReadyForTests, Is.False,
+                "Fail buttons must remain locked while the intro is active.");
             Button restart = FindButton(fail, "RestartButton", false);
             yield return WaitUntil(
                 () => restart.isActiveAndEnabled && restart.interactable,
                 TransitionTimeoutSeconds,
                 "RestartButton did not unlock after Fail appeared.");
+            Assert.That(failPresenter.ButtonsReadyForTests, Is.True,
+                "Fail buttons must be ready when RestartButton unlocks.");
+            Assert.That(failPresenter.IntroActiveForTests, Is.False,
+                "Fail intro must finish before RestartButton unlocks.");
+            Assert.That(failPresenter.PageAlphaForTests,
+                Is.EqualTo(1f).Within(0.001f),
+                "Fail page must be fully visible when RestartButton unlocks.");
             restart.onClick.Invoke();
             yield return WaitForState(manager, UiName.Fail,
                 UiWindowState.Hidden);
+            Assert.That(failPresenter.PageAlphaForTests,
+                Is.EqualTo(0f).Within(0.001f),
+                "Fail page disappear must complete before Fail becomes Hidden.");
             yield return WaitForSession(gameplay, GameSessionState.Playing);
             Assert.That(gameplay.PuzzleIdForTests, Is.EqualTo(puzzleId));
             Assert.That(gameplay.RestartCountForTests, Is.EqualTo(1));
@@ -2073,9 +2788,15 @@ namespace Meowdoku.Tests.PlayMode
                     Is.EqualTo(passPage));
                 Assert.That(presenter.PassTextValueForTests,
                     Is.EqualTo(passText));
+                Assert.That(presenter.PageAlphaForTests,
+                    Is.EqualTo(1f).Within(0.001f),
+                    "Win page must reopen fully visible for every source variant.");
 
                 Transform root = presenter.transform.Find("Root");
+                Transform effects = presenter.transform.Find("Root/Effects");
                 Transform visuals = presenter.transform.Find("Root/Visuals");
+                Transform victoryCatGlow = presenter.transform.Find(
+                    "Root/Visuals/VictoryCatGlow");
                 Transform content = presenter.transform.Find("Root/Content");
                 Transform body = presenter.transform.Find("Root/Content/Body");
                 Transform defaultStatistics = presenter.transform.Find(
@@ -2091,7 +2812,9 @@ namespace Meowdoku.Tests.PlayMode
                 Transform praise = presenter.transform.Find(
                     "Root/PassPanel/Praise");
                 Assert.That(root, Is.Not.Null);
+                Assert.That(effects, Is.Not.Null);
                 Assert.That(visuals, Is.Not.Null);
+                Assert.That(victoryCatGlow, Is.Not.Null);
                 Assert.That(content, Is.Not.Null);
                 Assert.That(body, Is.Not.Null);
                 Assert.That(defaultStatistics, Is.Not.Null);
@@ -2110,6 +2833,10 @@ namespace Meowdoku.Tests.PlayMode
 
                 if (panelVariant)
                 {
+                    Assert.That(presenter.CelebrationRunningForTests, Is.False,
+                        "Panel variants must not start the default celebration timeline.");
+                    Assert.That(presenter.CelebrationActiveCountForTests, Is.Zero,
+                        "Panel variants must not retain active celebration effects.");
                     Assert.That(extraStatistics.gameObject.activeSelf,
                         Is.EqualTo(passPage == PassPageConfig.ValueG2));
                     Assert.That(
@@ -2182,6 +2909,21 @@ namespace Meowdoku.Tests.PlayMode
                 }
                 else
                 {
+                    Assert.That(presenter.CelebrationRunningForTests, Is.True,
+                        "Default variants must start the source celebration timeline immediately.");
+                    Assert.That(presenter.DefaultIntroActiveForTests, Is.True,
+                        "Default intro must remain active while the source CTA timeline is running.");
+                    Assert.That(presenter.DefaultIntroDurationForTests, Is.EqualTo(1.2759178f).Within(0.01f),
+                        "The sequence must include the source CTA end marker.");
+                    if (index == 0)
+                    {
+                        yield return new WaitForSecondsRealtime(0.60f);
+                        Assert.That(presenter.CelebrationRunningForTests, Is.True,
+                            "Celebration must still run at 0.60s after the source burst at 0.394s and loop start at 0.535s.");
+                        Assert.That(presenter.CelebrationActiveCountForTests,
+                            Is.GreaterThan(0),
+                            "Celebration must have active effects at 0.60s after the source burst and loop begin.");
+                    }
                     Assert.That(defaultStatistics.gameObject.activeSelf,
                         Is.EqualTo(passPage == PassPageConfig.ValueG4));
                     Assert.That(body.gameObject.activeSelf,
@@ -2201,6 +2943,13 @@ namespace Meowdoku.Tests.PlayMode
                         Assert.That(statsGroup.alpha, Is.Zero.Within(0.001f));
                         yield return new WaitForSecondsRealtime(1.75f);
                         Assert.That(statsGroup.alpha, Is.EqualTo(1f).Within(0.01f));
+                        Assert.That(presenter.DefaultIntroActiveForTests, Is.False,
+                            "Default intro must finish before the G4 source statistics settle at 1.75s.");
+                        Assert.That(presenter.CelebrationRunningForTests, Is.True,
+                            "Celebration loop must still run after the G4 source statistics settle at 1.75s.");
+                        Assert.That(presenter.CelebrationActiveCountForTests,
+                            Is.GreaterThan(0),
+                            "Celebration loop must retain active effects after the G4 1.75s statistics wait.");
                         Assert.That(defaultStatistics.Find("Time")
                                 .GetComponent<Text>().text,
                             Does.EndWith("01:06"));
@@ -2220,6 +2969,13 @@ namespace Meowdoku.Tests.PlayMode
                 manager.Hide(UiName.Win);
                 yield return WaitForState(manager, UiName.Win,
                     UiWindowState.Hidden);
+                Assert.That(presenter.PageAlphaForTests,
+                    Is.Zero.Within(0.001f),
+                    "Hidden Win page must complete source alpha cleanup.");
+                Assert.That(presenter.CelebrationRunningForTests, Is.False,
+                    "Hidden Win page must stop the celebration timeline during cleanup.");
+                Assert.That(presenter.CelebrationActiveCountForTests, Is.Zero,
+                    "Hidden Win page must release all active celebration effects during cleanup.");
             }
 
             Assert.That(manager.IsAnyLoading, Is.False);
@@ -3245,9 +4001,12 @@ namespace Meowdoku.Tests.PlayMode
             Assert.That(settingHidden, Is.Zero,
                 "Aborted closes must not emit hidden events.");
             Assert.That(setting.SortingOrder,
-                Is.GreaterThanOrEqualTo((int)setting.Layer));
+                Is.GreaterThanOrEqualTo(
+                    UiLayerConfig.SortingBase(setting.Layer)));
             Assert.That(setting.SortingOrder,
-                Is.LessThan((int)setting.Layer + UiLayerConfig.ZMax),
+                Is.LessThan(
+                    UiLayerConfig.SortingBase(setting.Layer) +
+                    UiLayerConfig.ZMax),
                 "Sorting order did not compact inside the source Z range.");
 
             manager.Hide(UiName.Setting);
@@ -3387,10 +4146,12 @@ namespace Meowdoku.Tests.PlayMode
 
             FindButton(settings, "FeedbackBtn").onClick.Invoke();
             Assert.That(settingsExternal.FeedbackOpenCount, Is.Zero,
-                "Offline Feedback must stop at the source network gate.");
+                "Portfolio feedback must not invoke the retired support SDK.");
+            Assert.That(settingsExternal.OpenedUrls,
+                Is.EqualTo(new[] { PortfolioLinks.GitHub }));
             settingsExternal.IsOnline = true;
             FindButton(settings, "FeedbackBtn").onClick.Invoke();
-            Assert.That(settingsExternal.FeedbackOpenCount, Is.EqualTo(1));
+            Assert.That(settingsExternal.FeedbackOpenCount, Is.Zero);
             FindButton(settings, "PrivacyPreferenceBtn").onClick.Invoke();
             Assert.That(settingsExternal.ConsentOpenCount, Is.EqualTo(1));
             FindButton(settings, "TermsBtn").onClick.Invoke();
@@ -3398,8 +4159,10 @@ namespace Meowdoku.Tests.PlayMode
             Assert.That(settingsExternal.OpenedUrls,
                 Is.EqualTo(new[]
                 {
-                    "https://oakevergames.com/tos.html",
-                    "https://oakevergames.com/pp.html"
+                    PortfolioLinks.GitHub,
+                    PortfolioLinks.GitHub,
+                    PortfolioLinks.GitHub,
+                    PortfolioLinks.GitHub
                 }));
 
             FindButton(settings, "Row").onClick.Invoke();
@@ -3683,27 +4446,49 @@ namespace Meowdoku.Tests.PlayMode
                 home.GetComponentInChildren<HomePagePresenter>(true);
             DailyChallengeEntryPresenter daily =
                 home.GetComponentInChildren<DailyChallengeEntryPresenter>(true);
-            StreakEntryPresenter streak =
-                home.GetComponentInChildren<StreakEntryPresenter>(true);
+            StreakEntryPresenter fullStreak = null;
+            StreakEntryPresenter miniStreak = null;
+            StreakEntryPresenter[] streakEntries =
+                home.GetComponentsInChildren<StreakEntryPresenter>(true);
+            foreach (StreakEntryPresenter streakEntry in streakEntries)
+            {
+                if (streakEntry.gameObject.name == "StreakEntryCell")
+                    fullStreak = streakEntry;
+                else if (streakEntry.gameObject.name == "StreakMiniEntryCell")
+                    miniStreak = streakEntry;
+            }
             RankActivityEntryPresenter rank =
                 home.GetComponentInChildren<RankActivityEntryPresenter>(true);
             Assert.That(presenter, Is.Not.Null);
             Assert.That(daily, Is.Not.Null);
-            Assert.That(streak, Is.Not.Null);
+            Assert.That(fullStreak, Is.Not.Null);
+            Assert.That(miniStreak, Is.Not.Null);
             Assert.That(rank, Is.Not.Null);
-            Assert.That(
-                FindNamedComponent<RectTransform>(home, "ProfileEntry")
-                    .gameObject.activeInHierarchy,
+            Button profileButton =
+                FindNamedComponent<Button>(home, "ProfileEntry");
+            Assert.That(profileButton.gameObject.activeInHierarchy,
                 Is.True,
                 "leaderboard_func must control the Profile entry like the source.");
+            Assert.That(profileButton.targetGraphic, Is.Not.Null);
+            Assert.That(profileButton.targetGraphic.raycastTarget, Is.True);
 
             Button dailyButton = FindEntryButton(daily);
-            Button streakButton = FindEntryButton(streak);
+            Button streakButton = FindEntryButton(fullStreak);
             Button rankButton = FindEntryButton(rank);
             Assert.That(dailyButton.gameObject.activeInHierarchy, Is.True);
             Assert.That(streakButton.gameObject.activeInHierarchy, Is.True);
+            Assert.That(fullStreak.gameObject.activeInHierarchy, Is.True);
+            Assert.That(miniStreak.gameObject.activeInHierarchy, Is.False);
             Assert.That(rankButton.gameObject.activeInHierarchy, Is.False,
                 "Rank entry must stay unavailable below source unlock level 11.");
+
+            profileButton.onClick.Invoke();
+            yield return WaitForState(manager, UiName.Profile,
+                UiWindowState.Showing);
+            FindButton(manager.Get(UiName.Profile), "CloseBtn").onClick.Invoke();
+            yield return WaitForState(manager, UiName.Profile,
+                UiWindowState.Hidden);
+            AssertShowing(manager, UiName.Home);
 
             dailyButton.onClick.Invoke();
             yield return null;
@@ -3746,6 +4531,8 @@ namespace Meowdoku.Tests.PlayMode
                       FindEntryButton(rank).gameObject.activeInHierarchy,
                 TransitionTimeoutSeconds,
                 "Rank entry did not become available at level 21.");
+            Assert.That(fullStreak.gameObject.activeInHierarchy, Is.False);
+            Assert.That(miniStreak.gameObject.activeInHierarchy, Is.True);
             if (!IsShowing(manager, UiName.RankActivityOpenPopup))
                 FindEntryButton(rank).onClick.Invoke();
             yield return WaitForState(manager, UiName.RankActivityOpenPopup,
@@ -4108,16 +4895,30 @@ namespace Meowdoku.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator AppScene_RankExpiryInGame_RewardThenOpensNextPeriodAtHome()
+        public IEnumerator PortfolioVisualCapture_RankAfterWin()
         {
+            yield return SetPortfolioResolution(1080, 1920);
+
             GameStateRuntime.Current.Data.CurrentLevel = 21;
 
             AbConfigRuntime abRuntime = Find<AbConfigRuntime>();
             RankActivityRuntime rankRuntime = Find<RankActivityRuntime>();
             DailyMetaRuntime dailyRuntime = Find<DailyMetaRuntime>();
+            SoundService soundService = Find<SoundService>();
             Assert.That(abRuntime, Is.Not.Null);
             Assert.That(rankRuntime, Is.Not.Null);
             Assert.That(dailyRuntime, Is.Not.Null);
+            Assert.That(soundService, Is.Not.Null);
+            int rankScoreCountBaseline = soundService.FixedPlayCount(
+                SoundKind.RankScoreCount);
+            int rankRiseUpBaseline = soundService.FixedPlayCount(
+                SoundKind.RankRiseUp);
+            int rankRiseDownBaseline = soundService.FixedPlayCount(
+                SoundKind.RankRiseDown);
+            int rankBoxAppearBaseline = soundService.FixedPlayCount(
+                SoundKind.RankBoxAppear);
+            int rankBoxOpenBaseline = soundService.FixedPlayCount(
+                SoundKind.RankBoxOpen);
 
             PlayModeAbProvider provider =
                 abRuntime.gameObject.AddComponent<PlayModeAbProvider>();
@@ -4149,7 +4950,11 @@ namespace Meowdoku.Tests.PlayMode
 
             Assert.That(rank.MaybeOpen(true), Is.True);
             rank.ConfirmParticipation();
-            robotStore.ZeroAllScores();
+            robotStore.SeedVisibleScoresBelowPlayer();
+            Assert.That(
+                rank.GetRankInfos().Count,
+                Is.AtLeast(6),
+                "Rank visual audit requires five neighboring robots plus the player.");
             Assert.That(rank.PeriodCount, Is.EqualTo(1));
             Assert.That(rank.IsJoined, Is.True);
 
@@ -4200,11 +5005,125 @@ namespace Meowdoku.Tests.PlayMode
             Assert.That(rank.IsInLevelForTests, Is.False);
             Assert.That(rank.GetPendingReward(), Is.Not.Null);
             Assert.That(rank.GetPendingReward().Rank, Is.EqualTo(1));
+            Assert.That(
+                rank.GetRankInfos().Count,
+                Is.AtLeast(6),
+                "Rank visual audit requires five neighboring robots plus the player after the gameplay win transition.");
 
             yield return WaitForState(manager, UiName.RankActivityChange,
                 UiWindowState.Showing,
                 15f);
+            yield return new WaitForSecondsRealtime(0.8f);
+            yield return CapturePortfolioFrame(
+                "20_RankChange",
+                true,
+                "PortfolioRankAudit");
             UIFrameWindow change = manager.Get(UiName.RankActivityChange);
+            RectTransform viewport = change.transform.Find(
+                "Root/ListGroup/RankCellMask") as RectTransform;
+            Assert.That(viewport, Is.Not.Null);
+            RectTransform rowList = change.transform.Find(
+                "Root/ListGroup/RankCellMask/RowList") as RectTransform;
+            Assert.That(rowList, Is.Not.Null);
+
+            var visualRows = new List<RankActivityRowView>();
+            for (int i = 0; i < rowList.childCount; i++)
+            {
+                RankActivityRowView row =
+                    rowList.GetChild(i).GetComponent<RankActivityRowView>();
+                if (row != null)
+                {
+                    visualRows.Add(row);
+                }
+            }
+
+            Assert.That(visualRows.Count, Is.AtLeast(6));
+            var rowPositions = new HashSet<int>();
+            int alphaVisibleRowCount = 0;
+            int hiddenRowCount = 0;
+            int intersectingVisibleRowCount = 0;
+            int renderedDirectRowBackgroundCount = 0;
+            var rowDiagnostics = new StringBuilder();
+            foreach (RankActivityRowView row in visualRows)
+            {
+                Assert.That(row.gameObject.activeSelf, Is.True);
+                RectTransform rowTransform = row.GetComponent<RectTransform>();
+                Assert.That(
+                    rowTransform.rect.height,
+                    Is.GreaterThanOrEqualTo(179f));
+                Assert.That(row.PresentationGroup, Is.Not.Null);
+                float alpha = row.PresentationGroup.alpha;
+                Bounds bounds = RectTransformUtility
+                    .CalculateRelativeRectTransformBounds(viewport, rowTransform);
+                bool alphaVisible = alpha > 0.99f;
+                if (alphaVisible)
+                {
+                    alphaVisibleRowCount++;
+                    Rect viewportRect = viewport.rect;
+                    if (bounds.max.x >= viewportRect.xMin &&
+                        bounds.min.x <= viewportRect.xMax &&
+                        bounds.max.y >= viewportRect.yMin &&
+                        bounds.min.y <= viewportRect.yMax)
+                    {
+                        intersectingVisibleRowCount++;
+                        Image background = row.transform.Find(
+                                "VisualRoot/CanvasGroup/Background")
+                            ?.GetComponent<Image>();
+                        if (background != null &&
+                            background.gameObject.activeInHierarchy &&
+                            background.enabled &&
+                            !background.canvasRenderer.cull)
+                        {
+                            renderedDirectRowBackgroundCount++;
+                        }
+                    }
+                }
+                else
+                {
+                    hiddenRowCount++;
+                }
+
+                if (rowDiagnostics.Length > 0)
+                    rowDiagnostics.Append("; ");
+                rowDiagnostics.Append(row.name)
+                    .Append(" y=").Append(
+                        rowTransform.anchoredPosition.y.ToString("0.#"))
+                    .Append(" a=").Append(alpha.ToString("0.##"))
+                    .Append(" by=").Append(bounds.min.y.ToString("0.#"))
+                    .Append("..").Append(bounds.max.y.ToString("0.#"));
+                rowPositions.Add(Mathf.RoundToInt(
+                    rowTransform.anchoredPosition.y));
+            }
+
+            string rankLayoutDiagnostics = rowDiagnostics
+                .Append("; rowList y=")
+                .Append(rowList.anchoredPosition.y.ToString("0.#"))
+                .Append(" h=").Append(rowList.rect.height.ToString("0.#"))
+                .Append("; viewport h=")
+                .Append(viewport.rect.height.ToString("0.#"))
+                .ToString();
+            Assert.That(alphaVisibleRowCount, Is.AtLeast(5),
+                rankLayoutDiagnostics);
+            Assert.That(hiddenRowCount, Is.AtMost(1),
+                rankLayoutDiagnostics);
+            Assert.That(intersectingVisibleRowCount, Is.AtLeast(2),
+                "At least two direct alpha-visible rows must intersect the " +
+                "viewport; the floating player row is separate. " +
+                rankLayoutDiagnostics);
+            Assert.That(renderedDirectRowBackgroundCount, Is.AtLeast(2),
+                "At least two direct alpha-visible rows must intersect the " +
+                "viewport; the floating player row is separate. " +
+                rankLayoutDiagnostics);
+
+            Assert.That(
+                rowPositions.Count,
+                Is.AtLeast(6),
+                "Rank activity rows are overlapping.");
+            Assert.That(
+                rowList.rect.height,
+                Is.GreaterThanOrEqualTo(
+                    6 * SourceRankActivityLayout.RowHeight +
+                    5 * SourceRankActivityLayout.RowSpacing));
             Button tapToContinue = FindButton(
                 change,
                 "TapToContinue",
@@ -4215,14 +5134,41 @@ namespace Meowdoku.Tests.PlayMode
                       tapToContinue.interactable,
                 8f,
                 "Rank Change did not unlock Tap to Continue.");
+            Assert.That(
+                soundService.FixedPlayCount(SoundKind.RankScoreCount),
+                Is.GreaterThan(rankScoreCountBaseline));
+            Assert.That(
+                soundService.FixedPlayCount(SoundKind.RankRiseUp),
+                Is.GreaterThan(rankRiseUpBaseline));
+            Assert.That(
+                soundService.FixedPlayCount(SoundKind.RankRiseDown),
+                Is.GreaterThan(rankRiseDownBaseline));
             tapToContinue.onClick.Invoke();
             yield return WaitForState(manager, UiName.RankActivityChange,
                 UiWindowState.Hidden);
+            Assert.That(
+                rowList.GetComponent<VerticalLayoutGroup>().enabled,
+                Is.True,
+                "Cached Rank Change RowList layout must be restored on hide.");
+            Assert.That(
+                rowList.GetComponent<ContentSizeFitter>().enabled,
+                Is.True,
+                "Cached Rank Change RowList fitter must be restored on hide.");
 
             yield return WaitForState(manager, UiName.Award,
                 UiWindowState.Showing,
                 10f);
+            yield return CapturePortfolioFrame(
+                "21_RankAward",
+                false,
+                "PortfolioRankAudit");
             yield return CollectRankGift(manager);
+            Assert.That(
+                soundService.FixedPlayCount(SoundKind.RankBoxAppear),
+                Is.GreaterThan(rankBoxAppearBaseline));
+            Assert.That(
+                soundService.FixedPlayCount(SoundKind.RankBoxOpen),
+                Is.GreaterThan(rankBoxOpenBaseline));
             Assert.That(rank.State, Is.EqualTo(RankActivityState.NotOpened));
             Assert.That(rank.PeriodCount, Is.EqualTo(1),
                 "An in-game reward must wait for Home before opening period 2.");
@@ -4245,6 +5191,10 @@ namespace Meowdoku.Tests.PlayMode
                 () => next.interactable,
                 TransitionTimeoutSeconds,
                 "Win Next button did not become interactable.");
+            yield return CapturePortfolioFrame(
+                "22_RankWin",
+                false,
+                "PortfolioRankAudit");
             next.onClick.Invoke();
             yield return WaitUntil(
                 () => gameplay.CurrentLevelNumber == 22 &&
@@ -4277,6 +5227,17 @@ namespace Meowdoku.Tests.PlayMode
             Assert.That(rank.PeriodCount, Is.EqualTo(2));
             AssertShowing(manager, UiName.Home);
             Assert.That(manager.IsAnyLoading, Is.False);
+
+            manager.Show(UiName.RankActivityPage);
+            yield return WaitForState(manager, UiName.RankActivityPage,
+                UiWindowState.Showing);
+            yield return CapturePortfolioFrame(
+                "23_RankPage",
+                false,
+                "PortfolioRankAudit");
+            manager.Hide(UiName.RankActivityPage);
+            yield return WaitForState(manager, UiName.RankActivityPage,
+                UiWindowState.Hidden);
         }
 
         [UnityTest]
@@ -5699,6 +6660,92 @@ namespace Meowdoku.Tests.PlayMode
                 "Gameplay did not reach session state " + expected + ".");
         }
 
+        private static IEnumerator SetPortfolioResolution(int width, int height)
+        {
+#if UNITY_EDITOR
+            Type adapterType = Type.GetType(
+                "Meowdoku.Editor.PortfolioGameViewAdapter, Meowdoku.Editor");
+            MethodInfo setResolution = adapterType?.GetMethod(
+                "SetResolution",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(setResolution, Is.Not.Null,
+                "Portfolio GameView resolution adapter is unavailable.");
+            Assert.That(
+                (bool)setResolution.Invoke(null, new object[] { width, height }),
+                Is.True,
+                "Portfolio GameView resolution adapter failed.");
+#else
+            Screen.SetResolution(width, height, FullScreenMode.Windowed);
+#endif
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while ((Screen.width != width || Screen.height != height) &&
+                   Time.realtimeSinceStartup < deadline)
+                yield return null;
+
+            Assert.That(Screen.width, Is.EqualTo(width),
+                "Portfolio viewport width did not reach " + width + ".");
+            Assert.That(Screen.height, Is.EqualTo(height),
+                "Portfolio viewport height did not reach " + height + ".");
+            yield return new WaitForEndOfFrame();
+        }
+
+        private static IEnumerator CapturePortfolioFrame(
+            string name,
+            bool resetManifest)
+        {
+            return CapturePortfolioFrame(
+                name,
+                resetManifest,
+                "PortfolioVisualAudit");
+        }
+
+        private static IEnumerator CapturePortfolioFrame(
+            string name,
+            bool resetManifest,
+            string outputFolderName)
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath)
+                ?.FullName;
+            Assert.That(projectRoot, Is.Not.Null.And.Not.Empty,
+                "Could not resolve the project root for visual capture.");
+            string outputDirectory = Path.Combine(
+                projectRoot,
+                "Temp",
+                outputFolderName);
+            Directory.CreateDirectory(outputDirectory);
+            string manifestPath = Path.Combine(outputDirectory, "manifest.txt");
+            if (resetManifest)
+                File.WriteAllText(
+                    manifestPath,
+                    string.Empty,
+                    new UTF8Encoding(false));
+
+            yield return new WaitForSecondsRealtime(0.35f);
+            yield return new WaitForEndOfFrame();
+            string screenshotPath = Path.Combine(outputDirectory, name + ".png");
+            if (File.Exists(screenshotPath))
+                File.Delete(screenshotPath);
+            ScreenCapture.CaptureScreenshot(screenshotPath);
+
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while ((!File.Exists(screenshotPath) ||
+                    new FileInfo(screenshotPath).Length == 0) &&
+                   Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Assert.That(File.Exists(screenshotPath), Is.True,
+                "Portfolio screenshot was not written: " + screenshotPath);
+            Assert.That(new FileInfo(screenshotPath).Length, Is.GreaterThan(0),
+                "Portfolio screenshot was empty: " + screenshotPath);
+
+            string manifestLine = name + "\t" + Screen.width + "x" +
+                                  Screen.height + "\t" + Screen.safeArea +
+                                  Environment.NewLine;
+            File.AppendAllText(
+                manifestPath,
+                manifestLine,
+                new UTF8Encoding(false));
+        }
+
         private static IEnumerator FailCurrentSession(
             GameplayManager gameplay,
             UIManager manager,
@@ -6080,7 +7127,15 @@ namespace Meowdoku.Tests.PlayMode
             Assert.That(blocker.GetComponent<GraphicRaycaster>(), Is.Not.Null);
             Assert.That(canvas, Is.Not.Null);
             Assert.That(canvas.overrideSorting, Is.True);
-            Assert.That(canvas.sortingOrder, Is.EqualTo(4095));
+            Canvas targetCanvas = target.GetComponent<Canvas>();
+            if (targetCanvas == null)
+                targetCanvas = target.GetComponentInParent<Canvas>();
+            Assert.That(targetCanvas, Is.Not.Null);
+            Assert.That(
+                canvas.sortingOrder,
+                Is.EqualTo(
+                    targetCanvas.sortingOrder +
+                    UiLayerConfig.LocalOverlayOffset));
 
             int count = 0;
             foreach (Transform child in target)

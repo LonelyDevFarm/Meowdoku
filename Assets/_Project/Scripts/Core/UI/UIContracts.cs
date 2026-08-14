@@ -71,6 +71,18 @@ namespace Meowdoku.Core.UI
     {
         public const int ZStep = 50;
         public const int ZMax = 4000;
+        // Godot keeps CanvasItem layers in separate ordering domains. Unity
+        // override-sorting Canvases share one global integer domain, so the
+        // serialized source layer values (0, 100, 200...) need disjoint
+        // runtime ranges or a repeatedly reopened Default page can cover a
+        // Popup page.
+        public const int RuntimeLayerStride = 5000;
+        public const int LocalOverlayOffset = ZStep - 1;
+
+        public static int SortingBase(UiLayer layer)
+        {
+            return ((int)layer / 100) * RuntimeLayerStride;
+        }
     }
 
     /// <summary>

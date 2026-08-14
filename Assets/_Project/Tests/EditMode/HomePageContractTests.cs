@@ -1,5 +1,7 @@
+using Meowdoku.Core;
 using Meowdoku.Core.Config;
 using Meowdoku.Core.UI;
+using Meowdoku.Gameplay;
 using NUnit.Framework;
 
 namespace Meowdoku.Tests.EditMode
@@ -15,7 +17,7 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(state.EnglishLevelTitle, Is.EqualTo("Level 1"));
             Assert.That(state.IsHardLevel, Is.False);
             Assert.That(state.ShowDailyStreak, Is.True);
-            Assert.That(state.ShowProfile, Is.False);
+            Assert.That(state.ShowProfile, Is.True);
             Assert.That(state.HardEffectVariant, Is.EqualTo(HardButtonConfig.ValueDefault));
         }
 
@@ -57,6 +59,70 @@ namespace Meowdoku.Tests.EditMode
                 Is.EqualTo(0.01664907f).Within(0.000001f));
             Assert.That(HomePageContract.LogoExitUnityYOffset,
                 Is.EqualTo(70.765f).Within(0.0001f));
+        }
+
+        [Test]
+        public void PortfolioUnlock_DoesNotPromoteBeforeTutorialOrBelowTrigger()
+        {
+            var tutorialPending = new GameStateService(new GameStateData
+            {
+                CurrentLevel = PortfolioFeatureUnlockPolicy.PreviewUnlockTriggerLevel,
+                TutorialDone = false
+            });
+            var belowTrigger = new GameStateService(new GameStateData
+            {
+                CurrentLevel =
+                    PortfolioFeatureUnlockPolicy.PreviewUnlockTriggerLevel - 1,
+                TutorialDone = true
+            });
+
+            Assert.That(PortfolioFeatureUnlockPolicy.Apply(tutorialPending),
+                Is.False);
+            Assert.That(tutorialPending.CurrentLevel,
+                Is.EqualTo(PortfolioFeatureUnlockPolicy.PreviewUnlockTriggerLevel));
+            Assert.That(PortfolioFeatureUnlockPolicy.Apply(belowTrigger),
+                Is.False);
+            Assert.That(belowTrigger.CurrentLevel,
+                Is.EqualTo(
+                    PortfolioFeatureUnlockPolicy.PreviewUnlockTriggerLevel - 1));
+        }
+
+        [Test]
+        public void PortfolioUnlock_PromotesTutorialDoneTriggerLevelToTarget()
+        {
+            var state = new GameStateService(new GameStateData
+            {
+                CurrentLevel = PortfolioFeatureUnlockPolicy.PreviewUnlockTriggerLevel,
+                TutorialDone = true
+            });
+
+            Assert.That(PortfolioFeatureUnlockPolicy.Apply(state), Is.True);
+            Assert.That(state.CurrentLevel,
+                Is.EqualTo(PortfolioFeatureUnlockPolicy.PreviewUnlockTargetLevel));
+        }
+
+        [Test]
+        public void PortfolioUnlock_DoesNotChangeLevelAtOrAboveTarget()
+        {
+            var atTarget = new GameStateService(new GameStateData
+            {
+                CurrentLevel = PortfolioFeatureUnlockPolicy.PreviewUnlockTargetLevel,
+                TutorialDone = true
+            });
+            var aboveTarget = new GameStateService(new GameStateData
+            {
+                CurrentLevel =
+                    PortfolioFeatureUnlockPolicy.PreviewUnlockTargetLevel + 5,
+                TutorialDone = true
+            });
+
+            Assert.That(PortfolioFeatureUnlockPolicy.Apply(atTarget), Is.False);
+            Assert.That(atTarget.CurrentLevel,
+                Is.EqualTo(PortfolioFeatureUnlockPolicy.PreviewUnlockTargetLevel));
+            Assert.That(PortfolioFeatureUnlockPolicy.Apply(aboveTarget), Is.False);
+            Assert.That(aboveTarget.CurrentLevel,
+                Is.EqualTo(
+                    PortfolioFeatureUnlockPolicy.PreviewUnlockTargetLevel + 5));
         }
     }
 }

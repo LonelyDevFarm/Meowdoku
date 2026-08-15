@@ -13,10 +13,15 @@ namespace Meowdoku.Gameplay
         private static readonly Vector2 SourceAnchoredPosition =
             new Vector2(-1f, -1f);
 
+        public static float SourceNodeScale => SourceScale;
+        public static Vector2 SourceIconOffset => SourceAnchoredPosition;
+
         private enum PlaybackState
         {
             Stopped,
             Appear,
+            Cry,
+            Frustrated,
             Idle,
             Waiting
         }
@@ -42,6 +47,50 @@ namespace Meowdoku.Gameplay
 
             _state = PlaybackState.Appear;
             SetFrame(frames, 0);
+        }
+
+        public void PlayCryLoop()
+        {
+            if (_state == PlaybackState.Cry) return;
+            Stop();
+            if (!CanPlay()) return;
+
+            Sprite[] frames = catalog.Cry;
+            if (frames.Length == 0)
+            {
+                ShowIdleFinal();
+                return;
+            }
+
+            _state = PlaybackState.Cry;
+            SetFrame(frames, 0);
+        }
+
+        public void PlayFrustratedOnce()
+        {
+            if (_state == PlaybackState.Cry) return;
+            Stop();
+            if (!CanPlay()) return;
+
+            Sprite[] frames = catalog.Frustrated;
+            if (frames.Length == 0)
+            {
+                ShowIdleFinal();
+                return;
+            }
+
+            _state = PlaybackState.Frustrated;
+            SetFrame(frames, 0);
+        }
+
+        public void ReviveToIdle()
+        {
+            Stop();
+            if (target == null || catalog == null) return;
+            Sprite[] frames = catalog.Idle;
+            if (frames.Length == 0) return;
+            SetFrame(frames, frames.Length - 1);
+            _state = PlaybackState.Waiting;
         }
 
         public void ShowIdleFinal()
@@ -88,9 +137,12 @@ namespace Meowdoku.Gameplay
 
         private void AdvanceFrame()
         {
-            Sprite[] frames = _state == PlaybackState.Appear
-                ? catalog.Appear
-                : catalog.Idle;
+            Sprite[] frames = CurrentFrames();
+            if (frames.Length == 0)
+            {
+                Stop();
+                return;
+            }
             int next = _frameIndex + 1;
             if (next < frames.Length)
             {
@@ -104,8 +156,36 @@ namespace Meowdoku.Gameplay
                 return;
             }
 
+            if (_state == PlaybackState.Cry)
+            {
+                _elapsed = 0f;
+                SetFrame(frames, 0);
+                return;
+            }
+
+            if (_state == PlaybackState.Frustrated)
+            {
+                BeginIdle();
+                return;
+            }
+
             _state = PlaybackState.Waiting;
             _elapsed = 0f;
+        }
+
+        private Sprite[] CurrentFrames()
+        {
+            switch (_state)
+            {
+                case PlaybackState.Appear:
+                    return catalog.Appear;
+                case PlaybackState.Cry:
+                    return catalog.Cry;
+                case PlaybackState.Frustrated:
+                    return catalog.Frustrated;
+                default:
+                    return catalog.Idle;
+            }
         }
 
         private void BeginIdle()

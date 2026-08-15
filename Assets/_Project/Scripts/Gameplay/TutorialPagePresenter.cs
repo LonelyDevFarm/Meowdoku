@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using Meowdoku.Core;
 using Meowdoku.Core.Config;
+using Meowdoku.Core.Localization;
 using Meowdoku.Core.Tutorial;
 using Meowdoku.Core.UI;
 using UnityEngine;
@@ -46,6 +47,7 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Button hintButton;
         [SerializeField] private Button confirmButton;
         [SerializeField] private Text confirmText;
+        [SerializeField] private LocalizationCatalog localization;
 
         [Header("Feedback")]
         [SerializeField] private GameObject successCheck;
@@ -56,6 +58,9 @@ namespace Meowdoku.Gameplay
         [SerializeField] private TutorialFinishEffects finishEffects;
 
         private readonly Dictionary<Vector2Int, CellView> _maskCells = new(12);
+        private readonly Dictionary<Vector2Int, Image> _maskStateIcons = new(12);
+        private readonly Vector3[] _maskIconWorldCorners = new Vector3[4];
+        private RectTransform _maskStateIconLayer;
         private TutorialStateMachine _machine;
         private TutorialCompletionCommitter _completionCommitter;
         private GuideFeedbackConfig _feedbackConfig;
@@ -83,6 +88,8 @@ namespace Meowdoku.Gameplay
         protected override void OnCreate()
         {
             BindButtons();
+            if (localization != null)
+                localization.LocaleChanged += RefreshLocalizedPresentation;
             ResetVisuals();
         }
 
@@ -148,7 +155,20 @@ namespace Meowdoku.Gameplay
         protected override void OnDestroyWindow()
         {
             CleanupRuntime(clearBoard: true);
+            if (localization != null)
+                localization.LocaleChanged -= RefreshLocalizedPresentation;
             base.OnDestroyWindow();
+        }
+
+        public void BindLocalization(LocalizationCatalog catalog)
+        {
+            if (localization == catalog) return;
+            if (localization != null)
+                localization.LocaleChanged -= RefreshLocalizedPresentation;
+            localization = catalog;
+            if (localization != null)
+                localization.LocaleChanged += RefreshLocalizedPresentation;
+            RefreshLocalizedPresentation();
         }
 
         protected override bool OnBackRequest()
@@ -244,9 +264,7 @@ namespace Meowdoku.Gameplay
                 int row = change.Position.x;
                 int column = change.Position.y;
                 boardView?.SetCellState(row, column, change.After);
-                if (_maskCells.TryGetValue(change.Position, out CellView mirror) &&
-                    mirror != null)
-                    mirror.ChangeState(change.After, true);
+                UpdateMaskStateIcon(change.Position, change.After);
             }
         }
 
@@ -358,30 +376,46 @@ namespace Meowdoku.Gameplay
             {
                 case TutorialPhase.PlaceFirstCat:
                     SetMessage(_feedbackConfig.Value == GuideFeedbackConfig.ValueCurrent
-                        ? TutorialText.Step1
-                        : TutorialText.Step1Combined, animate);
+                        ? LocalizedStep1()
+                        : LocalizedStep1Combined(), animate);
                     ShowMaskHints();
                     ShowTapHand(new Vector2Int(0, 2));
                     break;
                 case TutorialPhase.ConfirmOnePerColor:
-                    SetMessage(TutorialText.Step2, animate);
-                    ShowConfirm(TutorialText.GotIt);
+                    SetMessage(TranslateRich(
+                        TutorialText.Step2Key,
+                        TutorialText.Step2), animate);
+                    ShowConfirm(Translate(
+                        TutorialText.GotItKey,
+                        TutorialText.GotIt));
                     break;
                 case TutorialPhase.MarkRowAndColumn:
-                    SetMessage(TutorialText.StepRowColumn, animate);
-                    SetSubMessage(TutorialText.TapExclude, animate);
+                    SetMessage(TranslateRich(
+                        TutorialText.StepRowColumnKey,
+                        TutorialText.StepRowColumn), animate);
+                    SetSubMessage(Translate(
+                        TutorialText.TapExcludeKey,
+                        TutorialText.TapExclude), animate);
                     ShowMaskHints();
                     break;
                 case TutorialPhase.PlaceSecondCat:
-                    SetMessage(TutorialText.PlacePink, animate);
+                    SetMessage(TranslateRich(
+                        TutorialText.PlacePinkKey,
+                        TutorialText.PlacePink), animate);
                     ShowMaskHints();
                     ShowTapHand(new Vector2Int(3, 1));
                     break;
                 case TutorialPhase.MarkNeighbors:
                     SetMessage(_machine.UsesDiagonalCopy
-                        ? TutorialText.NoTouchDiagonal
-                        : TutorialText.NoTouchAdjacent, animate);
-                    SetSubMessage(TutorialText.SwipeExclude, animate);
+                        ? TranslateRich(
+                            TutorialText.NoTouchDiagonalKey,
+                            TutorialText.NoTouchDiagonal)
+                        : TranslateRich(
+                            TutorialText.NoTouchAdjacentKey,
+                            TutorialText.NoTouchAdjacent), animate);
+                    SetSubMessage(Translate(
+                        TutorialText.SwipeExcludeKey,
+                        TutorialText.SwipeExclude), animate);
                     ShowMaskHints();
                     ShowSwipeHand(new[]
                     {
@@ -391,7 +425,9 @@ namespace Meowdoku.Gameplay
                     });
                     break;
                 case TutorialPhase.PlaceThirdCat:
-                    SetMessage(TutorialText.PlaceBlue, animate);
+                    SetMessage(TranslateRich(
+                        TutorialText.PlaceBlueKey,
+                        TutorialText.PlaceBlue), animate);
                     ShowMaskHints();
                     ShowTapHand(new Vector2Int(1, 0));
                     break;
@@ -399,8 +435,12 @@ namespace Meowdoku.Gameplay
                     RenderFreePlay(animate);
                     break;
                 case TutorialPhase.FinishConfirm:
-                    SetMessage(TutorialText.Finished, animate);
-                    ShowConfirm(TutorialText.StartGame);
+                    SetMessage(TranslateRich(
+                        TutorialText.FinishedKey,
+                        TutorialText.Finished), animate);
+                    ShowConfirm(Translate(
+                        TutorialText.StartGameKey,
+                        TutorialText.StartGame));
                     PlayFinishEffectOnce();
                     break;
             }
@@ -411,23 +451,31 @@ namespace Meowdoku.Gameplay
             SetHintPanel(true, animate);
             if (_machine.HintPhase == 1)
             {
-                SetMessage(TutorialText.HintBlueRow, animate);
+                SetMessage(TranslateRich(
+                    TutorialText.HintBlueRowKey,
+                    TutorialText.HintBlueRow), animate);
                 ShowMaskHints();
             }
             else if (_machine.HintPhase == 2)
             {
-                SetMessage(TutorialText.HintPinkRow, animate);
+                SetMessage(TranslateRich(
+                    TutorialText.HintPinkRowKey,
+                    TutorialText.HintPinkRow), animate);
                 ShowMaskHints();
             }
             else if (_machine.HintPhase == 3)
             {
-                SetMessage(TutorialText.HintLastCat, animate);
+                SetMessage(TranslateRich(
+                    TutorialText.HintLastCatKey,
+                    TutorialText.HintLastCat), animate);
                 ShowMaskHints();
                 ShowTapHand(new Vector2Int(2, 3));
             }
             else
             {
-                SetMessage(TutorialText.LastCat, animate);
+                SetMessage(TranslateRich(
+                    TutorialText.LastCatKey,
+                    TutorialText.LastCat), animate);
                 HideMask();
             }
         }
@@ -445,11 +493,23 @@ namespace Meowdoku.Gameplay
         private void ShowMaskHints()
         {
             ClearMaskCells();
-            if (_machine == null || maskCellLayer == null || cellPrefab == null)
+            if (_machine == null || maskLayer == null || maskCellLayer == null ||
+                cellPrefab == null || !EnsureMaskStateIconLayer())
                 return;
+            EnsureBoardLayoutReady();
             AddMaskCells(_machine.MaskHintCells, true);
             AddMaskCells(_machine.MirrorCells, false);
+            _maskStateIconLayer.SetAsLastSibling();
             FadeMask(true);
+        }
+
+        private void EnsureBoardLayoutReady()
+        {
+            Canvas.ForceUpdateCanvases();
+            if (boardView != null &&
+                boardView.transform is RectTransform boardRect)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(boardRect);
+            Canvas.ForceUpdateCanvases();
         }
 
         private void AddMaskCells(IReadOnlyList<Vector2Int> cells, bool highlighted)
@@ -468,15 +528,6 @@ namespace Meowdoku.Gameplay
 
                 GameObject instance = Instantiate(cellPrefab, maskCellLayer);
                 instance.name = $"MaskCell_{position.x}_{position.y}";
-                RectTransform rect = instance.transform as RectTransform;
-                if (rect != null)
-                {
-                    rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-                    rect.pivot = new Vector2(0.5f, 0.5f);
-                    rect.anchoredPosition = center;
-                    rect.sizeDelta = size;
-                    rect.localScale = Vector3.one;
-                }
                 CellView view = instance.GetComponent<CellView>();
                 if (view == null)
                 {
@@ -484,19 +535,133 @@ namespace Meowdoku.Gameplay
                     continue;
                 }
                 view.PrepareForUse(position.x, position.y);
+                // PrepareForUse resets transform.localPosition for pooled
+                // board cells. Mask mirrors are free-positioned overlays, so
+                // their final layout must be applied after that reset.
+                RectTransform rect = instance.transform as RectTransform;
+                if (rect != null)
+                {
+                    rect.anchorMin = rect.anchorMax =
+                        new Vector2(0.5f, 0.5f);
+                    rect.pivot = new Vector2(0.5f, 0.5f);
+                    rect.anchoredPosition = center;
+                    rect.sizeDelta = size;
+                    rect.localScale = Vector3.one;
+                }
                 if (boardView.TryGetCellRegionColor(
                         position.x, position.y, out Color color))
                     view.SetRegionColor(color);
                 view.ConfigureBackgroundShape(
                     new Vector4(10f, 10f, 10f, 10f),
                     false);
-                view.ChangeState(
-                    _machine.GetCellState(position.x, position.y),
-                    false);
                 view.SetGraphicsRaycastTarget(false);
                 if (highlighted) view.PlayHint();
                 _maskCells.Add(position, view);
+                UpdateMaskStateIcon(
+                    position,
+                    _machine.GetCellState(position.x, position.y));
             }
+        }
+
+        private bool EnsureMaskStateIconLayer()
+        {
+            if (_maskStateIconLayer == null)
+            {
+                var layer = new GameObject(
+                    "StateIcons",
+                    typeof(RectTransform));
+                layer.layer = maskCellLayer.gameObject.layer;
+                _maskStateIconLayer = layer.GetComponent<RectTransform>();
+                _maskStateIconLayer.SetParent(maskCellLayer.parent, false);
+                _maskStateIconLayer.anchorMin = Vector2.zero;
+                _maskStateIconLayer.anchorMax = Vector2.one;
+                _maskStateIconLayer.offsetMin = Vector2.zero;
+                _maskStateIconLayer.offsetMax = Vector2.zero;
+                _maskStateIconLayer.pivot = new Vector2(0.5f, 0.5f);
+            }
+            _maskStateIconLayer.gameObject.SetActive(true);
+            _maskStateIconLayer.SetAsLastSibling();
+            return true;
+        }
+
+        private void UpdateMaskStateIcon(
+            Vector2Int position,
+            CellStateType state)
+        {
+            if (_maskStateIconLayer == null ||
+                !_maskCells.TryGetValue(position, out CellView cell) ||
+                cell == null)
+                return;
+
+            Image source = cell.PrepareOverlayStateIcon(state);
+            if (source == null || source.sprite == null)
+            {
+                if (_maskStateIcons.TryGetValue(position, out Image hidden) &&
+                    hidden != null)
+                    hidden.gameObject.SetActive(false);
+                return;
+            }
+
+            if (!_maskStateIcons.TryGetValue(position, out Image icon) ||
+                icon == null)
+            {
+                var iconObject = new GameObject(
+                    $"StateIcon_{position.x}_{position.y}",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image));
+                iconObject.layer = _maskStateIconLayer.gameObject.layer;
+                iconObject.transform.SetParent(_maskStateIconLayer, false);
+                icon = iconObject.GetComponent<Image>();
+                icon.raycastTarget = false;
+                icon.preserveAspect = true;
+                _maskStateIcons[position] = icon;
+            }
+
+            RectTransform rect = icon.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            if (state == CellStateType.CAT &&
+                boardView.TryGetCellLayout(
+                    _maskStateIconLayer,
+                    position.x,
+                    position.y,
+                    out Vector2 cellCenter,
+                    out Vector2 cellSize))
+            {
+                Vector2 sourceSize = source.sprite.rect.size *
+                                     CatSpriteAnimationView.SourceNodeScale;
+                rect.anchoredPosition = cellCenter + new Vector2(
+                    CatSpriteAnimationView.SourceIconOffset.x *
+                    cellSize.x / 100f,
+                    CatSpriteAnimationView.SourceIconOffset.y *
+                    cellSize.y / 100f);
+                rect.sizeDelta = new Vector2(
+                    sourceSize.x * cellSize.x / 100f,
+                    sourceSize.y * cellSize.y / 100f);
+            }
+            else
+            {
+                source.rectTransform.GetWorldCorners(_maskIconWorldCorners);
+                Vector2 localMin = _maskStateIconLayer.InverseTransformPoint(
+                    _maskIconWorldCorners[0]);
+                Vector2 localMax = _maskStateIconLayer.InverseTransformPoint(
+                    _maskIconWorldCorners[2]);
+                rect.anchoredPosition = (localMin + localMax) * 0.5f;
+                rect.sizeDelta = new Vector2(
+                    Mathf.Abs(localMax.x - localMin.x),
+                    Mathf.Abs(localMax.y - localMin.y));
+            }
+            rect.localScale = Vector3.one;
+            icon.sprite = source.sprite;
+            icon.material = source.material;
+            icon.preserveAspect = source.preserveAspect;
+            Color color = source.color;
+            color.a = 1f;
+            icon.color = color;
+            icon.gameObject.SetActive(true);
+            icon.transform.SetAsLastSibling();
+            _maskStateIconLayer.SetAsLastSibling();
         }
 
         private void ClearMaskCells()
@@ -506,6 +671,13 @@ namespace Meowdoku.Gameplay
                 if (view != null) Destroy(view.gameObject);
             }
             _maskCells.Clear();
+            foreach (Image icon in _maskStateIcons.Values)
+            {
+                if (icon != null) Destroy(icon.gameObject);
+            }
+            _maskStateIcons.Clear();
+            if (_maskStateIconLayer != null)
+                _maskStateIconLayer.gameObject.SetActive(false);
         }
 
         private void FadeMask(bool visible)
@@ -648,7 +820,10 @@ namespace Meowdoku.Gameplay
 
         private void SetHintPanel(bool visible, bool animate)
         {
-            if (hintText != null) hintText.text = TutorialText.HintTool;
+            if (hintText != null)
+                hintText.text = Translate(
+                    TutorialText.HintToolKey,
+                    TutorialText.HintTool);
             if (visible) ShowPanel(hintPanel, animate);
             else SetActive(hintPanel, false);
         }
@@ -923,6 +1098,57 @@ namespace Meowdoku.Gameplay
             return group != null ? group : target.AddComponent<CanvasGroup>();
         }
 
+        private void RefreshLocalizedPresentation()
+        {
+            if (!IsShowing || _machine == null) return;
+            RenderPhase(_machine.Phase, false);
+        }
+
+        private string LocalizedStep1()
+        {
+            string action = Translate(
+                TutorialText.Step1HighlightKey,
+                TutorialText.Step1Highlight);
+            string template = Translate(
+                TutorialText.Step1Key,
+                TutorialText.Step1Template);
+            return ConvertRich(template.Replace(
+                "{breath}",
+                $"<color=#d94848>{action}</color>"));
+        }
+
+        private string LocalizedStep1Combined()
+        {
+            return Translate(
+                       TutorialText.Step1CombinedKey,
+                       TutorialText.Step1Combined) +
+                   "\n" +
+                   LocalizedStep1();
+        }
+
+        private string TranslateRich(string key, string fallback)
+        {
+            return ConvertRich(Translate(key, fallback));
+        }
+
+        private string Translate(string key, string fallback)
+        {
+            if (localization == null) return fallback;
+            string value = localization.Translate(key);
+            return string.IsNullOrEmpty(value) || value == key
+                ? fallback
+                : value;
+        }
+
+        private static string ConvertRich(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return value;
+            return value
+                .Replace("[/color]", "</color>")
+                .Replace("[color=", "<color=")
+                .Replace("]", ">");
+        }
+
         private static void SetActive(GameObject target, bool active)
         {
             if (target != null && target.activeSelf != active)
@@ -931,10 +1157,40 @@ namespace Meowdoku.Gameplay
 
         private static class TutorialText
         {
-            public const string Step1 =
-                "<color=#d94848>Double-tap</color> to place the cat on a cell.";
+            public const string Step1HighlightKey =
+                "TUTORIAL_STEP1_HIGHLIGHT";
+            public const string Step1Key = "TUTORIAL_STEP1_RICH";
+            public const string Step1CombinedKey =
+                "TUTORIAL_STEP1_ONE_PER_COLOR";
+            public const string Step2Key = "TUTORIAL_STEP2_RICH";
+            public const string StepRowColumnKey = "TUTORIAL_STEP5_RICH";
+            public const string TapExcludeKey = "TUTORIAL_SUB_EXCLUDE";
+            public const string SwipeExcludeKey =
+                "TUTORIAL_SUB_SWIPE_EXCLUDE";
+            public const string PlacePinkKey =
+                "TUTORIAL_STEP4_PINK_RICH";
+            public const string NoTouchAdjacentKey =
+                "TUTORIAL_STEP3_RICH";
+            public const string NoTouchDiagonalKey =
+                "TUTORIAL_STEP3_RICH_DIAGONAL";
+            public const string PlaceBlueKey =
+                "TUTORIAL_STEP4_BLUE_RICH";
+            public const string LastCatKey = "TUTORIAL_LAST_ONE_RICH";
+            public const string HintToolKey = "TUTORIAL_STEP7_HINT";
+            public const string HintBlueRowKey =
+                "TUTORIAL_STEP7_ROW_BLUE";
+            public const string HintPinkRowKey =
+                "TUTORIAL_STEP7_ROW_PINK";
+            public const string HintLastCatKey =
+                "TUTORIAL_STEP7_PLACE_LAST";
+            public const string FinishedKey = "TUTORIAL_STEP6_RICH";
+            public const string GotItKey = "TUTORIAL_GOT_IT";
+            public const string StartGameKey = "TUTORIAL_START_GAME";
+            public const string Step1Highlight = "Double-tap";
+            public const string Step1Template =
+                "{breath} to place the cat on a cell.";
             public const string Step1Combined =
-                "Only one cat per color.\n<color=#d94848>Double-tap</color> to place the cat on a cell.";
+                "Only one cat per color.";
             public const string Step2 =
                 "Well done!\nOnly one cat per <color=#d94848>color</color>.";
             public const string StepRowColumn =

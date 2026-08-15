@@ -47,6 +47,7 @@ namespace Meowdoku.Gameplay
         {
             if (introCanvasGroup == null)
                 introCanvasGroup = GetComponent<CanvasGroup>();
+            KeepHintVisualsBehindCellContent();
             // Godot's BoardView sets every CellView to MOUSE_FILTER_IGNORE.
             // The board is the sole input surface; cell graphics are visual only.
             SetGraphicsRaycastTarget(false);
@@ -139,6 +140,23 @@ namespace Meowdoku.Gameplay
             UpdateVisuals(playAnim);
         }
 
+        public Image PrepareOverlayStateIcon(CellStateType state)
+        {
+            _currentState = state;
+            UpdateVisuals(false);
+            Image icon = state switch
+            {
+                CellStateType.CAT => catIcon,
+                CellStateType.MARK => crossIcon,
+                CellStateType.LOCKED_MARK => crossIcon,
+                CellStateType.ERROR => errorIcon,
+                _ => null
+            };
+            if (icon != null)
+                icon.gameObject.SetActive(false);
+            return icon;
+        }
+
         /// <summary>
         /// Source-backed adapter for cell_view.gd demo_cat(). It intentionally
         /// bypasses idle/cry behavior and is only used by How-to-play boards.
@@ -201,6 +219,46 @@ namespace Meowdoku.Gameplay
         public void ClearDemo()
         {
             ResetToEmpty();
+        }
+
+        public void PlayCatCryLoop()
+        {
+            if (_currentState != CellStateType.CAT ||
+                catSpriteAnimation == null)
+                return;
+            PrepareCatReaction();
+            catSpriteAnimation.PlayCryLoop();
+        }
+
+        public void PlayCatFrustratedOnce()
+        {
+            if (_currentState != CellStateType.CAT ||
+                catSpriteAnimation == null)
+                return;
+            PrepareCatReaction();
+            catSpriteAnimation.PlayFrustratedOnce();
+        }
+
+        public void ReviveCatToIdle()
+        {
+            if (_currentState != CellStateType.CAT ||
+                catSpriteAnimation == null)
+                return;
+            PrepareCatReaction();
+            catSpriteAnimation.ReviveToIdle();
+        }
+
+        private void PrepareCatReaction()
+        {
+            _visualSequence?.Kill(false);
+            _visualSequence = null;
+            if (catIcon != null)
+            {
+                catIcon.gameObject.SetActive(true);
+                ResetImageTransform(catIcon);
+            }
+            if (bgImage != null)
+                bgImage.rectTransform.localScale = Vector3.one;
         }
 
         // Lấy trạng thái hiện tại
@@ -273,6 +331,7 @@ namespace Meowdoku.Gameplay
                     break;
             }
             RefreshPatternVisibility();
+            BringActiveStateIconToFront();
         }
 
         private void PlaySourceCatAppear()
@@ -329,8 +388,10 @@ namespace Meowdoku.Gameplay
         public void PlayHint()
         {
             _hintSequence?.Kill(false);
+            KeepHintVisualsBehindCellContent();
             SetHintImage(hintLight, true, HintAlphaMin);
             SetHintImage(promptFrame, true, HintAlphaMin);
+            BringActiveStateIconToFront();
             _hintSequence = DOTween.Sequence().SetUpdate(true).SetLoops(-1)
                 .SetLink(gameObject);
             _hintSequence.Append(DOVirtual.Float(
@@ -411,6 +472,31 @@ namespace Meowdoku.Gameplay
         {
             SetImageAlpha(hintLight, alpha);
             SetImageAlpha(promptFrame, alpha);
+        }
+
+        private void BringActiveStateIconToFront()
+        {
+            Image activeIcon = _currentState switch
+            {
+                CellStateType.CAT => catIcon,
+                CellStateType.MARK => crossIcon,
+                CellStateType.LOCKED_MARK => crossIcon,
+                CellStateType.ERROR => errorIcon,
+                _ => null
+            };
+            if (activeIcon != null)
+                activeIcon.rectTransform.SetAsLastSibling();
+        }
+
+        private void KeepHintVisualsBehindCellContent()
+        {
+            if (hintLight == null) return;
+            Transform hintContainer = hintLight.transform.parent;
+            if (hintContainer != null && hintContainer != transform &&
+                hintContainer.IsChildOf(transform))
+                hintContainer.SetAsFirstSibling();
+            else
+                hintLight.rectTransform.SetAsFirstSibling();
         }
 
         private static void SetHintImage(Image image, bool active, float alpha)

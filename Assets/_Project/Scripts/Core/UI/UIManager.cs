@@ -838,6 +838,12 @@ namespace Meowdoku.Core.UI
             InputEventPtr eventPtr,
             InputDevice device)
         {
+            // Text input (for example an InputField in portfolio settings)
+            // arrives as a TEXT event. ReadValueFromEvent only accepts state
+            // events and throws if a text/composition event reaches it.
+            if (!eventPtr.IsA<StateEvent>() &&
+                !eventPtr.IsA<DeltaStateEvent>())
+                return;
 #if UNITY_INCLUDE_TESTS
             if (device is Keyboard || device is Gamepad)
                 BackInputEventCountForTests++;

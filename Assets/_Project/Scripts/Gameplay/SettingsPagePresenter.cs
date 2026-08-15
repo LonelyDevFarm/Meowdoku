@@ -36,6 +36,12 @@ namespace Meowdoku.Gameplay
         [SerializeField] private SettingsToggleView vibrationToggle;
         [SerializeField] private SettingsToggleView peopleToggle;
 
+        [Header("Portfolio demo")]
+        [SerializeField] private GameObject levelSelectorRow;
+        [SerializeField] private Button previousLevelButton;
+        [SerializeField] private InputField levelInput;
+        [SerializeField] private Button nextLevelButton;
+
         [Header("Optional switch rows")]
         [SerializeField] private GameObject optionalSwitchSpacer;
         [SerializeField] private GameObject optionalSwitchContainer;
@@ -81,12 +87,17 @@ namespace Meowdoku.Gameplay
         private Action _onClose;
         private Action _onCmp;
         private Action _onVibrationPreview;
+        private Action<int> _onLevelSelected;
         private bool _isGameMode;
         private bool _restartConsumed;
         private bool _skipNextCloseAnimation;
         private bool _suppressNextCloseCallback;
         private bool _waitingForHowToPlay;
         private HowToPlayPagedPagePresenter _howToPlayPage;
+        // Interview/demo range; level generation remains valid beyond the
+        // original authored progression, while three digits keeps mobile input compact.
+        private const int MinimumPortfolioLevel = 1;
+        private const int MaximumPortfolioLevel = 999;
 #if UNITY_INCLUDE_TESTS
         private string _systemLocaleOverrideForTests = string.Empty;
 #endif
@@ -107,6 +118,10 @@ namespace Meowdoku.Gameplay
             AddListener(cmpButton, OpenCmp);
             AddListener(termsButton, OpenTerms);
             AddListener(privacyButton, OpenPrivacy);
+            AddListener(previousLevelButton, SelectPreviousLevel);
+            AddListener(nextLevelButton, SelectNextLevel);
+            if (levelInput != null)
+                levelInput.onEndEdit.AddListener(CommitLevelInput);
             if (languageSwitchWidget != null)
             {
                 languageSwitchWidget.LanguagePicked += ApplyLanguageAndClose;
@@ -129,6 +144,9 @@ namespace Meowdoku.Gameplay
             _onClose = Parameter<Action>(parameters, "on_close");
             _onCmp = Parameter<Action>(parameters, "on_cmp");
             _onVibrationPreview = Parameter<Action>(parameters, "on_vibration_preview");
+            _onLevelSelected = Parameter<Action<int>>(
+                parameters,
+                "on_level_selected");
             _restartConsumed = false;
             _skipNextCloseAnimation = false;
             _suppressNextCloseCallback = false;
@@ -157,10 +175,10 @@ namespace Meowdoku.Gameplay
                     systemLocale);
             }
             RefreshToggleValues();
+            RefreshLevelSelector();
             RefreshStaticText();
-            RebuildAndCenterPanel();
+            RebuildAndCenterPanel(state);
             popupAnimator?.PlayOpen();
-            soundService?.Play(SoundKind.DialogOpen);
         }
 
         protected override IEnumerator PlayCloseAnimation()
@@ -206,6 +224,10 @@ namespace Meowdoku.Gameplay
             RemoveListener(cmpButton, OpenCmp);
             RemoveListener(termsButton, OpenTerms);
             RemoveListener(privacyButton, OpenPrivacy);
+            RemoveListener(previousLevelButton, SelectPreviousLevel);
+            RemoveListener(nextLevelButton, SelectNextLevel);
+            if (levelInput != null)
+                levelInput.onEndEdit.RemoveListener(CommitLevelInput);
             if (languageSwitchWidget != null)
             {
                 languageSwitchWidget.LanguagePicked -= ApplyLanguageAndClose;
@@ -267,6 +289,9 @@ namespace Meowdoku.Gameplay
             SetActive(soundToggle, state.ShowSound);
             SetActive(vibrationToggle, state.ShowVibration);
             SetActive(peopleToggle, state.ShowPeople);
+            if (levelSelectorRow != null)
+                levelSelectorRow.SetActive(
+                    state.ShowPortfolioLevelSelector);
             if (toggleGridLayout != null)
                 toggleGridLayout.spacing = state.ToggleHorizontalSeparation;
 
@@ -328,19 +353,28 @@ namespace Meowdoku.Gameplay
         private void ConfigureLegalLinks()
         {
             if (termsRow == null) return;
-            HorizontalLayoutGroup layout =
+            HorizontalLayoutGroup horizontal =
                 termsRow.GetComponent<HorizontalLayoutGroup>();
-            if (layout != null)
-            {
-                layout.spacing = 20f;
-                layout.childControlWidth = true;
-                layout.childControlHeight = true;
-                layout.childForceExpandWidth = true;
-                layout.childForceExpandHeight = true;
-            }
+            if (horizontal != null) horizontal.enabled = false;
+
+            VerticalLayoutGroup layout =
+                termsRow.GetComponent<VerticalLayoutGroup>();
+            if (layout == null)
+                layout = termsRow.AddComponent<VerticalLayoutGroup>();
+            layout.spacing = 0f;
+            layout.padding = new RectOffset(40, 40, 0, 0);
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
 
             LayoutElement row = termsRow.GetComponent<LayoutElement>();
-            if (row != null) row.preferredHeight = 90f;
+            if (row != null)
+            {
+                row.minHeight = 140f;
+                row.preferredHeight = 140f;
+            }
             ConfigureLegalLink(termsButton);
             ConfigureLegalLink(privacyButton);
         }
@@ -352,16 +386,19 @@ namespace Meowdoku.Gameplay
             if (element != null)
             {
                 element.minWidth = 0f;
-                element.preferredWidth = 390f;
+                element.preferredWidth = 750f;
                 element.flexibleWidth = 1f;
+                element.minHeight = 65f;
+                element.preferredHeight = 65f;
+                element.flexibleHeight = 0f;
             }
 
             Text label = button.GetComponentInChildren<Text>(true);
             if (label == null) return;
             label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = 24;
-            label.resizeTextMaxSize = 48;
-            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.resizeTextMinSize = 30;
+            label.resizeTextMaxSize = 40;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
             label.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
@@ -373,6 +410,67 @@ namespace Meowdoku.Gameplay
             vibrationToggle?.SetValue(state.VibrationOn);
             peopleToggle?.SetValue(state.PeopleOn);
             SetPatternVisual(state.PatternModeOn);
+        }
+
+        private void RefreshLevelSelector()
+        {
+            if (levelInput == null) return;
+            levelInput.SetTextWithoutNotify(
+                Mathf.Clamp(
+                    GameStateRuntime.Current.CurrentLevel,
+                    MinimumPortfolioLevel,
+                    MaximumPortfolioLevel)
+                .ToString());
+        }
+
+        private void SelectPreviousLevel()
+        {
+            SelectPortfolioLevel(ReadLevelInput() - 1);
+        }
+
+        private void SelectNextLevel()
+        {
+            SelectPortfolioLevel(ReadLevelInput() + 1);
+        }
+
+        private void CommitLevelInput(string value)
+        {
+            if (!int.TryParse(value, out int level))
+            {
+                RefreshLevelSelector();
+                return;
+            }
+            SelectPortfolioLevel(level);
+        }
+
+        private int ReadLevelInput()
+        {
+            return levelInput != null &&
+                   int.TryParse(levelInput.text, out int level)
+                ? Mathf.Clamp(
+                    level,
+                    MinimumPortfolioLevel,
+                    MaximumPortfolioLevel)
+                : GameStateRuntime.Current.CurrentLevel;
+        }
+
+        private void SelectPortfolioLevel(int requestedLevel)
+        {
+            int level = Mathf.Clamp(
+                requestedLevel,
+                MinimumPortfolioLevel,
+                MaximumPortfolioLevel);
+            GameStateService state = GameStateRuntime.Current;
+            levelInput?.SetTextWithoutNotify(level.ToString());
+            if (state.CurrentLevel == level) return;
+
+            // A manually selected portfolio level must never restore the
+            // unfinished board or retry seed belonging to another level.
+            state.ClearEndgameSnapshot();
+            state.SetRetryPuzzle(0, null);
+            state.ResetCurrentLevelRuntimeFlags();
+            state.SetCurrentLevel(level);
+            _onLevelSelected?.Invoke(level);
         }
 
         private void RefreshStaticText()
@@ -391,9 +489,19 @@ namespace Meowdoku.Gameplay
             }
         }
 
-        private void RebuildAndCenterPanel()
+        private void RebuildAndCenterPanel(SettingsPresentationState state)
         {
             if (panel == null) return;
+            RectTransform titleBar = titleText != null
+                ? titleText.transform.parent as RectTransform
+                : null;
+            if (titleBar != null)
+                titleBar.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Vertical,
+                    SettingsPageContract.TitleBarHeight);
+            panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
+            panel.pivot = new Vector2(0.5f, 0.5f);
+            panel.anchoredPosition = Vector2.zero;
             Canvas.ForceUpdateCanvases();
             if (panel.childCount > 0 &&
                 panel.GetChild(0) is RectTransform layoutRoot)
@@ -405,11 +513,40 @@ namespace Meowdoku.Gameplay
                     panel.SetSizeWithCurrentAnchors(
                         RectTransform.Axis.Vertical,
                         preferredHeight);
+                EnsurePanelContainsLastRow(layoutRoot, state);
             }
             LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
-            panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
-            panel.pivot = new Vector2(0.5f, 0.5f);
-            panel.anchoredPosition = Vector2.zero;
+        }
+
+        private void EnsurePanelContainsLastRow(
+            RectTransform layoutRoot,
+            SettingsPresentationState state)
+        {
+            RectTransform lastRow = state.IsGameMode
+                ? restartRow != null
+                    ? restartRow.transform as RectTransform
+                    : null
+                : versionRow != null
+                    ? versionRow.transform as RectTransform
+                    : null;
+            if (lastRow == null || !lastRow.gameObject.activeSelf) return;
+
+            float padding = state.IsGameMode ? 70f : 45f;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(layoutRoot);
+                Canvas.ForceUpdateCanvases();
+                Bounds bounds =
+                    RectTransformUtility.CalculateRelativeRectTransformBounds(
+                        panel,
+                        lastRow);
+                float missing =
+                    panel.rect.yMin - (bounds.min.y - padding);
+                if (missing <= 0.5f) break;
+                panel.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Vertical,
+                    panel.rect.height + missing);
+            }
         }
 
         private void ToggleMusic()
@@ -429,7 +566,6 @@ namespace Meowdoku.Gameplay
             bool value = !GameStateRuntime.Current.SoundOn;
             GameStateRuntime.Current.SetSoundOn(value);
             soundToggle?.SetValue(value);
-            if (value) soundService?.Play(SoundKind.ButtonClick);
             ShowToast(
                 value ? "SETTING_SOUND_ON" : "SETTING_SOUND_OFF",
                 value ? "Sound On" : "Sound Off");

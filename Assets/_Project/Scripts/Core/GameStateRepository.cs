@@ -73,9 +73,12 @@ namespace Meowdoku.Core
         public GameStateData Load()
         {
             _playerStore.MigrateLegacyIfNeeded();
-            return GameStateData.FromDocuments(
+            GameStateData data = GameStateData.FromDocuments(
                 _playerStore.LoadConfig(),
                 _endgameStore.LoadConfig());
+            if (data.SeedPortfolioToolsIfNeeded())
+                SavePlayer(data);
+            return data;
         }
 
         public bool SavePlayer(GameStateData data)

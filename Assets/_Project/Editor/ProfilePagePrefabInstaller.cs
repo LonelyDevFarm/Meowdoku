@@ -429,6 +429,53 @@ namespace Meowdoku.Editor
                     changed = true;
                 }
 
+                Transform tipBubble = root.transform.Find(
+                    "Content/LockTip/Bubble");
+                if (tipBubble != null)
+                {
+                    Transform tipBackground = tipBubble.Find("Bg");
+                    if (tipBackground == null)
+                    {
+                        Shader rounded = AssetDatabase.LoadAssetAtPath<Shader>(
+                            RoundedShaderPath);
+                        Image background = CreateImage(
+                            "Bg",
+                            tipBubble,
+                            null,
+                            new Color(
+                                0.25490198f,
+                                0.21176471f,
+                                0.21176471f,
+                                0.95f));
+                        SetTopLeft(
+                            background.rectTransform,
+                            0f,
+                            0f,
+                            780f,
+                            160f);
+                        background.gameObject.AddComponent<RoundedImageView>()
+                            .Configure(background, rounded, 40f);
+                        background.transform.SetSiblingIndex(1);
+                        changed = true;
+                    }
+                    else
+                    {
+                        changed |= SetTopLeftIfDifferent(
+                            tipBackground as RectTransform,
+                            0f,
+                            0f,
+                            780f,
+                            160f);
+                        changed |= SetColor(
+                            tipBackground.GetComponent<Image>(),
+                            new Color(
+                                0.25490198f,
+                                0.21176471f,
+                                0.21176471f,
+                                0.95f));
+                    }
+                }
+
                 if (changed)
                     PrefabUtility.SaveAsPrefabAsset(root, PagePath);
             }
@@ -776,6 +823,18 @@ namespace Meowdoku.Editor
                 Color.white);
             SetTopLeft(background.rectTransform, 0f, 0f, 780f, 160f);
             background.type = Image.Type.Sliced;
+            Image panel = CreateImage(
+                "Bg",
+                bubble,
+                null,
+                new Color(
+                    0.25490198f,
+                    0.21176471f,
+                    0.21176471f,
+                    0.95f));
+            SetTopLeft(panel.rectTransform, 0f, 0f, 780f, 160f);
+            panel.gameObject.AddComponent<RoundedImageView>()
+                .Configure(panel, rounded, 40f);
             Text tipText = CreateText(
                 "TipText",
                 bubble,

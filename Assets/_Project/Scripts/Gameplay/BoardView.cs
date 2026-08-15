@@ -19,6 +19,13 @@ namespace Meowdoku.Gameplay
     public class BoardView : MonoBehaviour, IBoardStateReader, IPointerDownHandler,
         IInitializePotentialDragHandler, IDragHandler, IPointerUpHandler
     {
+        private enum CatReaction
+        {
+            Cry,
+            Frustrated,
+            Idle
+        }
+
         public Action OnGestureEnded;
         public Action<Vector2, Vector2Int, int> OnGesturePointerStarted;
         public Action<Vector2, int> OnGesturePointerMoved;
@@ -583,6 +590,51 @@ namespace Meowdoku.Gameplay
             if (_cells == null || _cells[r, c] == null) return CellStateType.EMPTY;
 
             return _cells[r, c].GetState();
+        }
+
+        public void PlayCatCryLoopAll()
+        {
+            PlayCatReaction(CatReaction.Cry);
+        }
+
+        public void PlayCatFrustratedAll()
+        {
+            PlayCatReaction(CatReaction.Frustrated);
+        }
+
+        public void ReviveAllCatsToIdle()
+        {
+            PlayCatReaction(CatReaction.Idle);
+        }
+
+        private void PlayCatReaction(CatReaction reaction)
+        {
+            if (_cells == null) return;
+            for (int row = 0; row < _cells.GetLength(0); row++)
+            {
+                for (int column = 0;
+                     column < _cells.GetLength(1);
+                     column++)
+                {
+                    CellView cell = _cells[row, column];
+                    if (cell == null ||
+                        cell.GetState() != CellStateType.CAT)
+                        continue;
+
+                    switch (reaction)
+                    {
+                        case CatReaction.Cry:
+                            cell.PlayCatCryLoop();
+                            break;
+                        case CatReaction.Frustrated:
+                            cell.PlayCatFrustratedOnce();
+                            break;
+                        case CatReaction.Idle:
+                            cell.ReviveCatToIdle();
+                            break;
+                    }
+                }
+            }
         }
 
         // Returns a snapshot using the same row/column layout as Godot's get_board().

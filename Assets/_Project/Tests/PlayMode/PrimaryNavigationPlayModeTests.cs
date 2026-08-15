@@ -1013,8 +1013,8 @@ namespace Meowdoku.Tests.PlayMode
             Assert.That(state.CurrentLevel, Is.EqualTo(1));
             Assert.That(state.CurrentStrategy, Is.EqualTo(1));
             Assert.That(state.TutorialDone, Is.False);
-            Assert.That(state.Data.ToolLocate, Is.EqualTo(5));
-            Assert.That(state.Data.ToolHint, Is.EqualTo(5));
+            Assert.That(state.Data.ToolLocate, Is.EqualTo(99));
+            Assert.That(state.Data.ToolHint, Is.EqualTo(99));
             Assert.That(state.Data.ToolUndo, Is.EqualTo(3));
             Assert.That(state.Data.SessionCount, Is.EqualTo(1));
 

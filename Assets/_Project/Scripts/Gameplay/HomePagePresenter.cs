@@ -74,6 +74,7 @@ namespace Meowdoku.Gameplay
         private readonly UIPopupQueue _popupQueue = new();
 
         private Sequence _transition;
+        private Sequence _logoIdle;
         private Sequence _profileShake;
         private Vector3 _logoBaseScale = Vector3.one;
         private Vector2 _logoBasePosition;
@@ -138,9 +139,6 @@ namespace Meowdoku.Gameplay
                 languageConfig.IsLanguageSwitchEnabledPeek(
                     _abConfigRuntime?.ValueProvider));
             soundService?.StartBgm();
-            // Preserve tutorial/early progression, then expose offline portfolio
-            // features at the existing preview checkpoint.
-            PortfolioFeatureUnlockPolicy.Apply(GameStateRuntime.Current);
             GameStateRuntime.Current.AdvanceMaxDailyDate(
                 DailyEntryStateContract.DateKey(CurrentLocalNow));
             RefreshPresentation();
@@ -440,7 +438,18 @@ namespace Meowdoku.Gameplay
             Tracking?.TrackButtonClick(
                 TrackerCatalog.Button.Settings,
                 GetTrackingScreenName());
-            Owner.Show(UiName.Setting);
+            Owner.Show(
+                UiName.Setting,
+                new Dictionary<string, object>(1)
+                {
+                    ["on_level_selected"] =
+                        (Action<int>)HandlePortfolioLevelSelected
+                });
+        }
+
+        private void HandlePortfolioLevelSelected(int _)
+        {
+            RefreshPresentation();
         }
 
         private void StartDaily()
@@ -774,6 +783,11 @@ namespace Meowdoku.Gameplay
                 0f,
                 HomePageContract.DisappearMarkerSeconds -
                 _transition.Duration()));
+            _transition.OnComplete(() =>
+            {
+                _transition = null;
+                PlayLogoIdle();
+            });
         }
 
         private void ShowImmediate()
@@ -786,6 +800,7 @@ namespace Meowdoku.Gameplay
             SetAlpha(startGroup, 1f);
             SetAlpha(settingsGroup, 1f);
             ResetLogo(1f);
+            PlayLogoIdle();
         }
 
         private void PlayExitToGame()
@@ -860,11 +875,49 @@ namespace Meowdoku.Gameplay
             logoVisual.localScale = _logoBaseScale * scaleRatio;
         }
 
+        private void PlayLogoIdle()
+        {
+            KillLogoIdle();
+            if (logoVisual == null || !IsShowing || _isExiting) return;
+
+            ResetLogo(1f);
+            _logoIdle = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(logoVisual.gameObject, LinkBehaviour.KillOnDisable);
+            _logoIdle.AppendInterval(0.35f);
+            _logoIdle.Append(
+                logoVisual.DOScale(_logoBaseScale * 1.035f, 0.42f)
+                    .SetEase(Ease.OutSine));
+            _logoIdle.Join(
+                logoVisual.DOAnchorPos(
+                        _logoBasePosition + Vector2.up * 5f,
+                        0.42f)
+                    .SetEase(Ease.OutSine));
+            _logoIdle.Append(
+                logoVisual.DOScale(_logoBaseScale, 0.75f)
+                    .SetEase(Ease.InOutSine));
+            _logoIdle.Join(
+                logoVisual.DOAnchorPos(_logoBasePosition, 0.75f)
+                    .SetEase(Ease.InOutSine));
+            _logoIdle.AppendInterval(1.1f);
+            _logoIdle.SetLoops(-1, LoopType.Restart);
+        }
+
+        private void KillLogoIdle()
+        {
+            if (_logoIdle != null && _logoIdle.IsActive())
+                _logoIdle.Kill(false);
+            _logoIdle = null;
+        }
+
         private void KillTransition()
         {
-            if (_transition == null) return;
-            _transition.Kill(false);
-            _transition = null;
+            KillLogoIdle();
+            if (_transition != null)
+            {
+                _transition.Kill(false);
+                _transition = null;
+            }
         }
 
         private void KillProfileShake()

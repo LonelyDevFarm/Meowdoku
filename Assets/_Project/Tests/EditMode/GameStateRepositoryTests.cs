@@ -35,8 +35,8 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(data.CurrentLevel, Is.EqualTo(1));
             Assert.That(data.IsFirstSession, Is.True);
             Assert.That(data.CurrentStrategy, Is.EqualTo(1));
-            Assert.That(data.ToolLocate, Is.EqualTo(5));
-            Assert.That(data.ToolHint, Is.EqualTo(5));
+            Assert.That(data.ToolLocate, Is.EqualTo(99));
+            Assert.That(data.ToolHint, Is.EqualTo(99));
             Assert.That(data.ToolUndo, Is.EqualTo(3));
             Assert.That(data.MusicOn, Is.True);
             Assert.That(data.SoundOn, Is.True);
@@ -239,7 +239,7 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(restored, Is.Not.Null);
             Assert.That(restored.CurrentLevel, Is.EqualTo(1));
             Assert.That(restored.CurrentStrategy, Is.EqualTo(1));
-            Assert.That(restored.ToolHint, Is.EqualTo(5));
+            Assert.That(restored.ToolHint, Is.EqualTo(99));
             Assert.That(restored.IsFirstSession, Is.True);
         }
 

@@ -52,6 +52,8 @@ namespace Meowdoku.Editor
             "Assets/_Project/Sprites/daily_streak/state_checked2.png";
         private const string MiniUncheckedPath =
             "Assets/_Project/Sprites/daily_streak/mini_unchecked_icon.png";
+        private const string MiniShinePath =
+            "Assets/_Project/Sprites/Effects/shine/et_shine_001.png";
         private const string ArrowPath =
             "Assets/_Project/Sprites/daily_streak/streak_arrow.png";
         private const string BackIconPath =
@@ -129,6 +131,7 @@ namespace Meowdoku.Editor
             Sprite miniSun = LoadSprite(MiniSunPath);
             Sprite miniChecked = LoadSprite(MiniCheckedPath);
             Sprite miniUnchecked = LoadSprite(MiniUncheckedPath);
+            Sprite miniShine = LoadSprite(MiniShinePath);
             Sprite arrow = LoadSprite(ArrowPath);
             Sprite backIcon = LoadSprite(BackIconPath);
             Sprite primary = LoadSprite(PrimaryButtonPath);
@@ -151,6 +154,7 @@ namespace Meowdoku.Editor
                 sun == null || dot == null || chest == null ||
                 checkBar == null ||
                 checkedEntry == null || uncheckedEntry == null ||
+                miniShine == null ||
                 arrow == null || primary == null || normal == null ||
                 toolBg == null || locate == null || hint == null ||
                 dialogFrame == null || streakCat == null ||
@@ -203,6 +207,7 @@ namespace Meowdoku.Editor
                 miniSun,
                 miniChecked,
                 miniUnchecked,
+                miniShine,
                 roundedShader,
                 dialogPriority,
                 abSwitchStrategy);
@@ -777,6 +782,7 @@ namespace Meowdoku.Editor
             Sprite miniSun,
             Sprite miniChecked,
             Sprite miniUnchecked,
+            Sprite miniShine,
             Shader roundedShader,
             TextAsset dialogPriority,
             TextAsset abSwitchStrategy)
@@ -825,7 +831,8 @@ namespace Meowdoku.Editor
                         true);
                 bool rebuildMiniEntry = miniEntry == null ||
                     miniEntry.transform.Find("Panel") == null ||
-                    miniEntry.transform.Find("Shadow") == null;
+                    miniEntry.transform.Find("Shadow") == null ||
+                    miniEntry.transform.Find("AmbientVfx/Shine") == null;
                 if (rebuildMiniEntry)
                 {
                     if (miniEntry != null)
@@ -840,6 +847,7 @@ namespace Meowdoku.Editor
                         miniSun,
                         miniChecked,
                         miniUnchecked,
+                        miniShine,
                         roundedShader);
                     changed |= miniEntry != null;
                 }
@@ -952,11 +960,12 @@ namespace Meowdoku.Editor
             Sprite sunSprite,
             Sprite checkedSprite,
             Sprite uncheckedSprite,
+            Sprite shineSprite,
             Shader roundedShader)
         {
             if (backgroundSprite == null || glowSprite == null ||
                 sunSprite == null || checkedSprite == null ||
-                uncheckedSprite == null)
+                uncheckedSprite == null || shineSprite == null)
                 return null;
 
             RectTransform root = CreateRect("StreakMiniEntryCell", parent);
@@ -972,10 +981,25 @@ namespace Meowdoku.Editor
             panel.color = new Color(1f, 0.8318f, 0.4064f, 1f);
             ConfigureRounded(panel, roundedShader, 30f);
 
-            Image glow = CreateImage("Glow", root, glowSprite);
+            RectTransform ambientVfx = CreateRect("AmbientVfx", root);
+            Stretch(ambientVfx);
+            Image glow = CreateImage("Glow", ambientVfx, glowSprite);
             SetCentered(glow.rectTransform,
                 new Vector2(0f, 35f), new Vector2(213f, 212.5f));
             glow.preserveAspect = true;
+            glow.raycastTarget = false;
+            CanvasGroup glowGroup =
+                glow.gameObject.AddComponent<CanvasGroup>();
+            glowGroup.alpha = 0.35f;
+            Image shine = CreateImage(
+                "Shine", ambientVfx, shineSprite);
+            SetCentered(shine.rectTransform,
+                new Vector2(0f, 35f), new Vector2(220f, 220f));
+            shine.preserveAspect = true;
+            shine.raycastTarget = false;
+            Color shineColor = shine.color;
+            shineColor.a = 0.28f;
+            shine.color = shineColor;
 
             RectTransform checkedState = CreateRect("CheckedState", root);
             Stretch(checkedState);
@@ -1018,6 +1042,9 @@ namespace Meowdoku.Editor
             SetRef(data, "countText", count);
             SetRef(data, "clickButton", click);
             SetRef(data, "localization", localization);
+            SetRef(data, "checkedSunVisual", sun.rectTransform);
+            SetRef(data, "checkedShineVisual", shine.rectTransform);
+            SetRef(data, "checkedGlowGroup", glowGroup);
             data.ApplyModifiedPropertiesWithoutUndo();
             return presenter;
         }

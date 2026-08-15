@@ -154,6 +154,8 @@ namespace Meowdoku.Editor
             SerializedObject data = new(presenter);
             SerializedProperty version =
                 data.FindProperty("versionLocalizedText");
+            SerializedProperty levelSelector =
+                data.FindProperty("levelSelectorRow");
             LanguageSwitchWidget widget =
                 prefab.GetComponentInChildren<LanguageSwitchWidget>(true);
             SerializedObject widgetData = new(widget);
@@ -168,13 +170,32 @@ namespace Meowdoku.Editor
             Text privacyPreferenceLabel = prefab.transform.Find(
                 "Root/Content/PanelContainer/VBoxContainer/PrivacyContainer/PrivacyPreferenceBtn/Label")
                 ?.GetComponent<Text>();
-            HorizontalLayoutGroup legalLayout = prefab.transform.Find(
+            VerticalLayoutGroup legalLayout = prefab.transform.Find(
                 "Root/Content/PanelContainer/VBoxContainer/TermContainer")
-                ?.GetComponent<HorizontalLayoutGroup>();
+                ?.GetComponent<VerticalLayoutGroup>();
+            LayoutElement titleLayout = prefab.transform.Find(
+                "Root/Content/PanelContainer/VBoxContainer/TitleBar")
+                ?.GetComponent<LayoutElement>();
+            RectTransform titleRect = prefab.transform.Find(
+                "Root/Content/PanelContainer/VBoxContainer/TitleBar")
+                as RectTransform;
+            RectTransform levelSelectorRect = prefab.transform.Find(
+                "Root/Content/PanelContainer/VBoxContainer/PortfolioLevelSelectorRow")
+                as RectTransform;
             return version == null || version.objectReferenceValue == null ||
+                   levelSelector == null ||
+                   levelSelector.objectReferenceValue == null ||
                    outsideBlocker == null ||
                    outsideBlocker.objectReferenceValue == null ||
                    legalLayout == null || !legalLayout.childControlWidth ||
+                   titleLayout == null ||
+                   titleLayout.preferredHeight <
+                   SettingsPageContract.TitleBarHeight ||
+                   titleRect == null ||
+                   titleRect.sizeDelta.y <
+                   SettingsPageContract.TitleBarHeight ||
+                   levelSelectorRect == null ||
+                   levelSelectorRect.sizeDelta.y < 190f ||
                    termsLabel == null || !termsLabel.resizeTextForBestFit ||
                    privacyLabel == null || !privacyLabel.resizeTextForBestFit ||
                    privacyPreferenceLabel == null ||
@@ -251,6 +272,9 @@ namespace Meowdoku.Editor
             SetPreferred(title.gameObject,
                 SettingsPageContract.PanelWidth,
                 SettingsPageContract.TitleBarHeight);
+            title.rectTransform.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                SettingsPageContract.TitleBarHeight);
             Text titleText = CreateText(
                 "TitleLabel", title.transform, font, 86, "Settings",
                 TitleTextColor, FontStyle.Bold);
@@ -299,6 +323,11 @@ namespace Meowdoku.Editor
             SettingsToggleView vibration = CreateToggle(
                 "VibrationCtrl", grid, font, rounded, circleTexture,
                 VibrationOnPath, VibrationOffPath);
+
+            LevelSelectorParts levelSelector = CreateLevelSelector(
+                vbox,
+                font,
+                rounded);
 
             GameObject optionalSpacer = CreateSpacer("Control4", vbox, 30f);
             RectTransform optional = CreateRect("ToggleContainer", vbox);
@@ -412,22 +441,23 @@ namespace Meowdoku.Editor
             cmpRow.gameObject.SetActive(false);
 
             RectTransform terms = CreateRect("TermContainer", vbox);
-            SetPreferred(terms.gameObject, 0f, 80f);
-            HorizontalLayoutGroup termsLayout =
-                terms.gameObject.AddComponent<HorizontalLayoutGroup>();
+            SetPreferred(terms.gameObject, 0f, 140f);
+            VerticalLayoutGroup termsLayout =
+                terms.gameObject.AddComponent<VerticalLayoutGroup>();
             termsLayout.childAlignment = TextAnchor.MiddleCenter;
-            termsLayout.spacing = 20f;
+            termsLayout.spacing = 0f;
+            termsLayout.padding = new RectOffset(40, 40, 0, 0);
             termsLayout.childControlWidth = true;
             termsLayout.childControlHeight = true;
             termsLayout.childForceExpandWidth = true;
-            termsLayout.childForceExpandHeight = true;
+            termsLayout.childForceExpandHeight = false;
             Button termsButton = CreateLinkButton(
-                "TermsBtn", terms, font, "Terms of Service", 48);
-            SetPreferred(termsButton.gameObject, 420f, 80f);
+                "TermsBtn", terms, font, "Terms of Service", 40);
+            SetPreferred(termsButton.gameObject, 750f, 65f);
             termsButton.GetComponent<LayoutElement>().flexibleWidth = 1f;
             Button privacyButton = CreateLinkButton(
-                "PrivacyBtn", terms, font, "Privacy Policy", 48);
-            SetPreferred(privacyButton.gameObject, 420f, 80f);
+                "PrivacyBtn", terms, font, "Privacy Policy", 40);
+            SetPreferred(privacyButton.gameObject, 750f, 65f);
             privacyButton.GetComponent<LayoutElement>().flexibleWidth = 1f;
             LocalizeButton(
                 termsButton, localization, font, eastAsianFont,
@@ -437,9 +467,9 @@ namespace Meowdoku.Editor
                 "SETTING_PRIVACY", "Privacy Policy");
 
             RectTransform version = CreateRect("HBoxContainer", vbox);
-            SetPreferred(version.gameObject, 0f, 80f);
+            SetPreferred(version.gameObject, 0f, 70f);
             Text versionText = CreateText(
-                "VersionLabel", version, font, 48, "Version",
+                "VersionLabel", version, font, 40, "Version",
                 TitleTextColor, FontStyle.Bold);
             versionText.color = new Color(
                 TitleTextColor.r, TitleTextColor.g, TitleTextColor.b, 0.5f);
@@ -451,7 +481,7 @@ namespace Meowdoku.Editor
                 eastAsianFont,
                 "SETTING_VERSION",
                 "Version %s");
-            GameObject bottom = CreateSpacer("Control6", vbox, 30f);
+            GameObject bottom = CreateSpacer("Control6", vbox, 45f);
             LayoutElement bottomElement = bottom.GetComponent<LayoutElement>();
 
             SourceToastView toast = CreateToast(content, font, rounded);
@@ -470,6 +500,13 @@ namespace Meowdoku.Editor
             SetReference(data, "soundToggle", sound);
             SetReference(data, "vibrationToggle", vibration);
             SetReference(data, "peopleToggle", people);
+            SetReference(data, "levelSelectorRow", levelSelector.Root);
+            SetReference(
+                data,
+                "previousLevelButton",
+                levelSelector.PreviousButton);
+            SetReference(data, "levelInput", levelSelector.Input);
+            SetReference(data, "nextLevelButton", levelSelector.NextButton);
             SetReference(data, "optionalSwitchSpacer", optionalSpacer);
             SetReference(data, "optionalSwitchContainer", optional.gameObject);
             SetReference(data, "languageSwitchWidget", languageWidget);
@@ -499,11 +536,118 @@ namespace Meowdoku.Editor
             data.ApplyModifiedPropertiesWithoutUndo();
 
             music.gameObject.SetActive(false);
+            levelSelector.Root.SetActive(false);
             pattern.Root.SetActive(false);
             optional.gameObject.SetActive(false);
             optionalSpacer.SetActive(false);
             toast.gameObject.SetActive(false);
             return page;
+        }
+
+        private static LevelSelectorParts CreateLevelSelector(
+            Transform parent,
+            Font font,
+            Shader rounded)
+        {
+            RectTransform root = CreateRect(
+                "PortfolioLevelSelectorRow",
+                parent);
+            SetPreferred(root.gameObject, 0f, 190f);
+            root.sizeDelta = new Vector2(0f, 190f);
+
+            Image panel = CreateRoundedImage(
+                "Panel",
+                root,
+                rounded,
+                55f,
+                TitleColor);
+            SetCentered(
+                panel.rectTransform,
+                Vector2.zero,
+                new Vector2(SettingsPageContract.MainButtonWidth, 130f));
+
+            Text label = CreateText(
+                "Label",
+                panel.transform,
+                font,
+                48,
+                "Màn",
+                TextColor,
+                FontStyle.Bold);
+            SetAnchored(
+                label.rectTransform,
+                new Vector2(0.5f, 0.5f),
+                new Vector2(-245f, 0f),
+                new Vector2(150f, 100f),
+                new Vector2(0.5f, 0.5f));
+
+            Button previous = CreateOutlineButton(
+                "PreviousLevelBtn",
+                panel.transform,
+                font,
+                rounded,
+                "−",
+                58,
+                new Vector2(105f, 100f));
+            SetAnchored(
+                (RectTransform)previous.transform,
+                new Vector2(0.5f, 0.5f),
+                new Vector2(-105f, 0f),
+                new Vector2(105f, 100f),
+                new Vector2(0.5f, 0.5f));
+
+            Image inputBackground = CreateRoundedImage(
+                "LevelInput",
+                panel.transform,
+                rounded,
+                45f,
+                PanelColor);
+            SetAnchored(
+                inputBackground.rectTransform,
+                new Vector2(0.5f, 0.5f),
+                new Vector2(35f, 0f),
+                new Vector2(155f, 100f),
+                new Vector2(0.5f, 0.5f));
+            inputBackground.raycastTarget = true;
+            InputField input =
+                inputBackground.gameObject.AddComponent<InputField>();
+            Text inputText = CreateText(
+                "Text",
+                inputBackground.transform,
+                font,
+                52,
+                "1",
+                TextColor,
+                FontStyle.Bold);
+            Stretch(inputText.rectTransform, new Vector2(12f, 8f));
+            inputText.raycastTarget = false;
+            input.textComponent = inputText;
+            input.targetGraphic = inputBackground;
+            input.contentType = InputField.ContentType.IntegerNumber;
+            input.characterValidation = InputField.CharacterValidation.Integer;
+            input.lineType = InputField.LineType.SingleLine;
+            input.characterLimit = 3;
+
+            Button next = CreateOutlineButton(
+                "NextLevelBtn",
+                panel.transform,
+                font,
+                rounded,
+                "+",
+                58,
+                new Vector2(105f, 100f));
+            SetAnchored(
+                (RectTransform)next.transform,
+                new Vector2(0.5f, 0.5f),
+                new Vector2(175f, 0f),
+                new Vector2(105f, 100f),
+                new Vector2(0.5f, 0.5f));
+
+            return new LevelSelectorParts(
+                root.gameObject,
+                previous,
+                input,
+                next);
         }
 
         private static SettingsToggleView CreateToggle(
@@ -1189,6 +1333,26 @@ namespace Meowdoku.Editor
             }
 
             public GameObject Root { get; }
+        }
+
+        private readonly struct LevelSelectorParts
+        {
+            public LevelSelectorParts(
+                GameObject root,
+                Button previousButton,
+                InputField input,
+                Button nextButton)
+            {
+                Root = root;
+                PreviousButton = previousButton;
+                Input = input;
+                NextButton = nextButton;
+            }
+
+            public GameObject Root { get; }
+            public Button PreviousButton { get; }
+            public InputField Input { get; }
+            public Button NextButton { get; }
         }
 
         private readonly struct PatternParts

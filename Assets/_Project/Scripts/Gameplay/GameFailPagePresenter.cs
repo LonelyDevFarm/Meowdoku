@@ -33,6 +33,7 @@ namespace Meowdoku.Gameplay
         private const float InputBlockSeconds = 1.5f;
         private const float HideSeconds = 0.1f;
         private const float RemainingTravel = 60f;
+        private const float FailCatRestScale = 0.9236364f;
 
         [SerializeField] private CanvasGroup pageGroup;
         [SerializeField] private CanvasGroup overlayGroup;
@@ -70,8 +71,10 @@ namespace Meowdoku.Gameplay
         private int _rewardLevel;
         private UiName _selfName = UiName.Fail;
         private Sequence _openTween;
+        private Sequence _failCatIdleTween;
         private Tween _buttonReadyTween;
         private Tween _hideTween;
+        private Vector2 _failCatRestAnchoredPosition;
         private Vector2 _remainingRestAnchoredPosition;
         private static readonly string[] EncourageHigh =
             { "FAIL_ENC_HIGH_1", "FAIL_ENC_HIGH_2", "FAIL_ENC_HIGH_3", "FAIL_ENC_HIGH_4" };
@@ -85,6 +88,8 @@ namespace Meowdoku.Gameplay
 
         protected override void OnCreate()
         {
+            if (failCat != null)
+                _failCatRestAnchoredPosition = failCat.anchoredPosition;
             if (remaining != null)
                 _remainingRestAnchoredPosition = remaining.anchoredPosition;
             if (reviveButton != null) reviveButton.onClick.AddListener(Revive);
@@ -311,7 +316,12 @@ namespace Meowdoku.Gameplay
             if (overlayGroup != null) overlayGroup.alpha = 0f;
             if (content != null) content.localScale = Vector3.one;
             if (contentGroup != null) contentGroup.alpha = 1f;
-            if (failCat != null) failCat.localScale = Vector3.zero;
+            if (failCat != null)
+            {
+                failCat.anchoredPosition = _failCatRestAnchoredPosition;
+                failCat.localRotation = Quaternion.identity;
+                failCat.localScale = Vector3.zero;
+            }
             if (title != null) title.localScale = Vector3.one * 1.8f;
             if (titleGroup != null) titleGroup.alpha = 0f;
             if (remaining != null)
@@ -335,7 +345,7 @@ namespace Meowdoku.Gameplay
                 _openTween.Insert(0.016666668f, failCat.DOScale(
                     1.1f, 0.25f).SetEase(Ease.OutQuad));
                 _openTween.Insert(0.26666668f, failCat.DOScale(
-                    0.9236364f, 0.16666666f).SetEase(Ease.InOutQuad));
+                    FailCatRestScale, 0.16666666f).SetEase(Ease.InOutQuad));
             }
             if (titleGroup != null)
                 _openTween.Insert(0.33333334f, titleGroup.DOFade(
@@ -367,7 +377,11 @@ namespace Meowdoku.Gameplay
                 restartGroup.gameObject.activeInHierarchy)
                 _openTween.Insert(0.98333335f, restartGroup.DOFade(
                     1f, 0.35000005f).SetEase(Ease.Linear));
-            _openTween.OnComplete(() => _openTween = null);
+            _openTween.OnComplete(() =>
+            {
+                _openTween = null;
+                PlayFailCatIdleVfx();
+            });
 
             _buttonReadyTween = DOVirtual.DelayedCall(
                     InputBlockSeconds,
@@ -384,8 +398,52 @@ namespace Meowdoku.Gameplay
         {
             _openTween?.Kill(false);
             _openTween = null;
+            _failCatIdleTween?.Kill(false);
+            _failCatIdleTween = null;
             _buttonReadyTween?.Kill(false);
             _buttonReadyTween = null;
+        }
+
+        private void PlayFailCatIdleVfx()
+        {
+            _failCatIdleTween?.Kill(false);
+            _failCatIdleTween = null;
+            if (failCat == null) return;
+
+            Vector3 restScale = Vector3.one * FailCatRestScale;
+            failCat.anchoredPosition = _failCatRestAnchoredPosition;
+            failCat.localRotation = Quaternion.identity;
+            failCat.localScale = restScale;
+
+            _failCatIdleTween = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject)
+                .AppendInterval(0.24f)
+                .Append(failCat.DOAnchorPosY(
+                        _failCatRestAnchoredPosition.y - 9f, 0.18f)
+                    .SetEase(Ease.InQuad))
+                .Join(failCat.DORotate(new Vector3(0f, 0f, -1.4f), 0.18f)
+                    .SetEase(Ease.InOutSine))
+                .Join(failCat.DOScale(
+                        new Vector3(0.95f, 0.89f, FailCatRestScale), 0.18f)
+                    .SetEase(Ease.InQuad))
+                .Append(failCat.DOAnchorPosY(
+                        _failCatRestAnchoredPosition.y + 4f, 0.22f)
+                    .SetEase(Ease.OutQuad))
+                .Join(failCat.DORotate(new Vector3(0f, 0f, 1.1f), 0.22f)
+                    .SetEase(Ease.InOutSine))
+                .Join(failCat.DOScale(
+                        new Vector3(0.91f, 0.95f, FailCatRestScale), 0.22f)
+                    .SetEase(Ease.OutQuad))
+                .Append(failCat.DOAnchorPos(
+                        _failCatRestAnchoredPosition, 0.28f)
+                    .SetEase(Ease.InOutSine))
+                .Join(failCat.DORotate(Vector3.zero, 0.28f)
+                    .SetEase(Ease.InOutSine))
+                .Join(failCat.DOScale(restScale, 0.28f)
+                    .SetEase(Ease.InOutSine))
+                .AppendInterval(0.42f)
+                .SetLoops(-1, LoopType.Restart);
         }
 
         private void SetButtons(bool interactable)

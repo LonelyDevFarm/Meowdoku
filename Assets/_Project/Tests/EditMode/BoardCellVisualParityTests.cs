@@ -195,6 +195,37 @@ namespace Meowdoku.Tests.EditMode
             }
         }
 
+        [Test]
+        public void HintLayer_StaysBehindCatCrossAndErrorIcons()
+        {
+            CellFixture fixture = CreateVisualCell("HintLayerCell");
+            try
+            {
+                CellView cell = fixture.Cell;
+                cell.PlayHint();
+
+                cell.ChangeState(CellStateType.CAT, false);
+                Assert.That(fixture.Cat.transform.GetSiblingIndex(),
+                    Is.GreaterThan(fixture.Hint.transform.GetSiblingIndex()));
+
+                cell.ResetToEmpty();
+                cell.PlayHint();
+                cell.ChangeState(CellStateType.MARK, false);
+                Assert.That(fixture.Cross.transform.GetSiblingIndex(),
+                    Is.GreaterThan(fixture.Hint.transform.GetSiblingIndex()));
+
+                cell.ResetToEmpty();
+                cell.PlayHint();
+                cell.ChangeState(CellStateType.ERROR, false);
+                Assert.That(fixture.Error.transform.GetSiblingIndex(),
+                    Is.GreaterThan(fixture.Hint.transform.GetSiblingIndex()));
+            }
+            finally
+            {
+                fixture.Destroy();
+            }
+        }
+
         private static GameObject CreateBoardRoot(string name)
         {
             return new GameObject(

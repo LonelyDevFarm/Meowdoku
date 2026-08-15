@@ -1,5 +1,6 @@
 using Meowdoku.Core.UI;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Meowdoku.Services
 {
@@ -53,12 +54,16 @@ namespace Meowdoku.Services
             Unsubscribe();
             _subscribedManager = uiManager;
             _subscribedManager.Events.WindowCreated += HandleWindowCreated;
+            _subscribedManager.Events.WindowShown += HandleWindowShown;
         }
 
         private void Unsubscribe()
         {
             if (_subscribedManager != null)
+            {
                 _subscribedManager.Events.WindowCreated -= HandleWindowCreated;
+                _subscribedManager.Events.WindowShown -= HandleWindowShown;
+            }
             _subscribedManager = null;
         }
 
@@ -66,6 +71,25 @@ namespace Meowdoku.Services
         {
             if (window is ISoundServiceConsumer consumer)
                 consumer.BindSoundService(soundService);
+
+            Button[] buttons = window.GetComponentsInChildren<Button>(true);
+            for (int index = 0; index < buttons.Length; index++)
+            {
+                Button button = buttons[index];
+                if (button == null) continue;
+                ButtonClickSoundEmitter emitter =
+                    button.GetComponent<ButtonClickSoundEmitter>();
+                if (emitter == null)
+                    emitter = button.gameObject.AddComponent<
+                        ButtonClickSoundEmitter>();
+                emitter.Bind(soundService);
+            }
+        }
+
+        private void HandleWindowShown(UiName _, UIFrameWindow window)
+        {
+            if (window != null && window.PlayOpenSound)
+                soundService?.Play(SoundKind.DialogOpen);
         }
     }
 }

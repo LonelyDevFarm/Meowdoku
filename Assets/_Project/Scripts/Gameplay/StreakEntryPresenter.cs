@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
 using UnityEngine;
@@ -17,9 +18,17 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Text countText;
         [SerializeField] private Button clickButton;
         [SerializeField] private LocalizationCatalog localization;
+        [SerializeField] private RectTransform checkedSunVisual;
+        [SerializeField] private RectTransform checkedShineVisual;
+        [SerializeField] private CanvasGroup checkedGlowGroup;
 
         private DailyMetaRuntime _runtime;
         private bool _presenting;
+        private Tween _sunTween;
+        private Tween _shineTween;
+        private Sequence _glowTween;
+        private Vector3 _sunBaseScale = Vector3.one;
+        private Vector3 _glowBaseScale = Vector3.one;
 
 #if UNITY_INCLUDE_TESTS
         internal bool IsCheckedForTests =>
@@ -28,12 +37,27 @@ namespace Meowdoku.Gameplay
 
         private void Awake()
         {
+            if (checkedSunVisual != null)
+                _sunBaseScale = checkedSunVisual.localScale;
+            if (checkedGlowGroup != null)
+                _glowBaseScale = checkedGlowGroup.transform.localScale;
             if (clickButton != null)
                 clickButton.onClick.AddListener(HandleClick);
         }
 
+        private void OnEnable()
+        {
+            if (_presenting) RefreshVfx();
+        }
+
+        private void OnDisable()
+        {
+            StopVfx();
+        }
+
         private void OnDestroy()
         {
+            StopVfx();
             Unsubscribe();
             if (clickButton != null)
                 clickButton.onClick.RemoveListener(HandleClick);
@@ -64,6 +88,7 @@ namespace Meowdoku.Gameplay
         public void Hide()
         {
             _presenting = false;
+            StopVfx();
             Unsubscribe();
         }
 
@@ -87,6 +112,7 @@ namespace Meowdoku.Gameplay
             if (clickButton != null)
                 clickButton.interactable = streak != null &&
                                            streak.IsEnabled;
+            RefreshVfx(checkedToday);
         }
 
         private void Subscribe()
@@ -94,6 +120,85 @@ namespace Meowdoku.Gameplay
             if (!_presenting || _runtime == null) return;
             _runtime.Streak.StreakUpdated -= HandleStreakUpdated;
             _runtime.Streak.StreakUpdated += HandleStreakUpdated;
+        }
+
+        private void RefreshVfx()
+        {
+            RefreshVfx(checkedState != null && checkedState.activeSelf);
+        }
+
+        private void RefreshVfx(bool checkedToday)
+        {
+            if (checkedShineVisual != null)
+                checkedShineVisual.gameObject.SetActive(checkedToday);
+            if (checkedGlowGroup != null)
+                checkedGlowGroup.gameObject.SetActive(checkedToday);
+            if (!_presenting || !isActiveAndEnabled || !checkedToday)
+            {
+                StopVfx();
+                return;
+            }
+            if (_shineTween != null && _shineTween.IsActive()) return;
+
+            if (checkedSunVisual != null)
+            {
+                checkedSunVisual.localScale = _sunBaseScale;
+                _sunTween = checkedSunVisual
+                    .DOScale(_sunBaseScale * 1.06f, 1.05f)
+                    .SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo)
+                    .SetUpdate(true)
+                    .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+            }
+            if (checkedShineVisual != null)
+            {
+                checkedShineVisual.localRotation = Quaternion.identity;
+                _shineTween = checkedShineVisual
+                    .DOLocalRotate(
+                        new Vector3(0f, 0f, -360f),
+                        18f,
+                        RotateMode.FastBeyond360)
+                    .SetEase(Ease.Linear)
+                    .SetLoops(-1, LoopType.Restart)
+                    .SetUpdate(true)
+                    .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+            }
+            if (checkedGlowGroup != null)
+            {
+                checkedGlowGroup.alpha = 0.26f;
+                checkedGlowGroup.transform.localScale =
+                    _glowBaseScale * 0.9f;
+                _glowTween = DOTween.Sequence()
+                    .SetUpdate(true)
+                    .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+                _glowTween.Append(
+                    checkedGlowGroup.DOFade(0.58f, 1.2f)
+                        .SetEase(Ease.InOutSine));
+                _glowTween.Join(
+                    checkedGlowGroup.transform
+                        .DOScale(_glowBaseScale * 1.08f, 1.2f)
+                        .SetEase(Ease.InOutSine));
+                _glowTween.SetLoops(-1, LoopType.Yoyo);
+            }
+        }
+
+        private void StopVfx()
+        {
+            _sunTween?.Kill(false);
+            _shineTween?.Kill(false);
+            _glowTween?.Kill(false);
+            _sunTween = null;
+            _shineTween = null;
+            _glowTween = null;
+            if (checkedSunVisual != null)
+                checkedSunVisual.localScale = _sunBaseScale;
+            if (checkedShineVisual != null)
+                checkedShineVisual.localRotation = Quaternion.identity;
+            if (checkedGlowGroup != null)
+            {
+                checkedGlowGroup.alpha = 0.35f;
+                checkedGlowGroup.transform.localScale = _glowBaseScale;
+            }
         }
 
         private void Unsubscribe()

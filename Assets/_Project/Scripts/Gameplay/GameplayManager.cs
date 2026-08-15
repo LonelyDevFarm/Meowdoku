@@ -1473,6 +1473,7 @@ namespace Meowdoku.Gameplay
             gameplayLifeHudPresenter?.PlayRevive(
                 _session.Lives,
                 livesToRestore >= 3);
+            boardView?.ReviveAllCatsToIdle();
             PublishTransition(transition);
             StartGameplayClock();
             return true;
@@ -1705,6 +1706,7 @@ namespace Meowdoku.Gameplay
                 playAnimation,
                 playSounds,
                 result.Kind == SessionActionKind.Undo);
+            PlayWrongGuessCatReaction(result);
             PlayActionVibrationAndMeow(result);
             PublishHudState();
             if (result.IsComplete) StopGameplayClock();
@@ -1718,6 +1720,19 @@ namespace Meowdoku.Gameplay
             for (int index = 0; index < feedback.Count; index++)
                 GameplayFeedbackRequested?.Invoke(feedback[index]);
             RequestWinSettlement();
+        }
+
+        private void PlayWrongGuessCatReaction(SessionActionResult result)
+        {
+            if (result == null ||
+                result.Kind != SessionActionKind.WrongGuess ||
+                boardView == null)
+                return;
+
+            if (result.LivesAfter <= 0)
+                boardView.PlayCatCryLoopAll();
+            else
+                boardView.PlayCatFrustratedAll();
         }
 
         private void PlayActionVibrationAndMeow(SessionActionResult result)

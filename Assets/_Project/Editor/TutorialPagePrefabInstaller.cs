@@ -1,4 +1,5 @@
 using Meowdoku.Core.UI;
+using Meowdoku.Core.Localization;
 using Meowdoku.Gameplay;
 using UnityEditor;
 using UnityEngine;
@@ -87,11 +88,18 @@ namespace Meowdoku.Editor
             Font font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
             Shader roundedShader =
                 AssetDatabase.LoadAssetAtPath<Shader>(RoundedShaderPath);
-            if (cellPrefab == null || font == null || roundedShader == null)
+            LocalizationCatalog localization =
+                LocalizationCatalogAssetInstaller.GetOrCreate();
+            if (cellPrefab == null || font == null || roundedShader == null ||
+                localization == null)
                 return;
 
             EnsureFolder("Assets/_Project/Prefabs", "UI");
-            GameObject page = Build(cellPrefab, font, roundedShader);
+            GameObject page = Build(
+                cellPrefab,
+                font,
+                roundedShader,
+                localization);
             try
             {
                 PrefabUtility.SaveAsPrefabAsset(page, PrefabPath);
@@ -106,7 +114,8 @@ namespace Meowdoku.Editor
         private static GameObject Build(
             GameObject cellPrefab,
             Font font,
-            Shader roundedShader)
+            Shader roundedShader,
+            LocalizationCatalog localization)
         {
             var page = new GameObject(
                 "TutorialPage",
@@ -299,6 +308,7 @@ namespace Meowdoku.Editor
             SetReference(data, "hintButton", hintButton);
             SetReference(data, "confirmButton", confirm);
             SetReference(data, "confirmText", confirmText);
+            SetReference(data, "localization", localization);
             SetReference(data, "successCheck", success.gameObject);
             SetReference(data, "successCheckGroup", successGroup);
             SetReference(data, "iqBar", iqBar.gameObject);
@@ -502,15 +512,41 @@ namespace Meowdoku.Editor
             GameObject contents = PrefabUtility.LoadPrefabContents(PrefabPath);
             try
             {
+                bool changed = false;
+                TutorialPagePresenter presenter =
+                    contents.GetComponent<TutorialPagePresenter>();
+                LocalizationCatalog localization =
+                    LocalizationCatalogAssetInstaller.GetOrCreate();
+                if (presenter != null && localization != null)
+                {
+                    SerializedObject presenterData =
+                        new SerializedObject(presenter);
+                    SerializedProperty localizationProperty =
+                        presenterData.FindProperty("localization");
+                    if (localizationProperty != null &&
+                        localizationProperty.objectReferenceValue !=
+                        localization)
+                    {
+                        localizationProperty.objectReferenceValue =
+                            localization;
+                        changed |= presenterData
+                            .ApplyModifiedPropertiesWithoutUndo();
+                    }
+                }
+
                 TutorialFinishEffects effects =
                     contents.GetComponentInChildren<TutorialFinishEffects>(true);
-                if (effects == null) return;
-                SerializedObject data = new SerializedObject(effects);
-                RectTransform root = data.FindProperty("effectRoot")
-                    .objectReferenceValue as RectTransform;
-                if (root == null) root = effects.transform as RectTransform;
-                ConfigureFinishEffects(data, root);
-                if (!data.ApplyModifiedPropertiesWithoutUndo()) return;
+                if (effects != null)
+                {
+                    SerializedObject data = new SerializedObject(effects);
+                    RectTransform root = data.FindProperty("effectRoot")
+                        .objectReferenceValue as RectTransform;
+                    if (root == null)
+                        root = effects.transform as RectTransform;
+                    ConfigureFinishEffects(data, root);
+                    changed |= data.ApplyModifiedPropertiesWithoutUndo();
+                }
+                if (!changed) return;
                 PrefabUtility.SaveAsPrefabAsset(contents, PrefabPath);
                 AssetDatabase.SaveAssets();
             }

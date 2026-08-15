@@ -45,6 +45,7 @@ namespace Meowdoku.Core.UI
         public bool ShowHowToPlay { get; }
         public bool ShowRestart { get; }
         public bool ShowFeedback => true;
+        public bool ShowPortfolioLevelSelector => !IsGameMode;
         public bool ShowCmp { get; }
         public bool ShowTerms { get; }
         public bool ShowVersion { get; }
@@ -55,7 +56,7 @@ namespace Meowdoku.Core.UI
     {
         public const float SourceReferenceWidth = 1080f;
         public const float PanelWidth = 900f;
-        public const float TitleBarHeight = 130f;
+        public const float TitleBarHeight = 150f;
         public const float ToggleButtonSize = 250f;
         public const float MainButtonWidth = 750f;
         public const float MainButtonHeight = 160f;

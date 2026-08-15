@@ -335,8 +335,12 @@ namespace Meowdoku.Editor
                 RankActivityEntryPresenter entry =
                     slot.GetComponentInChildren<RankActivityEntryPresenter>(true);
                 bool changed = false;
-                if (entry == null)
+                bool rebuildEntry = entry == null ||
+                    entry.transform.Find("AmbientVfx/Shine") == null;
+                if (rebuildEntry)
                 {
+                    if (entry != null)
+                        UnityEngine.Object.DestroyImmediate(entry.gameObject);
                     entry = BuildEntry(
                         (RectTransform)slot,
                         font,
@@ -942,6 +946,55 @@ namespace Meowdoku.Editor
             var presenter =
                 root.gameObject.AddComponent<RankActivityEntryPresenter>();
 
+            RectTransform ambientVfx = CreateRect("AmbientVfx", root);
+            Stretch(ambientVfx);
+            Image glow = CreateImage(
+                "Glow",
+                ambientVfx,
+                LoadSprite(EffectsRoot + "glow/et_glow_002.png"));
+            SetCentered(glow.rectTransform, new Vector2(0f, 25f),
+                new Vector2(250f, 250f));
+            glow.preserveAspect = true;
+            glow.raycastTarget = false;
+            CanvasGroup glowGroup =
+                glow.gameObject.AddComponent<CanvasGroup>();
+            glowGroup.alpha = 0.26f;
+
+            Image shine = CreateImage(
+                "Shine",
+                ambientVfx,
+                LoadSprite(EffectsRoot + "shine/et_shine_001.png"));
+            SetCentered(shine.rectTransform, new Vector2(0f, 25f),
+                new Vector2(235f, 235f));
+            shine.preserveAspect = true;
+            shine.raycastTarget = false;
+            Color shineColor = shine.color;
+            shineColor.a = 0.3f;
+            shine.color = shineColor;
+
+            Sprite starSprite = LoadSprite(
+                EffectsRoot + "star/et_star_003.png");
+            Vector2[] starPositions =
+            {
+                new(-112f, 88f),
+                new(118f, 65f),
+                new(-88f, -25f)
+            };
+            var starGroups = new CanvasGroup[starPositions.Length];
+            for (int index = 0; index < starPositions.Length; index++)
+            {
+                Image star = CreateImage(
+                    $"Star{index + 1}",
+                    ambientVfx,
+                    starSprite);
+                SetCentered(star.rectTransform, starPositions[index],
+                    new Vector2(38f, 38f));
+                star.preserveAspect = true;
+                star.raycastTarget = false;
+                starGroups[index] =
+                    star.gameObject.AddComponent<CanvasGroup>();
+            }
+
             RectTransform pending = CreateRect("StateOpen", root);
             Stretch(pending);
             Image pendingVisual = CreateImage(
@@ -1055,6 +1108,11 @@ namespace Meowdoku.Editor
             SetObjectArray(data, "chestTiers", tiers);
             SetRef(data, "frameOnlyChest", frameOnly.gameObject);
             SetRef(data, "clickButton", click);
+            SetRef(data, "shineVisual", shine.rectTransform);
+            SetRef(data, "glowGroup", glowGroup);
+            SetRef(data, "pendingChestVisual", chestSwitch);
+            SetRef(data, "activeArtVisual", activityArt.rectTransform);
+            SetComponentArray(data, "starGroups", starGroups);
             data.ApplyModifiedPropertiesWithoutUndo();
 
             pending.gameObject.SetActive(false);

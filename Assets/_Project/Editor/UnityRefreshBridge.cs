@@ -14,9 +14,11 @@ namespace Meowdoku.Editor
     {
         internal const string EventName = @"Local\Meowdoku.UnityRefresh";
         internal const string StopPlayModeEventName = @"Local\Meowdoku.UnityStopPlayMode";
+        internal const string StartPlayModeEventName = @"Local\Meowdoku.UnityStartPlayMode";
 
         private static EventWaitHandle _refreshEvent;
         private static EventWaitHandle _stopPlayModeEvent;
+        private static EventWaitHandle _startPlayModeEvent;
         private static bool _refreshPending;
 
         static UnityRefreshBridge()
@@ -24,6 +26,7 @@ namespace Meowdoku.Editor
             if (AssetDatabase.IsAssetImportWorkerProcess()) return;
             TryCreateEvent();
             TryCreateStopPlayModeEvent();
+            TryCreateStartPlayModeEvent();
 
             EditorApplication.update -= Poll;
             EditorApplication.update += Poll;
@@ -71,6 +74,21 @@ namespace Meowdoku.Editor
             }
         }
 
+        private static void TryCreateStartPlayModeEvent()
+        {
+            try
+            {
+                _startPlayModeEvent = new EventWaitHandle(
+                    false,
+                    EventResetMode.AutoReset,
+                    StartPlayModeEventName);
+            }
+            catch (Exception)
+            {
+                _startPlayModeEvent = null;
+            }
+        }
+
         private static void Poll()
         {
             if (_refreshEvent == null)
@@ -78,6 +96,9 @@ namespace Meowdoku.Editor
 
             if (_stopPlayModeEvent == null)
                 TryCreateStopPlayModeEvent();
+
+            if (_startPlayModeEvent == null)
+                TryCreateStartPlayModeEvent();
 
             try
             {
@@ -119,6 +140,22 @@ namespace Meowdoku.Editor
 
             try
             {
+                if (_startPlayModeEvent != null &&
+                    _startPlayModeEvent.WaitOne(0) &&
+                    !EditorApplication.isPlayingOrWillChangePlaymode &&
+                    !EditorApplication.isCompiling &&
+                    !EditorApplication.isUpdating)
+                {
+                    EditorApplication.EnterPlaymode();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                _startPlayModeEvent = null;
+            }
+
+            try
+            {
                 if (_stopPlayModeEvent != null && _stopPlayModeEvent.WaitOne(0) &&
                     EditorApplication.isPlayingOrWillChangePlaymode)
                 {
@@ -149,6 +186,8 @@ namespace Meowdoku.Editor
             _refreshEvent = null;
             _stopPlayModeEvent?.Dispose();
             _stopPlayModeEvent = null;
+            _startPlayModeEvent?.Dispose();
+            _startPlayModeEvent = null;
         }
     }
 }

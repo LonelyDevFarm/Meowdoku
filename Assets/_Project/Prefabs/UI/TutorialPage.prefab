@@ -694,6 +694,7 @@ MonoBehaviour:
   hintButton: {fileID: 1052414192738056569}
   confirmButton: {fileID: 8928095615472239605}
   confirmText: {fileID: 2452255792112396446}
+  localization: {fileID: 11400000, guid: c40202602b3c96e4390a271f5f4a4515, type: 2}
   successCheck: {fileID: 4213161181466359168}
   successCheckGroup: {fileID: 2701034126504692064}
   iqBar: {fileID: 7486391045072801835}
@@ -2289,6 +2290,7 @@ MonoBehaviour:
   regionColors: []
   roundedBackgroundShader: {fileID: 4800000, guid: 4ea2af84c4c18f146b4edf3dbe8b476f, type: 3}
   patternIcons: []
+  introCanvasGroup: {fileID: 0}
 --- !u!1 &9035757813848924505
 GameObject:
   m_ObjectHideFlags: 0

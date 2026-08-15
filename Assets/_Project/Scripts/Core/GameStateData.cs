@@ -10,6 +10,8 @@ namespace Meowdoku.Core
     /// </summary>
     public sealed class GameStateData
     {
+        public const int PortfolioInitialToolCount = 99;
+
         public int CurrentLevel { get; set; } = 1;
         public bool IsFirstSession { get; set; } = true;
         public bool TutorialDone { get; set; }
@@ -48,9 +50,10 @@ namespace Meowdoku.Core
         public Dictionary<string, object> LkModifiedProgress { get; set; } =
             new Dictionary<string, object>();
 
-        public int ToolLocate { get; set; } = 5;
-        public int ToolHint { get; set; } = 5;
+        public int ToolLocate { get; set; } = PortfolioInitialToolCount;
+        public int ToolHint { get; set; } = PortfolioInitialToolCount;
         public int ToolUndo { get; set; } = 3;
+        public bool PortfolioToolsSeeded { get; set; } = true;
         public string LastSplashDate { get; set; } = string.Empty;
         public bool HasUsedTool { get; set; }
         public bool PropHighlightShown { get; set; }
@@ -152,6 +155,7 @@ namespace Meowdoku.Core
                 { "tool_locate", ToolLocate },
                 { "tool_hint", ToolHint },
                 { "tool_undo", ToolUndo },
+                { "portfolio_tools_seeded", PortfolioToolsSeeded },
                 { "last_splash_date", LastSplashDate },
                 { "has_used_tool", HasUsedTool },
                 { "prop_highlight_shown", PropHighlightShown },
@@ -307,9 +311,19 @@ namespace Meowdoku.Core
                 data.BankProgress = Dictionary(progress, "bank_progress");
                 data.MainBankProgress = Dictionary(progress, "main_bank_progress");
                 data.LkModifiedProgress = Dictionary(progress, "lkmod_progress");
-                data.ToolLocate = Int(progress, "tool_locate", 5);
-                data.ToolHint = Int(progress, "tool_hint", 5);
+                data.ToolLocate = Int(
+                    progress,
+                    "tool_locate",
+                    PortfolioInitialToolCount);
+                data.ToolHint = Int(
+                    progress,
+                    "tool_hint",
+                    PortfolioInitialToolCount);
                 data.ToolUndo = Int(progress, "tool_undo", 3);
+                data.PortfolioToolsSeeded = Bool(
+                    progress,
+                    "portfolio_tools_seeded",
+                    false);
                 data.LastSplashDate = String(
                     progress,
                     "last_splash_date",
@@ -423,6 +437,19 @@ namespace Meowdoku.Core
             }
 
             return data;
+        }
+
+        internal bool SeedPortfolioToolsIfNeeded()
+        {
+            if (PortfolioToolsSeeded) return false;
+            ToolLocate = Mathf.Max(
+                ToolLocate,
+                PortfolioInitialToolCount);
+            ToolHint = Mathf.Max(
+                ToolHint,
+                PortfolioInitialToolCount);
+            PortfolioToolsSeeded = true;
+            return true;
         }
 
         private static Dictionary<string, object> Section(

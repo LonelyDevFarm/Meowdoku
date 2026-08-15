@@ -183,6 +183,15 @@ namespace Meowdoku.Editor
                 CanvasGroup restartGroup = EnsureCanvasGroup(
                     restart, ref componentsAdded);
 
+                bool layoutChanged = false;
+                RectTransform remainingRect = (RectTransform)remaining;
+                Vector2 remainingPosition = new(0f, -125f);
+                if (remainingRect.anchoredPosition != remainingPosition)
+                {
+                    remainingRect.anchoredPosition = remainingPosition;
+                    layoutChanged = true;
+                }
+
                 SerializedObject data = new(presenter);
                 SetReference(data, "pageGroup", pageGroup);
                 SetReference(data, "failCat", failCat);
@@ -195,7 +204,7 @@ namespace Meowdoku.Editor
                 SetReference(data, "restartGroup", restartGroup);
                 bool referencesChanged =
                     data.ApplyModifiedPropertiesWithoutUndo();
-                if (componentsAdded || referencesChanged)
+                if (componentsAdded || referencesChanged || layoutChanged)
                     PrefabUtility.SaveAsPrefabAsset(page, FailPrefabPath);
             }
             finally
@@ -676,7 +685,7 @@ namespace Meowdoku.Editor
             RectTransform remainingRoot = CreateRect("Remaining", content);
             CanvasGroup remainingGroup =
                 remainingRoot.gameObject.AddComponent<CanvasGroup>();
-            SetCentered(remainingRoot, new Vector2(0f, -15f),
+            SetCentered(remainingRoot, new Vector2(0f, -125f),
                 new Vector2(760f, 100f));
             Image face = CreateImage(
                 "CatFace", remainingRoot, faceSprite, Color.white);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using Meowdoku.Core;
+using Meowdoku.Core.Localization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -27,6 +28,7 @@ namespace Meowdoku.Gameplay
         [SerializeField] private Button applyButton;
         [SerializeField] private Button dismissButton;
         [SerializeField] private Button detailButton;
+        [SerializeField] private LocalizationCatalog localization;
 
         private readonly List<CellView> _temporaryCells = new List<CellView>(24);
         private GameplayHintPresentationData _presentation;
@@ -40,6 +42,8 @@ namespace Meowdoku.Gameplay
 
         private void OnEnable()
         {
+            if (localization != null)
+                localization.LocaleChanged += RefreshLocalizedText;
             if (gameplayManager == null) return;
             gameplayManager.HintPresentationRequested += Show;
             gameplayManager.HintPresentationClosed += Close;
@@ -47,6 +51,8 @@ namespace Meowdoku.Gameplay
 
         private void OnDisable()
         {
+            if (localization != null)
+                localization.LocaleChanged -= RefreshLocalizedText;
             if (gameplayManager != null)
             {
                 gameplayManager.HintPresentationRequested -= Show;
@@ -69,7 +75,10 @@ namespace Meowdoku.Gameplay
                 strategyLabel.gameObject.SetActive(false); // source: debug-only
             }
             if (descriptionLabel != null)
-                descriptionLabel.text = ResolveEnglishSourceText(presentation.DescriptionKey);
+                descriptionLabel.text = Translate(
+                    presentation.DescriptionKey,
+                    ResolveEnglishSourceText(presentation.DescriptionKey));
+            RefreshLocalizedText();
             SetButtonVisible(applyButton, true);
             SetButtonVisible(detailButton, presentation.HasChainDetail);
             SetButtonVisible(dismissButton, false);
@@ -104,6 +113,45 @@ namespace Meowdoku.Gameplay
                 detailButton.onClick.RemoveListener(ShowDetail);
                 detailButton.onClick.AddListener(ShowDetail);
             }
+        }
+
+        public void BindLocalization(LocalizationCatalog catalog)
+        {
+            if (localization == catalog) return;
+            if (isActiveAndEnabled && localization != null)
+                localization.LocaleChanged -= RefreshLocalizedText;
+            localization = catalog;
+            if (isActiveAndEnabled && localization != null)
+                localization.LocaleChanged += RefreshLocalizedText;
+            RefreshLocalizedText();
+        }
+
+        private void RefreshLocalizedText()
+        {
+            if (descriptionLabel != null && _presentation != null)
+                descriptionLabel.text = Translate(
+                    _presentation.DescriptionKey,
+                    ResolveEnglishSourceText(_presentation.DescriptionKey));
+            SetButtonText(applyButton, Translate("HINT_APPLY", "Apply"));
+            SetButtonText(dismissButton, Translate("HINT_CANCEL", "Cancel"));
+            SetButtonText(detailButton,
+                Translate("HINT_DEDUCE_STEPS", "Detail"));
+        }
+
+        private string Translate(string key, string fallback)
+        {
+            if (localization == null) return fallback;
+            string translated = localization.Translate(key);
+            return string.IsNullOrEmpty(translated) || translated == key
+                ? fallback
+                : translated;
+        }
+
+        private static void SetButtonText(Button button, string value)
+        {
+            if (button == null) return;
+            Text label = button.GetComponentInChildren<Text>(true);
+            if (label != null) label.text = value;
         }
 
         private void Apply()

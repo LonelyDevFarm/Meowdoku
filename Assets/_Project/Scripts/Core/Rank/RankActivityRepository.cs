@@ -21,8 +21,11 @@ namespace Meowdoku.Core.Rank
             "rk_h3Q8nC5vM1xT7pL4sD9gF2zW6aB0";
 
         private readonly SaveStore _store;
+        private readonly BackgroundSaveWriter _writer;
 
-        public RankActivityRepository(string persistentDataPath)
+        public RankActivityRepository(
+            string persistentDataPath,
+            bool useBackgroundWrites = false)
         {
             if (string.IsNullOrEmpty(persistentDataPath))
                 throw new ArgumentException(
@@ -33,10 +36,12 @@ namespace Meowdoku.Core.Rank
                 persistentDataPath,
                 false,
                 Path.Combine(persistentDataPath, "rank_activity.cfg"));
+            if (useBackgroundWrites)
+                _writer = new BackgroundSaveWriter(_store);
         }
 
         public static RankActivityRepository CreateDefault() =>
-            new(Application.persistentDataPath);
+            new(Application.persistentDataPath, useBackgroundWrites: true);
 
         public RankActivityData Load()
         {
@@ -51,12 +56,26 @@ namespace Meowdoku.Core.Rank
         public bool Save(RankActivityData data)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            return _store.SaveConfig(new Dictionary<string, object>
+            string serialized = MiniJson.Serialize(new Dictionary<string, object>
             {
                 ["rank_activity"] = data.ToDictionary()
             });
+            return _writer != null
+                ? _writer.RequestSave(serialized)
+                : _store.SaveSerializedConfig(serialized);
         }
 
-        public void Reset() => _store.Remove();
+        public void Reset()
+        {
+            if (_writer != null)
+                _writer.RequestRemove();
+            else
+                _store.Remove();
+        }
+
+        public bool FlushPendingWrites()
+        {
+            return _writer == null || _writer.Flush();
+        }
     }
 }

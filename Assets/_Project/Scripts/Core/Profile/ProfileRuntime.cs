@@ -17,9 +17,18 @@ namespace Meowdoku.Core.Profile
     public sealed class ProfileRuntime : MonoBehaviour, IFrameAwardSink
     {
         private ProfileService _service;
+        private ProfileRepository _repository;
 
-        public ProfileService Service =>
-            _service ??= new ProfileService(ProfileRepository.CreateDefault());
+        public ProfileService Service
+        {
+            get
+            {
+                if (_service != null) return _service;
+                _repository = ProfileRepository.CreateDefault();
+                _service = new ProfileService(_repository);
+                return _service;
+            }
+        }
 
         public bool GrantFrame(int frameId, int count)
         {
@@ -28,7 +37,29 @@ namespace Meowdoku.Core.Profile
 
         internal void ConfigureForTests(ProfileService service)
         {
+            FlushPendingWrites();
+            _repository = null;
             _service = service;
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) FlushPendingWrites();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!focused) FlushPendingWrites();
+        }
+
+        private void OnDestroy()
+        {
+            FlushPendingWrites();
+        }
+
+        private void FlushPendingWrites()
+        {
+            _repository?.FlushPendingWrites();
         }
     }
 }

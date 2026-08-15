@@ -123,6 +123,12 @@ namespace Meowdoku.Core
 
     internal sealed class UnityVibrationPlatformAdapter : IVibrationPlatformAdapter
     {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        private const int VibratorManagerApiLevel = 31;
+        private const int VibrationEffectApiLevel = 26;
+        private const int DefaultAmplitude = -1;
+#endif
+
         public bool HasVibrator
         {
             get
@@ -135,7 +141,7 @@ namespace Meowdoku.Core
                 }
                 catch
                 {
-                    return false;
+                    return SystemInfo.supportsVibration;
                 }
 #elif UNITY_IOS && !UNITY_EDITOR
                 return true;
@@ -173,24 +179,35 @@ namespace Meowdoku.Core
             try
             {
                 using AndroidJavaObject vibrator = GetAndroidVibrator();
-                if (vibrator == null || !vibrator.Call<bool>("hasVibrator")) return;
-                if (AndroidSdkInt() >= 26)
+                if (vibrator == null) return;
+
+                if (AndroidSdkInt() >= VibrationEffectApiLevel)
                 {
                     using var effectClass = new AndroidJavaClass("android.os.VibrationEffect");
+                    int amplitude = vibrator.Call<bool>("hasAmplitudeControl")
+                        ? pulse.Amplitude
+                        : DefaultAmplitude;
                     using AndroidJavaObject effect = effectClass.CallStatic<AndroidJavaObject>(
                         "createOneShot",
                         (long)pulse.DurationMilliseconds,
-                        pulse.Amplitude);
+                        amplitude);
                     vibrator.Call("vibrate", effect);
+                    return;
                 }
-                else
-                {
-                    vibrator.Call("vibrate", (long)pulse.DurationMilliseconds);
-                }
+
+                vibrator.Call("vibrate", (long)pulse.DurationMilliseconds);
             }
             catch
             {
-                // A missing or restricted device service is an expected no-op.
+                // Keep a Unity fallback for vendor-specific Android services.
+                try
+                {
+                    Handheld.Vibrate();
+                }
+                catch
+                {
+                    // Devices without an accessible vibrator remain silent.
+                }
             }
 #elif UNITY_IOS && !UNITY_EDITOR
             Handheld.Vibrate();
@@ -218,7 +235,18 @@ namespace Meowdoku.Core
             using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
             using AndroidJavaObject activity =
                 unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-            return activity?.Call<AndroidJavaObject>("getSystemService", "vibrator");
+            if (activity == null) return null;
+
+            if (AndroidSdkInt() >= VibratorManagerApiLevel)
+            {
+                using AndroidJavaObject manager =
+                    activity.Call<AndroidJavaObject>("getSystemService", "vibrator_manager");
+                AndroidJavaObject vibrator =
+                    manager?.Call<AndroidJavaObject>("getDefaultVibrator");
+                if (vibrator != null) return vibrator;
+            }
+
+            return activity.Call<AndroidJavaObject>("getSystemService", "vibrator");
         }
 
         private static int AndroidSdkInt()

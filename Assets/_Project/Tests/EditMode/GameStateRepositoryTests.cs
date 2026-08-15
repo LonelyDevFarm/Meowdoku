@@ -211,6 +211,25 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void BackgroundPlayerWrites_CoalesceAndFlushLatestImmutableState()
+        {
+            var repository = new GameStateRepository(
+                _directory,
+                useBackgroundEndgameWrites: false,
+                useBackgroundPlayerWrites: true);
+            var source = new GameStateData { CurrentLevel = 8 };
+
+            Assert.That(repository.SavePlayer(source), Is.True);
+            source.CurrentLevel = 9;
+            Assert.That(repository.SavePlayer(source), Is.True);
+            source.CurrentLevel = 10;
+
+            Assert.That(repository.FlushPlayerWrites(), Is.True);
+            GameStateData restored = new GameStateRepository(_directory).Load();
+            Assert.That(restored.CurrentLevel, Is.EqualTo(9));
+        }
+
+        [Test]
         public void BothPlayerSlotsCorrupt_LoadsSourceDefaultsSafely()
         {
             var repository = new GameStateRepository(_directory);

@@ -44,6 +44,17 @@ namespace Meowdoku.Tests.EditMode
                 Assert.That(layout, Is.Not.Null);
                 Assert.That(header, Is.Not.Null);
                 Assert.That(podium, Is.Not.Null);
+                Assert.That(
+                    instance.transform.Find("Background")
+                        .GetComponent<CanvasGroup>(),
+                    Is.Not.Null);
+                Assert.That(header.GetComponent<CanvasGroup>(), Is.Not.Null);
+                Transform introStars = instance.transform.Find(
+                    "Root/IntroStars");
+                Assert.That(introStars, Is.Not.Null);
+                Assert.That(
+                    introStars.GetComponentsInChildren<Image>(true),
+                    Has.Length.EqualTo(8));
 
                 layout.ApplyLayoutForTests(1920f, 0f, 0f);
 
@@ -380,6 +391,16 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(arrowToRank.localScale.x, Is.EqualTo(-1f));
             Assert.That(page.transform.Find(
                 "Root/Content/Step/Cell_9"), Is.Not.Null);
+            Assert.That(step.GetComponent<CanvasGroup>(), Is.Not.Null);
+            Assert.That(page.transform.Find(
+                "Root/Content/CollectVisual/Glow"), Is.Not.Null);
+            Assert.That(page.transform.Find(
+                "Root/Content/RewardFull/AvatarGroup"), Is.Not.Null);
+            Assert.That(page.transform.Find(
+                "Root/Content/RewardFrameOnly/AvatarGroup"), Is.Not.Null);
+            Assert.That(page.transform.Find(
+                "Root/Content/RewardGlow").GetComponent<Image>(),
+                Is.Not.Null);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using Meowdoku.Core.Daily;
 using Meowdoku.Core.Localization;
 using Meowdoku.Core.Tracking;
@@ -35,6 +36,7 @@ namespace Meowdoku.Gameplay
 
         [SerializeField] private Text titleText;
         [SerializeField] private Text streakText;
+        [SerializeField] private Text streakTextNew;
         [SerializeField] private Text currentText;
         [SerializeField] private Text bestText;
         [SerializeField] private Text tapSunText;
@@ -55,6 +57,13 @@ namespace Meowdoku.Gameplay
         private int _flowGeneration;
         private bool _litReady;
         private bool _settleRevealComplete;
+        private bool _numberRollPending;
+        private bool _numberRollScheduled;
+        private int _numberRollFrom;
+        private int _numberRollTo;
+        private Sequence _numberSequence;
+        private Vector2 _numberPosition;
+        private Vector2 _numberNewPosition;
 
 #if UNITY_INCLUDE_TESTS
         internal StreakDisplayState StateForTests => _state;
@@ -62,10 +71,13 @@ namespace Meowdoku.Gameplay
             _settleRevealComplete;
         internal bool SunVisibleForTests =>
             sunRoot != null && sunRoot.activeSelf;
+        internal bool NumberRollPendingForTests => _numberRollPending;
 #endif
 
         protected override void OnCreate()
         {
+            EnsureNumberRollText();
+            ResetNumberRoll(false);
             Add(sunButton, HandleSun);
             Add(tapSurface, HandleSun);
             Add(backButton, HandleBack);
@@ -82,6 +94,7 @@ namespace Meowdoku.Gameplay
             _state = ReadState(parameters);
             _litReady = false;
             _settleRevealComplete = false;
+            PrepareNumberRoll();
             Subscribe();
             Refresh();
 
@@ -99,6 +112,7 @@ namespace Meowdoku.Gameplay
             _flowGeneration++;
             _litReady = false;
             _settleRevealComplete = false;
+            ResetNumberRoll(true);
             Unsubscribe();
             yield break;
         }
@@ -113,6 +127,7 @@ namespace Meowdoku.Gameplay
         protected override void OnDestroyWindow()
         {
             _flowGeneration++;
+            ResetNumberRoll(true);
             Unsubscribe();
             Remove(sunButton, HandleSun);
             Remove(tapSurface, HandleSun);
@@ -150,9 +165,13 @@ namespace Meowdoku.Gameplay
                 ? _runtime.Streak
                 : null;
             if (streakText != null)
-                streakText.text = streak != null
-                    ? streak.DisplayStreak.ToString()
-                    : "0";
+            {
+                int value = streak != null ? streak.DisplayStreak : 0;
+                streakText.text = (_numberRollPending
+                        ? _numberRollFrom
+                        : value)
+                    .ToString();
+            }
             SetText(titleText, Translate(
                 "DAILY_STREAK_TITLE",
                 "Daily Streak"));
@@ -229,23 +248,41 @@ namespace Meowdoku.Gameplay
             }
 
             _settleRevealComplete = true;
-            RefreshSlots(streak);
+            int revealIndex = NewestCheckedIndex(streak);
+            StreakDaySlotView revealSlot =
+                revealIndex >= 0 && revealIndex < slots.Length
+                    ? slots[revealIndex]
+                    : null;
             int pendingUid = streak.PendingShowUid;
             if (pendingUid > 0)
             {
+                float rewardDuration = revealSlot != null
+                    ? revealSlot.PlayCheckin(true)
+                    : StreakDaySlotView.RewardDurationSeconds;
+                if (rewardDuration > 0f)
+                    yield return new WaitForSecondsRealtime(rewardDuration);
+                if (!IsCurrent(generation)) yield break;
                 streak.ClaimReward();
                 streak.ConsumePendingShow();
+                revealSlot?.HideChest();
+                revealSlot?.ShowUncheckedDot();
                 if (Owner != null)
                     yield return Owner.AwaitHidden(UiName.Award);
                 if (!IsCurrent(generation)) yield break;
+                revealSlot?.PlayCheckin(false);
+                ScheduleNumberRoll(generation);
             }
             else
             {
+                if (revealSlot != null)
+                    revealSlot.PlayCheckin(false);
+                else
+                    RefreshSlots(streak);
+                ScheduleNumberRoll(generation);
                 streak.ConsumePendingShow();
             }
 
             if (!IsCurrent(generation)) yield break;
-            Refresh();
             if (continueButton != null)
                 continueButton.interactable = true;
         }
@@ -354,6 +391,144 @@ namespace Meowdoku.Gameplay
         private void HandleStreakUpdated(StreakData _)
         {
             Refresh();
+        }
+
+        private void PrepareNumberRoll()
+        {
+            ResetNumberRoll(false);
+            StreakFeature streak = _runtime != null
+                ? _runtime.Streak
+                : null;
+            int finalValue = streak != null ? streak.DisplayStreak : 0;
+            bool normalSettle = streak != null &&
+                streak.ReviveAnimation.Kind == StreakReviveAnimationKind.None;
+            _numberRollPending = _state == StreakDisplayState.Settle &&
+                                 normalSettle &&
+                                 finalValue >= 2;
+            _numberRollFrom = _numberRollPending
+                ? finalValue - 1
+                : finalValue;
+            _numberRollTo = finalValue;
+            if (streakText != null)
+                streakText.text = _numberRollFrom.ToString();
+        }
+
+        private void ScheduleNumberRoll(int generation)
+        {
+            if (!_numberRollPending || _numberRollScheduled) return;
+            _numberRollScheduled = true;
+            StartManagedCoroutine(RunNumberRollAfterDelay(generation));
+        }
+
+        private IEnumerator RunNumberRollAfterDelay(int generation)
+        {
+            yield return new WaitForSecondsRealtime(AddAfterCheckinSeconds);
+            if (!IsCurrent(generation) || !_numberRollPending) yield break;
+            PlayNumberRoll();
+        }
+
+        private void PlayNumberRoll()
+        {
+            EnsureNumberRollText();
+            KillNumberSequence();
+            if (streakText == null || streakTextNew == null ||
+                _numberRollFrom <= 0)
+            {
+                CompleteNumberRoll();
+                return;
+            }
+
+            RectTransform oldRect = streakText.rectTransform;
+            RectTransform newRect = streakTextNew.rectTransform;
+            oldRect.anchoredPosition = _numberPosition;
+            newRect.anchoredPosition = _numberNewPosition;
+            streakText.text = _numberRollFrom.ToString();
+            streakTextNew.text = _numberRollTo.ToString();
+            streakTextNew.gameObject.SetActive(true);
+
+            _numberSequence = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject, LinkBehaviour.KillOnDestroy);
+            _numberSequence.Join(oldRect.DOAnchorPosY(
+                    _numberPosition.y + 220f, 0.4f)
+                .SetEase(Ease.InOutCubic));
+            _numberSequence.Join(newRect.DOAnchorPosY(
+                    _numberPosition.y, 0.4f)
+                .SetEase(Ease.InOutCubic));
+            _numberSequence.AppendInterval(0.1f);
+            _numberSequence.OnComplete(CompleteNumberRoll);
+        }
+
+        private void CompleteNumberRoll()
+        {
+            _numberSequence = null;
+            _numberRollPending = false;
+            _numberRollScheduled = false;
+            if (streakText != null)
+            {
+                streakText.text = _numberRollTo.ToString();
+                streakText.rectTransform.anchoredPosition = _numberPosition;
+            }
+            if (streakTextNew != null)
+            {
+                streakTextNew.rectTransform.anchoredPosition =
+                    _numberNewPosition;
+                streakTextNew.gameObject.SetActive(false);
+            }
+        }
+
+        private void EnsureNumberRollText()
+        {
+            if (streakText == null) return;
+            if (streakTextNew == null)
+            {
+                GameObject clone = Instantiate(
+                    streakText.gameObject,
+                    streakText.transform.parent);
+                clone.name = "StreakNumberNext";
+                streakTextNew = clone.GetComponent<Text>();
+            }
+
+            _numberPosition = streakText.rectTransform.anchoredPosition;
+            _numberNewPosition = _numberPosition + new Vector2(0f, -220f);
+            streakTextNew.rectTransform.anchoredPosition =
+                _numberNewPosition;
+            streakTextNew.gameObject.SetActive(false);
+        }
+
+        private void ResetNumberRoll(bool showFinal)
+        {
+            KillNumberSequence();
+            if (showFinal && streakText != null)
+                streakText.text = _numberRollTo.ToString();
+            if (streakText != null)
+                streakText.rectTransform.anchoredPosition = _numberPosition;
+            if (streakTextNew != null)
+            {
+                streakTextNew.rectTransform.anchoredPosition =
+                    _numberNewPosition;
+                streakTextNew.gameObject.SetActive(false);
+            }
+            _numberRollPending = false;
+            _numberRollScheduled = false;
+        }
+
+        private void KillNumberSequence()
+        {
+            if (_numberSequence != null && _numberSequence.IsActive())
+                _numberSequence.Kill(false);
+            _numberSequence = null;
+        }
+
+        private static int NewestCheckedIndex(StreakFeature streak)
+        {
+            if (streak == null) return -1;
+            IReadOnlyList<StreakWeekSlot> week = streak.GetWeekSlots();
+            int result = -1;
+            for (int index = 0; index < week.Count; index++)
+                if (week[index].IsChecked)
+                    result = index;
+            return result;
         }
 
         private bool IsCurrent(int generation)

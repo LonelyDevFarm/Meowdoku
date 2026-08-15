@@ -21,6 +21,7 @@ namespace Meowdoku.Core.Daily
         [SerializeField] private UIManager uiManager;
 
         private StreakFeature _streak;
+        private StreakRepository _streakRepository;
         private AwardManager _awards;
         private bool _subscribed;
         private bool _awardSubscribed;
@@ -93,6 +94,8 @@ namespace Meowdoku.Core.Daily
             AwardManager awards)
         {
             UnsubscribeAwards();
+            FlushPendingWrites();
+            _streakRepository = null;
             _streak = streak;
             _awards = awards;
             SubscribeAwards();
@@ -106,11 +109,34 @@ namespace Meowdoku.Core.Daily
                     frameAwardSink as IFrameAwardSink,
                     tracker: uiManager != null ? uiManager.Tracker : null);
             if (_streak == null)
+            {
+                _streakRepository = StreakRepository.CreateDefault();
                 _streak = new StreakFeature(
-                    StreakRepository.CreateDefault(),
+                    _streakRepository,
                     streakConfig: CurrentStreakConfig,
                     rewardBoundary: _awards);
+            }
             SubscribeAwards();
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) FlushPendingWrites();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!focused) FlushPendingWrites();
+        }
+
+        private void OnDestroy()
+        {
+            FlushPendingWrites();
+        }
+
+        private void FlushPendingWrites()
+        {
+            _streakRepository?.FlushPendingWrites();
         }
 
         private DailyStreakConfig CurrentStreakConfig =>

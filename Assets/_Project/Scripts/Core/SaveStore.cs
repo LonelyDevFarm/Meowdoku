@@ -483,4 +483,123 @@ namespace Meowdoku.Core
                    exception is InvalidOperationException;
         }
     }
+
+    /// <summary>
+    /// Coalesces encrypted save requests and executes the expensive PBKDF2,
+    /// verification and fsync work away from Unity's frame thread. Documents
+    /// are serialized before entering this writer so worker code never reads
+    /// mutable gameplay state or calls Unity APIs.
+    /// </summary>
+    internal sealed class BackgroundSaveWriter
+    {
+        // Mobile storage and PBKDF2 are both contention-sensitive. A single
+        // process-wide lane prevents win/settle flows from running several
+        // expensive encrypted writes on different worker threads at once.
+        private static readonly SemaphoreSlim WriteLane = new(1, 1);
+
+        private readonly SaveStore _store;
+        private readonly object _gate = new object();
+        private string _pendingJson;
+        private bool _pendingRemove;
+        private bool _hasPendingWrite;
+        private bool _workerRunning;
+        private bool _lastWriteSucceeded = true;
+
+        public BackgroundSaveWriter(SaveStore store)
+        {
+            _store = store ?? throw new ArgumentNullException(nameof(store));
+        }
+
+        public bool RequestSave(string serialized)
+        {
+            if (serialized == null)
+                throw new ArgumentNullException(nameof(serialized));
+            return Enqueue(serialized, remove: false);
+        }
+
+        public bool RequestRemove()
+        {
+            return Enqueue(null, remove: true);
+        }
+
+        public bool Flush()
+        {
+            lock (_gate)
+            {
+                while (_workerRunning || _hasPendingWrite)
+                    Monitor.Wait(_gate);
+                return _lastWriteSucceeded;
+            }
+        }
+
+        private bool Enqueue(string serialized, bool remove)
+        {
+            lock (_gate)
+            {
+                // Only the newest immutable snapshot matters. The active write
+                // completes first, then the worker consumes this latest state.
+                _pendingJson = serialized;
+                _pendingRemove = remove;
+                _hasPendingWrite = true;
+                if (_workerRunning) return true;
+
+                _workerRunning = true;
+                if (ThreadPool.QueueUserWorkItem(ProcessWrites)) return true;
+
+                _workerRunning = false;
+                _hasPendingWrite = false;
+                _lastWriteSucceeded = false;
+                Monitor.PulseAll(_gate);
+                return false;
+            }
+        }
+
+        private void ProcessWrites(object state)
+        {
+            while (true)
+            {
+                string serialized;
+                bool remove;
+                lock (_gate)
+                {
+                    if (!_hasPendingWrite)
+                    {
+                        _workerRunning = false;
+                        Monitor.PulseAll(_gate);
+                        return;
+                    }
+
+                    serialized = _pendingJson;
+                    remove = _pendingRemove;
+                    _hasPendingWrite = false;
+                }
+
+                bool succeeded;
+                WriteLane.Wait();
+                try
+                {
+                    if (remove)
+                    {
+                        _store.Remove();
+                        succeeded = true;
+                    }
+                    else
+                    {
+                        succeeded = _store.SaveSerializedConfig(serialized);
+                    }
+                }
+                catch (Exception)
+                {
+                    succeeded = false;
+                }
+                finally
+                {
+                    WriteLane.Release();
+                }
+
+                lock (_gate)
+                    _lastWriteSucceeded = succeeded;
+            }
+        }
+    }
 }

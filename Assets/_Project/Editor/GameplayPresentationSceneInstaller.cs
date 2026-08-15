@@ -647,6 +647,8 @@ namespace Meowdoku.Editor
             serialized.FindProperty("applyButton").objectReferenceValue = apply;
             serialized.FindProperty("dismissButton").objectReferenceValue = dismiss;
             serialized.FindProperty("detailButton").objectReferenceValue = detail;
+            serialized.FindProperty("localization").objectReferenceValue =
+                LocalizationCatalogAssetInstaller.GetOrCreate();
             serialized.ApplyModifiedPropertiesWithoutUndo();
             visualRoot.gameObject.SetActive(false);
         }

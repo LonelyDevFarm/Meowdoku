@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Threading;
 using UnityEngine;
 
 namespace Meowdoku.Core
@@ -28,17 +27,13 @@ namespace Meowdoku.Core
 
         private readonly SaveStore _playerStore;
         private readonly SaveStore _endgameStore;
-        private readonly bool _useBackgroundEndgameWrites;
-        private readonly object _endgameWriteGate = new object();
-        private string _pendingEndgameJson;
-        private bool _pendingEndgameRemove;
-        private bool _hasPendingEndgameWrite;
-        private bool _endgameWorkerRunning;
-        private bool _lastEndgameWriteSucceeded = true;
+        private readonly BackgroundSaveWriter _playerWriter;
+        private readonly BackgroundSaveWriter _endgameWriter;
 
         public GameStateRepository(
             string persistentDataPath,
-            bool useBackgroundEndgameWrites = false)
+            bool useBackgroundEndgameWrites = false,
+            bool useBackgroundPlayerWrites = false)
         {
             if (string.IsNullOrEmpty(persistentDataPath))
                 throw new ArgumentException("Persistent data path cannot be empty.", nameof(persistentDataPath));
@@ -57,17 +52,21 @@ namespace Meowdoku.Core
                 saveDirectory,
                 false,
                 Path.Combine(saveDirectory, "endgame.cfg"));
-            _useBackgroundEndgameWrites = useBackgroundEndgameWrites;
+            if (useBackgroundPlayerWrites)
+                _playerWriter = new BackgroundSaveWriter(_playerStore);
+            if (useBackgroundEndgameWrites)
+                _endgameWriter = new BackgroundSaveWriter(_endgameStore);
         }
 
         public static GameStateRepository CreateDefault()
         {
             // Godot's native ConfigFile encryption is not available in Unity.
             // The Unity adapter uses PBKDF2 plus a verified fsync, so runtime
-            // endgame writes must not execute on the frame/input thread.
+            // player/endgame writes must not execute on the frame/input thread.
             return new GameStateRepository(
                 Application.persistentDataPath,
-                useBackgroundEndgameWrites: true);
+                useBackgroundEndgameWrites: true,
+                useBackgroundPlayerWrites: true);
         }
 
         public GameStateData Load()
@@ -84,7 +83,10 @@ namespace Meowdoku.Core
         public bool SavePlayer(GameStateData data)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            return _playerStore.SaveConfig(data.ToPlayerDocument());
+            string serialized = MiniJson.Serialize(data.ToPlayerDocument());
+            return _playerWriter != null
+                ? _playerWriter.RequestSave(serialized)
+                : _playerStore.SaveSerializedConfig(serialized);
         }
 
         public bool SaveEndgame(GameStateData data)
@@ -118,19 +120,24 @@ namespace Meowdoku.Core
         /// </summary>
         public bool FlushEndgameWrites()
         {
-            if (!_useBackgroundEndgameWrites) return true;
+            return _endgameWriter == null || _endgameWriter.Flush();
+        }
 
-            lock (_endgameWriteGate)
-            {
-                while (_endgameWorkerRunning || _hasPendingEndgameWrite)
-                    Monitor.Wait(_endgameWriteGate);
-                return _lastEndgameWriteSucceeded;
-            }
+        public bool FlushPlayerWrites()
+        {
+            return _playerWriter == null || _playerWriter.Flush();
+        }
+
+        public bool FlushPendingWrites()
+        {
+            bool playerSucceeded = FlushPlayerWrites();
+            bool endgameSucceeded = FlushEndgameWrites();
+            return playerSucceeded && endgameSucceeded;
         }
 
         private bool QueueOrApplyEndgameWrite(string serialized, bool remove)
         {
-            if (!_useBackgroundEndgameWrites)
+            if (_endgameWriter == null)
             {
                 if (remove)
                 {
@@ -140,67 +147,9 @@ namespace Meowdoku.Core
                 return _endgameStore.SaveSerializedConfig(serialized);
             }
 
-            lock (_endgameWriteGate)
-            {
-                // Latest state wins, matching the source's coalesced snapshot
-                // persistence while guaranteeing writes remain ordered.
-                _pendingEndgameJson = serialized;
-                _pendingEndgameRemove = remove;
-                _hasPendingEndgameWrite = true;
-                if (_endgameWorkerRunning) return true;
-
-                _endgameWorkerRunning = true;
-                if (ThreadPool.QueueUserWorkItem(ProcessEndgameWrites)) return true;
-
-                _endgameWorkerRunning = false;
-                _hasPendingEndgameWrite = false;
-                _lastEndgameWriteSucceeded = false;
-                Monitor.PulseAll(_endgameWriteGate);
-                return false;
-            }
-        }
-
-        private void ProcessEndgameWrites(object state)
-        {
-            while (true)
-            {
-                string serialized;
-                bool remove;
-                lock (_endgameWriteGate)
-                {
-                    if (!_hasPendingEndgameWrite)
-                    {
-                        _endgameWorkerRunning = false;
-                        Monitor.PulseAll(_endgameWriteGate);
-                        return;
-                    }
-
-                    serialized = _pendingEndgameJson;
-                    remove = _pendingEndgameRemove;
-                    _hasPendingEndgameWrite = false;
-                }
-
-                bool succeeded;
-                try
-                {
-                    if (remove)
-                    {
-                        _endgameStore.Remove();
-                        succeeded = true;
-                    }
-                    else
-                    {
-                        succeeded = _endgameStore.SaveSerializedConfig(serialized);
-                    }
-                }
-                catch (Exception)
-                {
-                    succeeded = false;
-                }
-
-                lock (_endgameWriteGate)
-                    _lastEndgameWriteSucceeded = succeeded;
-            }
+            return remove
+                ? _endgameWriter.RequestRemove()
+                : _endgameWriter.RequestSave(serialized);
         }
     }
 }

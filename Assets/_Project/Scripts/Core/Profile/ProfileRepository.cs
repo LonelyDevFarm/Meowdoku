@@ -23,8 +23,11 @@ namespace Meowdoku.Core.Profile
             "pf_q7K2mX9cV4nR8sL1wT6hB3zD5gY0";
 
         private readonly SaveStore _store;
+        private readonly BackgroundSaveWriter _writer;
 
-        public ProfileRepository(string persistentDataPath)
+        public ProfileRepository(
+            string persistentDataPath,
+            bool useBackgroundWrites = false)
         {
             if (string.IsNullOrEmpty(persistentDataPath))
                 throw new ArgumentException(
@@ -35,10 +38,12 @@ namespace Meowdoku.Core.Profile
                 persistentDataPath,
                 false,
                 Path.Combine(persistentDataPath, "profile.cfg"));
+            if (useBackgroundWrites)
+                _writer = new BackgroundSaveWriter(_store);
         }
 
         public static ProfileRepository CreateDefault() =>
-            new(Application.persistentDataPath);
+            new(Application.persistentDataPath, useBackgroundWrites: true);
 
         public ProfileData Load()
         {
@@ -59,15 +64,29 @@ namespace Meowdoku.Core.Profile
         public bool Save(ProfileData data)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            return _store.SaveConfig(new Dictionary<string, object>
+            string serialized = MiniJson.Serialize(new Dictionary<string, object>
             {
                 ["profile"] = new Dictionary<string, object>
                 {
                     ["data"] = data.ToDictionary()
                 }
             });
+            return _writer != null
+                ? _writer.RequestSave(serialized)
+                : _store.SaveSerializedConfig(serialized);
         }
 
-        public void Reset() => _store.Remove();
+        public void Reset()
+        {
+            if (_writer != null)
+                _writer.RequestRemove();
+            else
+                _store.Remove();
+        }
+
+        public bool FlushPendingWrites()
+        {
+            return _writer == null || _writer.Flush();
+        }
     }
 }

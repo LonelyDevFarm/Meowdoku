@@ -1387,6 +1387,10 @@ namespace Meowdoku.Gameplay
 
             _gameState.MarkCurrentLevelDirty();
             _gameState.MarkDdaToolOrReviveUsed();
+            // BaseGamePage._consume_tool() uses LEVEL4 when the hint is
+            // consumed. Locate intentionally relies on the revealed cat's
+            // LEVEL3/combo pulse instead.
+            VibrationRuntime.Current.Play(VibrationLevel.Level4);
             soundService?.Play(SoundKind.UseHint);
             GameplayHintPresentationData presentation = GameplayHintPresentationData.Build(
                 request,

@@ -140,7 +140,7 @@ namespace Meowdoku.Editor
                 if (_platformActive)
                     filter.groupNames = new[]
                     {
-                        @"^Meowdoku\.Tests\.EditMode\.(AppRuntimeCompositionTests|PlatformPermissionTests|ProductServiceTests|SaveStoreTests|GameStateRepositoryTests|UIFrameworkTests|GameplayCatBurstViewTests|BoardIntroContractTests|SoundContractTests)"
+                        @"^Meowdoku\.Tests\.EditMode\.(AppRuntimeCompositionTests|PlatformPermissionTests|ProductServiceTests|SaveStoreTests|GameStateRepositoryTests|MetaPersistenceDurabilityTests|UIFrameworkTests|GameplayCatBurstViewTests|BoardIntroContractTests|SoundContractTests|StreakVisualCompositionTests|SourceRankActivityLayoutTests)"
                     };
                 _runner.Execute(new ExecutionSettings(filter));
             }

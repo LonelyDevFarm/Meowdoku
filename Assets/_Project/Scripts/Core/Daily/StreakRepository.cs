@@ -23,8 +23,11 @@ namespace Meowdoku.Core.Daily
             "st_x4M7qLb2Vn9Rc5Wy8Kd1Fg6Ph3Za0";
 
         private readonly SaveStore _store;
+        private readonly BackgroundSaveWriter _writer;
 
-        public StreakRepository(string persistentDataPath)
+        public StreakRepository(
+            string persistentDataPath,
+            bool useBackgroundWrites = false)
         {
             if (string.IsNullOrEmpty(persistentDataPath))
                 throw new ArgumentException(
@@ -35,11 +38,15 @@ namespace Meowdoku.Core.Daily
                 persistentDataPath,
                 false,
                 Path.Combine(persistentDataPath, "streak.cfg"));
+            if (useBackgroundWrites)
+                _writer = new BackgroundSaveWriter(_store);
         }
 
         public static StreakRepository CreateDefault()
         {
-            return new StreakRepository(Application.persistentDataPath);
+            return new StreakRepository(
+                Application.persistentDataPath,
+                useBackgroundWrites: true);
         }
 
         public StreakData Load()
@@ -55,15 +62,26 @@ namespace Meowdoku.Core.Daily
         public bool Save(StreakData data)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            return _store.SaveConfig(new Dictionary<string, object>
+            string serialized = MiniJson.Serialize(new Dictionary<string, object>
             {
                 ["streak"] = data.ToDictionary()
             });
+            return _writer != null
+                ? _writer.RequestSave(serialized)
+                : _store.SaveSerializedConfig(serialized);
         }
 
         public void Reset()
         {
-            _store.Remove();
+            if (_writer != null)
+                _writer.RequestRemove();
+            else
+                _store.Remove();
+        }
+
+        public bool FlushPendingWrites()
+        {
+            return _writer == null || _writer.Flush();
         }
     }
 }

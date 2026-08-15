@@ -627,17 +627,17 @@ namespace Meowdoku.Tests.EditMode
             AssertTopLeft(
                 profile.transform.Find(
                     "Content/TabGroup/AvatarTab/Label") as RectTransform,
-                110f,
+                20f,
                 7f,
-                174f,
+                355f,
                 86f);
             AssertTopLeft(
                 profile.transform.Find(
                     "Content/TabGroup/FrameTab/Label") as RectTransform,
-                112f,
-                6f,
-                170f,
-                88f);
+                20f,
+                7f,
+                355f,
+                86f);
             LayoutElement bottomPad = profile.transform.Find(
                     "Content/AvatarScroll/Content/BottomPad")
                 .GetComponent<LayoutElement>();

@@ -136,14 +136,15 @@ namespace Meowdoku.Gameplay
             // recycle a locked cell.
             if (_currentState == CellStateType.LOCKED_MARK) return;
 
+            CellStateType previousState = _currentState;
             _currentState = newState;
-            UpdateVisuals(playAnim);
+            UpdateVisuals(previousState, playAnim);
         }
 
         public Image PrepareOverlayStateIcon(CellStateType state)
         {
             _currentState = state;
-            UpdateVisuals(false);
+            UpdateVisuals(CellStateType.EMPTY, false);
             Image icon = state switch
             {
                 CellStateType.CAT => catIcon,
@@ -279,7 +280,7 @@ namespace Meowdoku.Gameplay
                     true,
                     ParticleSystemStopBehavior.StopEmittingAndClear);
             _currentState = CellStateType.EMPTY;
-            UpdateVisuals(false);
+            UpdateVisuals(CellStateType.EMPTY, false);
             ResetImageTransform(catIcon);
             ResetImageTransform(crossIcon);
             ResetImageTransform(errorIcon);
@@ -292,7 +293,9 @@ namespace Meowdoku.Gameplay
         }
 
         // Cập nhật hiển thị dựa trên trạng thái hiện tại
-        private void UpdateVisuals(bool playAnim)
+        private void UpdateVisuals(
+            CellStateType previousState,
+            bool playAnim)
         {
             catSpriteAnimation?.Stop();
             _visualSequence?.Kill(false);
@@ -304,6 +307,11 @@ namespace Meowdoku.Gameplay
 
             switch (_currentState)
             {
+                case CellStateType.EMPTY:
+                    if (playAnim && previousState == CellStateType.MARK)
+                        PlaySourceCrossDisappear();
+                    break;
+
                 case CellStateType.CAT:
                     if (catIcon != null) catIcon.gameObject.SetActive(true);
                     if (playAnim && appearVFX != null) appearVFX.Play();
@@ -319,6 +327,10 @@ namespace Meowdoku.Gameplay
                     break;
 
                 case CellStateType.MARK:
+                    if (playAnim) PlaySourceCrossAppear();
+                    else ShowIcon(crossIcon, Color.white, Vector3.one);
+                    break;
+
                 case CellStateType.LOCKED_MARK:
                     ShowIcon(crossIcon, Color.white, Vector3.one);
                     break;
@@ -332,6 +344,75 @@ namespace Meowdoku.Gameplay
             }
             RefreshPatternVisibility();
             BringActiveStateIconToFront();
+        }
+
+        /// <summary>
+        /// Source timing adapter for cell.tscn/CrossOutAppear (0.49025428s).
+        /// Godot draws the two strokes independently; the Unity prefab stores
+        /// the finished X as one sprite, so its container follows the source
+        /// scale and cell-bounce keys while preserving the same total timing.
+        /// </summary>
+        private void PlaySourceCrossAppear()
+        {
+            if (crossIcon == null) return;
+            ShowIcon(crossIcon, Color.white, Vector3.one * 0.4f);
+            if (bgImage != null)
+                bgImage.rectTransform.localScale = Vector3.one;
+
+            _visualSequence = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject);
+            if (bgImage != null)
+            {
+                RectTransform background = bgImage.rectTransform;
+                _visualSequence.Insert(0f,
+                    background.DOScale(0.9f, 0.050891362f)
+                        .SetEase(Ease.Linear));
+                _visualSequence.Insert(0.050891362f,
+                    background.DOScale(1f, 0.10041491f)
+                        .SetEase(Ease.Linear));
+            }
+            _visualSequence.Insert(0.10419324f,
+                crossIcon.rectTransform.DOScale(1.15f, 0.0814314f)
+                    .SetEase(Ease.OutQuad));
+            _visualSequence.Insert(0.18562464f,
+                crossIcon.rectTransform.DOScale(1f, 0.25379213f)
+                    .SetEase(Ease.OutBack));
+            _visualSequence.AppendInterval(
+                Mathf.Max(0f, 0.49025428f - _visualSequence.Duration()));
+            _visualSequence.OnComplete(() =>
+            {
+                _visualSequence = null;
+                if (bgImage != null)
+                    bgImage.rectTransform.localScale = Vector3.one;
+                if (_currentState == CellStateType.MARK)
+                    ResetImageTransform(crossIcon);
+            });
+        }
+
+        /// <summary>
+        /// Source timing adapter for cell.tscn/CrossOutDisAppear
+        /// (0.30613738s): the X remains visible briefly, fades, then hides.
+        /// </summary>
+        private void PlaySourceCrossDisappear()
+        {
+            if (crossIcon == null) return;
+            ShowIcon(crossIcon, Color.white, Vector3.one);
+            _visualSequence = DOTween.Sequence()
+                .SetUpdate(true)
+                .SetLink(gameObject);
+            _visualSequence.AppendInterval(0.09964544f);
+            _visualSequence.Append(
+                crossIcon.DOFade(0f, 0.20143684f).SetEase(Ease.Linear));
+            _visualSequence.AppendInterval(
+                Mathf.Max(0f, 0.30613738f - _visualSequence.Duration()));
+            _visualSequence.OnComplete(() =>
+            {
+                _visualSequence = null;
+                if (_currentState != CellStateType.EMPTY) return;
+                crossIcon.gameObject.SetActive(false);
+                ResetImageTransform(crossIcon);
+            });
         }
 
         private void PlaySourceCatAppear()
@@ -453,6 +534,17 @@ namespace Meowdoku.Gameplay
             errorIcon.rectTransform.localScale = Vector3.one * 0.4f;
             errorIcon.gameObject.SetActive(false);
             _visualSequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+            if (bgImage != null)
+            {
+                RectTransform background = bgImage.rectTransform;
+                background.localScale = Vector3.one;
+                _visualSequence.Insert(0f,
+                    background.DOScale(0.9f, 0.0339221f)
+                        .SetEase(Ease.Linear));
+                _visualSequence.Insert(0.0339221f,
+                    background.DOScale(1f, 0.06647637f)
+                        .SetEase(Ease.Linear));
+            }
             _visualSequence.Insert(0.066f,
                 crossIcon.rectTransform.DOScale(1f, 0.102f).SetEase(Ease.OutQuad));
             _visualSequence.Insert(0.351f, DOVirtual.Float(1f, 0f, 0.142f,
@@ -466,6 +558,14 @@ namespace Meowdoku.Gameplay
                 errorIcon.rectTransform.DOScale(1.08f, 0.084f).SetEase(Ease.OutQuad));
             _visualSequence.Insert(0.683f,
                 errorIcon.rectTransform.DOScale(1f, 0.205f).SetEase(Ease.InOutQuad));
+            _visualSequence.OnComplete(() =>
+            {
+                _visualSequence = null;
+                if (bgImage != null)
+                    bgImage.rectTransform.localScale = Vector3.one;
+                if (_currentState == CellStateType.ERROR)
+                    ResetImageTransform(errorIcon);
+            });
         }
 
         private void SetHintAlpha(float alpha)

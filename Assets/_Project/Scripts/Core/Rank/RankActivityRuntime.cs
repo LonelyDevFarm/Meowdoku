@@ -25,6 +25,7 @@ namespace Meowdoku.Core.Rank
         [SerializeField] private DailyMetaRuntime dailyMetaRuntime;
 
         private RankActivityManager _manager;
+        private RankActivityRepository _repository;
         private bool _subscribed;
         private AbConfigRuntime _abConfigRuntime;
         private readonly LeaderboardFuncConfig _fallbackLeaderboard = new();
@@ -73,6 +74,8 @@ namespace Meowdoku.Core.Rank
 
         internal void ConfigureForTests(RankActivityManager manager)
         {
+            FlushPendingWrites();
+            _repository = null;
             _manager = manager;
         }
 
@@ -82,12 +85,33 @@ namespace Meowdoku.Core.Rank
             if (robotRuntime == null || profileRuntime == null ||
                 dailyMetaRuntime == null)
                 return;
+            _repository = RankActivityRepository.CreateDefault();
             _manager = new RankActivityManager(
-                RankActivityRepository.CreateDefault(),
+                _repository,
                 robotRuntime.Service,
                 profileRuntime.Service,
                 dailyMetaRuntime.Awards,
                 new RuntimeEnvironment(this));
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) FlushPendingWrites();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!focused) FlushPendingWrites();
+        }
+
+        private void OnDestroy()
+        {
+            FlushPendingWrites();
+        }
+
+        private void FlushPendingWrites()
+        {
+            _repository?.FlushPendingWrites();
         }
 
         private void SubscribeClock()

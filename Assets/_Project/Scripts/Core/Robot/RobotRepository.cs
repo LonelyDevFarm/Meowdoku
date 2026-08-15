@@ -22,8 +22,11 @@ namespace Meowdoku.Core.Robot
             "rb_n6V2xF9cQ4mK7sW1dH8pL3zT5gA0";
 
         private readonly SaveStore _store;
+        private readonly BackgroundSaveWriter _writer;
 
-        public RobotRepository(string persistentDataPath)
+        public RobotRepository(
+            string persistentDataPath,
+            bool useBackgroundWrites = false)
         {
             if (string.IsNullOrEmpty(persistentDataPath))
                 throw new ArgumentException(
@@ -34,10 +37,12 @@ namespace Meowdoku.Core.Robot
                 persistentDataPath,
                 false,
                 Path.Combine(persistentDataPath, "robots.cfg"));
+            if (useBackgroundWrites)
+                _writer = new BackgroundSaveWriter(_store);
         }
 
         public static RobotRepository CreateDefault() =>
-            new(Application.persistentDataPath);
+            new(Application.persistentDataPath, useBackgroundWrites: true);
 
         public IReadOnlyDictionary<string, RobotPool> LoadAll()
         {
@@ -76,9 +81,23 @@ namespace Meowdoku.Core.Robot
                     };
                 }
             }
-            return _store.SaveConfig(document);
+            string serialized = MiniJson.Serialize(document);
+            return _writer != null
+                ? _writer.RequestSave(serialized)
+                : _store.SaveSerializedConfig(serialized);
         }
 
-        public void Reset() => _store.Remove();
+        public void Reset()
+        {
+            if (_writer != null)
+                _writer.RequestRemove();
+            else
+                _store.Remove();
+        }
+
+        public bool FlushPendingWrites()
+        {
+            return _writer == null || _writer.Flush();
+        }
     }
 }

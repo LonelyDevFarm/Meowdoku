@@ -73,6 +73,25 @@ namespace Meowdoku.Tests.EditMode
         }
 
         [Test]
+        public void BackgroundProfileWrites_CoalesceAndFlushLatestImmutableState()
+        {
+            var repository = new ProfileRepository(
+                _directory,
+                useBackgroundWrites: true);
+            ProfileData data = InitializedProfile();
+            data.Nickname = "First";
+            Assert.That(repository.Save(data), Is.True);
+            data.Nickname = "Latest";
+            Assert.That(repository.Save(data), Is.True);
+            data.Nickname = "NotQueued";
+
+            Assert.That(repository.FlushPendingWrites(), Is.True);
+            Assert.That(
+                new ProfileRepository(_directory).Load().Nickname,
+                Is.EqualTo("Latest"));
+        }
+
+        [Test]
         public void RankReward_ProcessRestartAndClockRollback_RemainIdempotent()
         {
             var time = new MutableTime(10_000);
@@ -124,9 +143,9 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(recovered.Profile.GetFrameCount(
                 ProfileCatalog.FirstPlaceFrameId), Is.EqualTo(1));
             Assert.That(recovered.GameState.GetToolCount("locate"),
-                Is.EqualTo(7));
+                Is.EqualTo(101));
             Assert.That(recovered.GameState.GetToolCount("hint"),
-                Is.EqualTo(7));
+                Is.EqualTo(101));
             Assert.That(recovered.Robots.HasPool(previousPoolKey), Is.False);
             Assert.That(recovered.Rank.OnHomeShown(), Is.True);
             Assert.That(recovered.Rank.State,
@@ -148,9 +167,9 @@ namespace Meowdoku.Tests.EditMode
             Assert.That(restartedAgain.Profile.GetFrameCount(
                 ProfileCatalog.FirstPlaceFrameId), Is.EqualTo(1));
             Assert.That(restartedAgain.GameState.GetToolCount("locate"),
-                Is.EqualTo(7));
+                Is.EqualTo(101));
             Assert.That(restartedAgain.GameState.GetToolCount("hint"),
-                Is.EqualTo(7));
+                Is.EqualTo(101));
         }
 
         private Runtime OpenRuntime(

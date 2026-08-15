@@ -44,6 +44,11 @@ namespace Meowdoku.Core.UI
         IEnumerator PrewarmBoard(int boardSize);
     }
 
+    public interface IStartupWindowPrewarm
+    {
+        IEnumerator PrewarmForFirstShow();
+    }
+
     public sealed class OfflineStartupExternalServices : IAppStartupExternalServices
     {
         public static readonly OfflineStartupExternalServices Instance = new();
@@ -202,6 +207,8 @@ namespace Meowdoku.Core.UI
             SplashForceCompletedAtForTests = Time.realtimeSinceStartup;
 #endif
 
+            if (_gamePrewarm != null)
+                while (_gamePrewarm != null) yield return null;
             while (uiManager.IsAnyLoading) yield return null;
 
             Phase = AppStartupPhase.Routing;
@@ -246,6 +253,27 @@ namespace Meowdoku.Core.UI
             UIFrameWindow game = uiManager.Get(UiName.Game);
             if (game is IStartupGamePrewarm gamePrewarm && size > 0)
                 yield return RunOptional(gamePrewarm.PrewarmBoard(size));
+
+            UiName[] firstUseWindows =
+            {
+                UiName.DailyGame,
+                UiName.Setting,
+                UiName.Profile,
+                UiName.Streak,
+                UiName.RankActivityPage,
+                UiName.RankActivityHowToPlay
+            };
+            for (int index = 0; index < firstUseWindows.Length; index++)
+            {
+                UiName name = firstUseWindows[index];
+                yield return uiManager.WarmPoolAsync(name);
+                UIFrameWindow window = uiManager.Get(name);
+                if (window is IStartupGamePrewarm dailyPrewarm && size > 0)
+                    yield return RunOptional(dailyPrewarm.PrewarmBoard(size));
+                if (window is IStartupWindowPrewarm windowPrewarm)
+                    yield return RunOptional(windowPrewarm.PrewarmForFirstShow());
+            }
+
             if (size > 0)
             {
                 BankData.GetRanks(size);

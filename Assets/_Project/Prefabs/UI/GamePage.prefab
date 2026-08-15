@@ -3301,7 +3301,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 0.72
-  m_Text: "1 m\xE8o m\u1ED7i c\u1ED9t v\xE0 h\xE0ng"
+  m_Text: 1 Cat per column and row
 --- !u!114 &3043299316503367516
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19117,6 +19117,7 @@ MonoBehaviour:
   applyButton: {fileID: 7470779948832330910}
   dismissButton: {fileID: 2478524407051959059}
   detailButton: {fileID: 1616530997606078858}
+  localization: {fileID: 0}
 --- !u!1 &3117686684116936885
 GameObject:
   m_ObjectHideFlags: 0
@@ -23970,7 +23971,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 0.72
-  m_Text: "M\xE8o kh\xF4ng \u0111\u01B0\u1EE3c k\u1EC1 nhau"
+  m_Text: Cats can't be adjacent
 --- !u!114 &8733369784001340211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -46680,7 +46681,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 0.72
-  m_Text: "1 m\xE8o m\u1ED7i m\xE0u"
+  m_Text: 1 Cat per color
 --- !u!114 &4702088619446524754
 MonoBehaviour:
   m_ObjectHideFlags: 0

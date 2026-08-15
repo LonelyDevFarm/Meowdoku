@@ -70,6 +70,9 @@ namespace Meowdoku.Gameplay
 
         protected override void OnCreate()
         {
+            GameplayHintOverlayPresenter hintOverlay =
+                GetComponentInChildren<GameplayHintOverlayPresenter>(true);
+            hintOverlay?.BindLocalization(localization);
             gameplayManager?.BindTracker(Tracking);
             gameplayManager?.ConfigureForPageLifecycle();
             if (gameplayManager != null)

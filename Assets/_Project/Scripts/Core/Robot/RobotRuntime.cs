@@ -11,13 +11,42 @@ namespace Meowdoku.Core.Robot
     public sealed class RobotRuntime : MonoBehaviour
     {
         private RobotService _service;
+        private RobotRepository _repository;
 
-        public RobotService Service =>
-            _service ??= new RobotService(RobotRepository.CreateDefault());
+        public RobotService Service
+        {
+            get
+            {
+                if (_service != null) return _service;
+                _repository = RobotRepository.CreateDefault();
+                _service = new RobotService(_repository);
+                return _service;
+            }
+        }
 
         public void ResetData()
         {
             Service.Reset();
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) FlushPendingWrites();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!focused) FlushPendingWrites();
+        }
+
+        private void OnDestroy()
+        {
+            FlushPendingWrites();
+        }
+
+        private void FlushPendingWrites()
+        {
+            _repository?.FlushPendingWrites();
         }
     }
 }

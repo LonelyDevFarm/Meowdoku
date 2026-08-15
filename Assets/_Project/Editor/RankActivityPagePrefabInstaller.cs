@@ -1412,6 +1412,11 @@ namespace Meowdoku.Editor
                 AssetDatabase.LoadAssetAtPath<GameObject>(PagePath);
             bool current = existing != null &&
                 existing.transform.Find("Root/Header/LeftFish") != null &&
+                existing.transform.Find("Background")
+                    ?.GetComponent<CanvasGroup>() != null &&
+                existing.transform.Find("Root/Header")
+                    ?.GetComponent<CanvasGroup>() != null &&
+                existing.transform.Find("Root/IntroStars") != null &&
                 existing.transform.Find(
                     "Root/Podium/First/MedalBadge/RankNumber") != null &&
                 existing.transform.Find(
@@ -1456,6 +1461,8 @@ namespace Meowdoku.Editor
                 LoadSprite(RankRoot + "rankpage_background.png"));
             Stretch(background.rectTransform);
             background.type = Image.Type.Sliced;
+            CanvasGroup backgroundGroup =
+                background.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform root = CreateRect("Root", page.transform);
             root.anchorMin = new Vector2(0.5f, 0f);
@@ -1470,6 +1477,8 @@ namespace Meowdoku.Editor
             header.pivot = new Vector2(0.5f, 1f);
             header.anchoredPosition = Vector2.zero;
             header.sizeDelta = new Vector2(0f, 184f);
+            CanvasGroup headerGroup =
+                header.gameObject.AddComponent<CanvasGroup>();
             Button back = CreateButton(
                 "BackBtn", header,
                 LoadSprite(CommonRoot + "icon_back.png"), Color.white);
@@ -1518,6 +1527,14 @@ namespace Meowdoku.Editor
             podiumArea.pivot = new Vector2(0.5f, 1f);
             podiumArea.anchoredPosition = new Vector2(0f, -245f);
             podiumArea.sizeDelta = new Vector2(1080f, 521f);
+            Image podiumGlow = CreateImage(
+                "EffectGlow", podiumArea,
+                LoadSprite(EffectsRoot + "glow/et_glow_002.png"));
+            SetTop(podiumGlow.rectTransform, 284f, -100f, 512f, 512f);
+            podiumGlow.color = new Color(
+                1f, 0.6533333f, 0.2f, 0.3137255f);
+            podiumGlow.preserveAspect = true;
+            podiumGlow.raycastTarget = false;
             RankActivityPodiumView[] podiums =
             {
                 BuildPodium("First", podiumArea, avatarPrefab, font, 1),
@@ -1525,12 +1542,48 @@ namespace Meowdoku.Editor
                 BuildPodium("Third", podiumArea, avatarPrefab, font, 3)
             };
 
+            RectTransform introStarsRoot = CreateRect("IntroStars", root);
+            introStarsRoot.anchorMin = introStarsRoot.anchorMax =
+                new Vector2(0.5f, 1f);
+            introStarsRoot.pivot = new Vector2(0.5f, 1f);
+            introStarsRoot.anchoredPosition = new Vector2(0f, -500f);
+            introStarsRoot.sizeDelta = new Vector2(720f, 560f);
+            Sprite starSprite = LoadSprite(
+                EffectsRoot + "star/et_star_003.png");
+            Vector2[] starTargets =
+            {
+                new(-310f, 120f), new(-235f, -105f),
+                new(-95f, 220f), new(75f, 245f),
+                new(235f, 145f), new(310f, -80f),
+                new(110f, -215f), new(-145f, -225f)
+            };
+            Image[] introStars = new Image[starTargets.Length];
+            for (int index = 0; index < introStars.Length; index++)
+            {
+                Image star = CreateImage(
+                    $"Star_{index + 1:00}", introStarsRoot, starSprite);
+                star.rectTransform.anchorMin = star.rectTransform.anchorMax =
+                    new Vector2(0.5f, 0.5f);
+                star.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                star.rectTransform.anchoredPosition = starTargets[index];
+                float size = 38f + 10f * (index % 3);
+                star.rectTransform.sizeDelta = new Vector2(size, size);
+                star.preserveAspect = true;
+                star.raycastTarget = false;
+                Color starColor = star.color;
+                starColor.a = 0f;
+                star.color = starColor;
+                introStars[index] = star;
+            }
+
             RectTransform listGroup = CreateRect("List", root);
             listGroup.anchorMin = new Vector2(0.5f, 0f);
             listGroup.anchorMax = new Vector2(0.5f, 1f);
             listGroup.pivot = new Vector2(0.5f, 0.5f);
             listGroup.anchoredPosition = new Vector2(0f, -203.5f);
             listGroup.sizeDelta = new Vector2(1008f, -1183f);
+            CanvasGroup listGroupCanvas =
+                listGroup.gameObject.AddComponent<CanvasGroup>();
             Image listBackground = CreateImage(
                 "Background", listGroup,
                 LoadSprite(RankRoot + "rankpage_list_bg.png"));
@@ -1576,6 +1629,8 @@ namespace Meowdoku.Editor
             ctaRect.pivot = new Vector2(0.5f, 0f);
             ctaRect.anchoredPosition = new Vector2(0f, 130f);
             ctaRect.sizeDelta = new Vector2(784f, 258f);
+            CanvasGroup ctaGroup =
+                cta.gameObject.AddComponent<CanvasGroup>();
             Text ctaText = CreateText(
                 "Text", cta.transform, font, 58,
                 "Go to Collect", Color.white);
@@ -1602,6 +1657,12 @@ namespace Meowdoku.Editor
                 rowPrefab.GetComponent<RankActivityRowView>());
             SetComponentArray(data, "podiums", podiums);
             SetRef(data, "localization", localization);
+            SetRef(data, "backgroundGroup", backgroundGroup);
+            SetRef(data, "headerGroup", headerGroup);
+            SetRef(data, "listGroupCanvas", listGroupCanvas);
+            SetRef(data, "ctaGroup", ctaGroup);
+            SetRef(data, "podiumGlow", podiumGlow);
+            SetComponentArray(data, "introStars", introStars);
             data.ApplyModifiedPropertiesWithoutUndo();
 
             RankActivityPageLayoutPresenter layout =
@@ -1627,6 +1688,8 @@ namespace Meowdoku.Editor
             float left = place == 1 ? 377.5f : place == 2 ? 38.5f : 716.5f;
             SetTop(root, left, 0f, 325f, 521f);
             var view = root.gameObject.AddComponent<RankActivityPodiumView>();
+            CanvasGroup contentGroup =
+                root.gameObject.AddComponent<CanvasGroup>();
             string medal = place == 1 ? "gold" : place == 2 ? "silver" : "bronze";
 
             RectTransform podium = CreateRect("Podium", root);
@@ -1644,6 +1707,8 @@ namespace Meowdoku.Editor
 
             RectTransform chest = CreateRect("Chest", podium);
             SetTop(chest, 117f, 265f, 91f, 102f);
+            CanvasGroup chestGroup =
+                chest.gameObject.AddComponent<CanvasGroup>();
             Image chestImage = CreateImage(
                 "Image", chest,
                 LoadSprite(RankRoot + $"chest_tier{4 - place}.png"));
@@ -1654,6 +1719,9 @@ namespace Meowdoku.Editor
                 avatarPrefab);
             avatar.name = "AvatarGroup";
             avatar.transform.SetParent(root, false);
+            CanvasGroup avatarGroup =
+                avatar.GetComponent<CanvasGroup>() ??
+                avatar.AddComponent<CanvasGroup>();
             if (place == 1)
                 SetTop((RectTransform)avatar.transform,
                     58f, -16f, 210f, 210f);
@@ -1732,6 +1800,12 @@ namespace Meowdoku.Editor
             SetRef(data, "chestImage", chestImage);
             SetSpriteArray(data, "chestTiers", ChestSprites());
             SetRef(data, "selfButton", selfButton);
+            SetRef(data, "contentGroup", contentGroup);
+            SetRef(data, "avatarRoot", avatar.transform);
+            SetRef(data, "avatarGroup", avatarGroup);
+            SetRef(data, "chestRoot", chest);
+            SetRef(data, "chestGroup", chestGroup);
+            data.FindProperty("place").intValue = place;
             data.ApplyModifiedPropertiesWithoutUndo();
             return view;
         }
@@ -1745,8 +1819,13 @@ namespace Meowdoku.Editor
             bool current = existing != null &&
                 existing.transform.Find("Root/Content/Step") != null &&
                 existing.transform.Find("Root/Content/CollectVisual") != null &&
+                existing.transform.Find("Root/Content/CollectVisual/Glow") != null &&
+                existing.transform.Find("Root/Content/Step")
+                    ?.GetComponent<CanvasGroup>() != null &&
                 existing.transform.Find("Root/Content/RankList") != null &&
                 existing.transform.Find("Root/Content/RewardFull") != null &&
+                existing.transform.Find(
+                    "Root/Content/RewardFull/AvatarGroup") != null &&
                 existing.transform.Find("Root/Content/Arrow/ArrowToCollect") != null;
             if (current) return;
 
@@ -1781,10 +1860,15 @@ namespace Meowdoku.Editor
                 "Leaderboard", content, font, 90,
                 "Leaderboard", Color.white);
             SetTop(title.rectTransform, 264f, 280f, 552f, 100f);
+            CanvasGroup titleGroup =
+                title.gameObject.AddComponent<CanvasGroup>();
 
             Shader rounded = AssetDatabase.LoadAssetAtPath<Shader>(
                 RoundedShaderPath);
             BuildHtpGrid(content, rounded);
+            RectTransform step = content.Find("Step") as RectTransform;
+            CanvasGroup stepGroup =
+                step.gameObject.AddComponent<CanvasGroup>();
             Text clearText = BuildHtpLabel(
                 "ClearMainLevels",
                 content,
@@ -1794,17 +1878,23 @@ namespace Meowdoku.Editor
                 807f,
                 480f,
                 60f);
+            CanvasGroup clearGroup =
+                clearText.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform collectVisual = CreateRect("CollectVisual", content);
             Stretch(collectVisual);
+            RectTransform collectGlow = CreateRect("Glow", collectVisual);
+            Stretch(collectGlow);
+            CanvasGroup collectGlowGroup =
+                collectGlow.gameObject.AddComponent<CanvasGroup>();
             Image glowBack = CreateImage(
-                "GlowBack", collectVisual,
+                "GlowBack", collectGlow,
                 LoadSprite(RankRoot + "htp_layer344_copy.png"));
             SetTop(glowBack.rectTransform, 495f, 638f, 539f, 589f);
             glowBack.preserveAspect = true;
             glowBack.raycastTarget = false;
             Image glowFront = CreateImage(
-                "GlowFront", collectVisual,
+                "GlowFront", collectGlow,
                 LoadSprite(RankRoot + "htp_layer344.png"));
             SetTop(glowFront.rectTransform, 508f, 656f, 559f, 574f);
             glowFront.preserveAspect = true;
@@ -1814,11 +1904,15 @@ namespace Meowdoku.Editor
                 LoadSprite(RankRoot + "htp_prop_cat.png"));
             SetTop(cat.rectTransform, 647f, 791f, 270f, 270f);
             cat.preserveAspect = true;
+            CanvasGroup catIconGroup =
+                cat.gameObject.AddComponent<CanvasGroup>();
             Image fish = CreateImage(
                 "IconFish", collectVisual,
                 LoadSprite(RankRoot + "htp_fish.png"));
             SetTop(fish.rectTransform, 647f, 791f, 270f, 270f);
             fish.preserveAspect = true;
+            CanvasGroup fishIconGroup =
+                fish.gameObject.AddComponent<CanvasGroup>();
             Text collectText = BuildHtpLabel(
                 "CollectText",
                 content,
@@ -1828,12 +1922,16 @@ namespace Meowdoku.Editor
                 1088f,
                 480f,
                 120f);
+            CanvasGroup collectTextGroup =
+                collectText.gameObject.AddComponent<CanvasGroup>();
 
             Image rankList = CreateImage(
                 "RankList", content,
                 LoadSprite(RankRoot + "htp_rank_list.png"));
             SetTop(rankList.rectTransform, 140f, 1192f, 340f, 316f);
             rankList.preserveAspect = true;
+            CanvasGroup rankListGroup =
+                rankList.gameObject.AddComponent<CanvasGroup>();
             Text topText = BuildHtpLabel(
                 "TopTheLeaderboard",
                 content,
@@ -1843,6 +1941,8 @@ namespace Meowdoku.Editor
                 1518f,
                 480f,
                 60f);
+            CanvasGroup topGroup =
+                topText.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform arrows = CreateRect("Arrow", content);
             Stretch(arrows);
@@ -1852,6 +1952,19 @@ namespace Meowdoku.Editor
                 true);
             BuildHtpArrow("ArrowToReward", arrows, 557f, 1334f, -17.1887f,
                 false);
+            RectTransform arrowToCollect = arrows.Find(
+                "ArrowToCollect") as RectTransform;
+            RectTransform arrowToRank = arrows.Find(
+                "ArrowToRank") as RectTransform;
+            RectTransform arrowToReward = arrows.Find(
+                "ArrowToReward") as RectTransform;
+
+            Image rewardGlow = CreateImage(
+                "RewardGlow", content,
+                LoadSprite(RankRoot + "rank_reward_glow.png"));
+            SetTop(rewardGlow.rectTransform, 540f, 1410f, 480f, 480f);
+            rewardGlow.preserveAspect = true;
+            rewardGlow.raycastTarget = false;
 
             RectTransform full = CreateRect("RewardFull", content);
             Stretch(full);
@@ -1860,29 +1973,41 @@ namespace Meowdoku.Editor
                 LoadSprite(RankRoot + "htp_tier3_box.png"));
             SetTop(fullBox.rectTransform, 609f, 1478f, 260f, 260f);
             fullBox.preserveAspect = true;
+            CanvasGroup fullChestGroup =
+                fullBox.gameObject.AddComponent<CanvasGroup>();
+            RectTransform fullAvatarRoot =
+                CreateRect("AvatarGroup", full);
+            Stretch(fullAvatarRoot);
             Image fullAvatar = CreateImage(
-                "Avatar", full,
+                "Avatar", fullAvatarRoot,
                 LoadSprite(RankRoot + "htp_avatar.png"));
             SetTop(fullAvatar.rectTransform, 805f, 1601f, 155f, 155f);
             fullAvatar.preserveAspect = true;
             Image fullFrame = CreateImage(
-                "FirstPlaceFrame", full,
+                "FirstPlaceFrame", fullAvatarRoot,
                 LoadSprite(RankRoot + "htp_first_place_frame.png"));
             SetTop(fullFrame.rectTransform, 790f, 1586f, 185f, 185f);
             fullFrame.preserveAspect = true;
+            CanvasGroup fullAvatarGroup =
+                fullAvatarRoot.gameObject.AddComponent<CanvasGroup>();
 
             RectTransform frameOnly = CreateRect("RewardFrameOnly", content);
             Stretch(frameOnly);
+            RectTransform frameOnlyAvatarRoot =
+                CreateRect("AvatarGroup", frameOnly);
+            Stretch(frameOnlyAvatarRoot);
             Image foAvatar = CreateImage(
-                "Avatar", frameOnly,
+                "Avatar", frameOnlyAvatarRoot,
                 LoadSprite(RankRoot + "htp_fo_avatar.png"));
             SetTop(foAvatar.rectTransform, 683.27f, 1559.27f, 209.46f, 209.46f);
             foAvatar.preserveAspect = true;
             Image foFrame = CreateImage(
-                "FirstPlaceFrame", frameOnly,
+                "FirstPlaceFrame", frameOnlyAvatarRoot,
                 LoadSprite(RankRoot + "htp_fo_first_place_frame.png"));
             SetTop(foFrame.rectTransform, 663f, 1539f, 250f, 250f);
             foFrame.preserveAspect = true;
+            CanvasGroup frameOnlyAvatarGroup =
+                frameOnlyAvatarRoot.gameObject.AddComponent<CanvasGroup>();
 
             Text rewardText = BuildHtpLabel(
                 "RewardText",
@@ -1893,11 +2018,15 @@ namespace Meowdoku.Editor
                 1795f,
                 480f,
                 120f);
+            CanvasGroup rewardTextGroup =
+                rewardText.gameObject.AddComponent<CanvasGroup>();
             Text continueText = CreateText(
                 "TapToContinue", content, font, 56,
                 "Tap to Continue",
                 new Color(1f, 0.892f, 0.458f, 1f));
             SetTop(continueText.rectTransform, 343f, 2100f, 395f, 60f);
+            CanvasGroup continueGroup =
+                continueText.gameObject.AddComponent<CanvasGroup>();
 
             Button dismiss = CreateButton(
                 "DismissButton", page.transform, null, Color.clear);
@@ -1919,6 +2048,31 @@ namespace Meowdoku.Editor
             SetRef(data, "continueText", continueText);
             SetRef(data, "dismissButton", dismiss);
             SetRef(data, "localization", localization);
+            SetRef(data, "titleGroup", titleGroup);
+            SetRef(data, "step", step);
+            SetRef(data, "stepGroup", stepGroup);
+            SetRef(data, "clearGroup", clearGroup);
+            SetRef(data, "arrowToCollect", arrowToCollect);
+            SetRef(data, "catIconTransform", cat.rectTransform);
+            SetRef(data, "catIconGroup", catIconGroup);
+            SetRef(data, "fishIconTransform", fish.rectTransform);
+            SetRef(data, "fishIconGroup", fishIconGroup);
+            SetRef(data, "collectGlowGroup", collectGlowGroup);
+            SetRef(data, "collectTextGroup", collectTextGroup);
+            SetRef(data, "arrowToRank", arrowToRank);
+            SetRef(data, "rankList", rankList.rectTransform);
+            SetRef(data, "rankListGroup", rankListGroup);
+            SetRef(data, "topGroup", topGroup);
+            SetRef(data, "arrowToReward", arrowToReward);
+            SetRef(data, "fullChest", fullBox.rectTransform);
+            SetRef(data, "fullChestGroup", fullChestGroup);
+            SetRef(data, "fullAvatar", fullAvatarRoot);
+            SetRef(data, "fullAvatarGroup", fullAvatarGroup);
+            SetRef(data, "frameOnlyAvatar", frameOnlyAvatarRoot);
+            SetRef(data, "frameOnlyAvatarGroup", frameOnlyAvatarGroup);
+            SetRef(data, "rewardGlow", rewardGlow);
+            SetRef(data, "rewardTextGroup", rewardTextGroup);
+            SetRef(data, "continueGroup", continueGroup);
             data.ApplyModifiedPropertiesWithoutUndo();
             fish.gameObject.SetActive(false);
             frameOnly.gameObject.SetActive(false);

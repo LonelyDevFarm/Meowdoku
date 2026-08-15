@@ -35,7 +35,7 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
 - `[x]` `P-SAVE-006`: Legacy save migration chỉ chạy đúng một lần. `SaveStoreTests.LegacyMigration_WritesFirstSlotAndPreservesLegacy` xác nhận lần đầu ghi slot A, giữ legacy và lần gọi thứ hai trả `NotNeeded` mà bytes slot không đổi; Unity targeted runner đạt.
 - `[~]` `P-SAVE-007`: PlayMode lifecycle boundary khôi phục schema snapshot với `in_game_sec` và chụp MARK đang debounce; hard-kill/resume trên thiết bị thật còn chờ R17.
 - `[x]` `P-SAVE-008`: Playing/Fail/Revive/Win/Next giữ hoặc xóa snapshot đúng thời điểm trong AppScene matrix; Win suspend không tái tạo snapshot hoàn tất và Next ghi level mới.
-- `[~]` `P-SAVE-009`: Endgame runtime không mã hóa/verify/fsync trên main thread; background coalesce, immutable snapshot, focus-out/pause/quit force-rebuild và callback dedup đã có EditMode/PlayMode test. Còn app-kill trên thiết bị thật.
+- `[~]` `P-SAVE-009`: Player, endgame, profile, streak, rank và robot runtime không còn mã hóa/verify/fsync trên main thread; mỗi store coalesce immutable snapshot mới nhất và toàn app dùng một background write lane để tránh tranh CPU mobile. Pause/focus-out/quit flush đúng lifecycle; regression player/profile background đạt. Còn app-kill trên thiết bị thật.
 
 ## P-LEVEL — Bank và level selection
 
@@ -292,7 +292,8 @@ Không dùng cảm giác “có vẻ giống” để đóng case.
 - `[~]` `P-PERF-001`: Raw mouse/touch coordinate path không còn gọi `GetComponentInParent<Canvas>` hoặc `GetComponent<GridLayoutGroup>` ở mỗi pointer move; cache có invalidation theo parent/container và không đổi gesture contract nguồn.
 - `[~]` `P-PERF-002`: Cell/board layout tái sử dụng buffer bốn world-corner; rounded frame mesh tái sử dụng path buffer trong intro thay vì cấp phát mỗi rebuild. Intro mesh vẫn chỉ dirty trong đúng thời lượng animation.
 - `[~]` `P-PERF-003`: Board local pool giữ ownership/reset hiện tại; regression Setup→Clear→Setup xác nhận cell instance được tái sử dụng và state reset. Singleton `PoolManager` legacy không có code consumer nhưng còn serialized trong `LoadingScene`, chờ khóa build/test scene mới được dọn.
-- `[~]` `P-PERF-004`: Core/Gameplay/Editor/EditModeTests compile sạch, regression runner **90 passed, 0 failed**, Unity refresh/build sạch. Còn Unity Profiler/device GC, soak restart/pool và touch thật.
+- `[~]` `P-PERF-004`: Core/Gameplay/Editor/EditModeTests compile sạch, targeted regression **109 passed, 0 failed**. Còn Unity Profiler/device GC, soak restart/pool và touch thật.
+- `[~]` `P-PERF-005`: Không dùng Addressables và không đổi `Time.timeScale`; sáu cửa sổ có first-use spike (DailyGame, Setting, Profile, Streak, Rank page/how-to) được instantiate dưới Splash. Board Daily được warm theo size hiện tại; các row Rank đang tồn tại được tạo dần 4 row/frame trước khi route Home để animation lần mở đầu không bị nuốt bởi frame spike. Còn nghiệm thu cold-start trên build Windows/Android.
 
 ## P-RELEASE — Build và QA readiness
 

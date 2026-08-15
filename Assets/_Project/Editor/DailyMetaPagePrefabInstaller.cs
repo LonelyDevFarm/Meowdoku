@@ -270,10 +270,19 @@ namespace Meowdoku.Editor
             Button sunButton = sunRoot.AddComponent<Button>();
             sunButton.targetGraphic = sunImage;
 
-            Text number = CreateText(
-                "StreakNumber", hero, font, 200, "0", Orange);
-            SetCentered(number.rectTransform, new Vector2(0f, 35f),
+            RectTransform numberRoll = CreateRect("NumberRoll", hero);
+            SetCentered(numberRoll, new Vector2(0f, 35f),
                 new Vector2(1000f, 300f));
+            numberRoll.gameObject.AddComponent<RectMask2D>();
+            Text number = CreateText(
+                "StreakNumber", numberRoll, font, 200, "0", Orange);
+            Stretch(number.rectTransform);
+            Text numberNew = CreateText(
+                "StreakNumberNext", numberRoll, font, 200, "1", Orange);
+            Stretch(numberNew.rectTransform);
+            numberNew.rectTransform.anchoredPosition =
+                new Vector2(0f, -220f);
+            numberNew.gameObject.SetActive(false);
             Text current = CreateText(
                 "CurrentStreak", hero, font, 70,
                 "Current Streak", Brown);
@@ -344,6 +353,7 @@ namespace Meowdoku.Editor
             SerializedObject data = new(presenter);
             SetRef(data, "titleText", title);
             SetRef(data, "streakText", number);
+            SetRef(data, "streakTextNew", numberNew);
             SetRef(data, "currentText", current);
             SetRef(data, "bestText", best);
             SetRef(data, "tapSunText", tapText);
@@ -383,12 +393,16 @@ namespace Meowdoku.Editor
                 new Vector2(0f, -40f), new Vector2(120f, 120f));
             uncheckedDot.color = new Color(0.886f, 0.835f, 0.769f, 1f);
             ConfigureRounded(uncheckedDot, roundedShader, 60f);
+            CanvasGroup uncheckedCanvas =
+                uncheckedDot.gameObject.AddComponent<CanvasGroup>();
 
             Image checkedDot = CreateImage(
                 "CheckedDot", root, dot);
             SetCentered(checkedDot.rectTransform,
                 new Vector2(0f, -44f), new Vector2(148f, 148f));
             checkedDot.preserveAspect = true;
+            CanvasGroup checkedCanvas =
+                checkedDot.gameObject.AddComponent<CanvasGroup>();
 
             Image checkShort = CreateImage(
                 "CheckShort", checkedDot.transform, checkBar);
@@ -412,12 +426,17 @@ namespace Meowdoku.Editor
             SetCentered(chestImage.rectTransform,
                 new Vector2(0f, -42f), new Vector2(110f, 120f));
             chestImage.preserveAspect = true;
+            CanvasGroup chestCanvas =
+                chestImage.gameObject.AddComponent<CanvasGroup>();
 
             SerializedObject data = new(view);
             SetRef(data, "weekdayText", weekday);
             SetRef(data, "uncheckedDot", uncheckedDot.gameObject);
             SetRef(data, "checkedDot", checkedDot.gameObject);
             SetRef(data, "chest", chestImage.gameObject);
+            SetRef(data, "uncheckedCanvas", uncheckedCanvas);
+            SetRef(data, "checkedCanvas", checkedCanvas);
+            SetRef(data, "chestCanvas", chestCanvas);
             SetRef(data, "localization", localization);
             data.ApplyModifiedPropertiesWithoutUndo();
             return view;
@@ -1100,6 +1119,9 @@ namespace Meowdoku.Editor
                 : null;
             Transform sun = content?.Find("Hero/SunRoot/SunImg");
             Transform best = content?.Find("Hero/BestFrame");
+            Transform numberRoll = content?.Find("Hero/NumberRoll");
+            Transform numberNew = content?.Find(
+                "Hero/NumberRoll/StreakNumberNext");
             Transform backBase = content?.Find("Top/BackBtn/Base");
             Transform back = content?.Find("Top/BackBtn/Icon");
             Transform uncheckedDot = content?.Find(
@@ -1113,6 +1135,8 @@ namespace Meowdoku.Editor
                 SpriteNameMatches(
                     best?.GetComponent<Image>()?.sprite,
                     "sudoku_bg_round20") &&
+                numberRoll?.GetComponent<RectMask2D>() != null &&
+                numberNew?.GetComponent<Text>() != null &&
                 SpriteNameMatches(
                     backBase?.GetComponent<Image>()?.sprite,
                     "normal_btn_bg") &&

@@ -24,6 +24,14 @@ namespace Meowdoku.Tests.EditMode
             Transform content = Require(prefab.transform, "StreakContent");
             AssertSprite(content, "Hero/SunRoot/SunImg", "sun");
             AssertSprite(content, "Hero/BestFrame", "sudoku_bg_round20");
+            Transform numberRoll = Require(content, "Hero/NumberRoll");
+            Assert.That(numberRoll.GetComponent<RectMask2D>(), Is.Not.Null);
+            Assert.That(
+                Require(numberRoll, "StreakNumber").GetComponent<Text>(),
+                Is.Not.Null);
+            Assert.That(
+                Require(numberRoll, "StreakNumberNext").GetComponent<Text>(),
+                Is.Not.Null);
             AssertSprite(content, "Top/BackBtn/Base", "normal_btn_bg");
             AssertSprite(content, "Top/BackBtn/Icon", "vector_1");
 
@@ -51,9 +59,16 @@ namespace Meowdoku.Tests.EditMode
                     uncheckedDot.GetComponent<RoundedImageView>(),
                     Is.Not.Null);
                 Assert.That(
+                    uncheckedDot.GetComponent<CanvasGroup>(),
+                    Is.Not.Null);
+                Assert.That(
                     ((RectTransform)uncheckedDot).sizeDelta,
                     Is.EqualTo(new Vector2(120f, 120f)));
                 AssertSprite(slot.transform, "CheckedDot", "dot");
+                Assert.That(
+                    Require(slot.transform, "CheckedDot")
+                        .GetComponent<CanvasGroup>(),
+                    Is.Not.Null);
                 AssertSprite(
                     slot.transform,
                     "CheckedDot/CheckShort",

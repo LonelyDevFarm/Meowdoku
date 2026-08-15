@@ -1484,7 +1484,7 @@ namespace Meowdoku.Core
 
         public static bool FlushPendingWrites()
         {
-            return _repository == null || _repository.FlushEndgameWrites();
+            return _repository == null || _repository.FlushPendingWrites();
         }
 
 #if UNITY_INCLUDE_TESTS

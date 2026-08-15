@@ -113,6 +113,7 @@ Trạng thái: `NEXT`
 - [ ] Chạy full EditMode và Platform PlayMode sau khi kết thúc visual pass.
 - [ ] Smoke test dữ liệu mới: Tutorial → Home → Main Win → Next → Fail → Revive/Restart → Home.
 - [ ] Smoke test save/resume: thoát giữa ván, mở lại, reset data từ menu.
+- [ ] USER QA hiệu năng cold-start trên build: sau khi mở app, lần đầu vào Thử thách hằng ngày, Chuỗi, Rank và nút `!` phải chạy animation không khựng; đổi tên/cài đặt, mèo cuối, Win/Fail, Back/Replay không được đứng khung hình.
 - [ ] Kiểm tra build settings chỉ dùng `AppScene` làm entry; legacy Loading/Home/Gameplay scene không thuộc production flow.
 - [ ] Tạo Windows development build sạch và chạy thử ngoài Editor.
 - [ ] Android build là `OPTIONAL`; chỉ làm nếu toolchain hiện có hoạt động, không biến thành blocker.
